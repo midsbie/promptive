@@ -1,14 +1,29 @@
 import { PromptStorage } from "./shared/storage.js";
 
 const CONTEXT_MENU_LIMIT = 10;
-let promptStorage;
 
-// Initialize
-browser.runtime.onInstalled.addListener(async () => {
+let promptStorage;
+let isInitialized = false;
+
+async function initialize() {
+  if (isInitialized) {
+    console.warn("Extension already initialized");
+    return;
+  }
+
   promptStorage = new PromptStorage();
   await promptStorage.initialize();
   await createContextMenus();
-  console.info("Promptive extension installed");
+  isInitialized = true;
+  console.info("Extension initialized");
+}
+
+// Initialize right away
+initialize().catch(console.error);
+
+// Initialize
+browser.runtime.onInstalled.addListener(async () => {
+  console.info("Extension installed");
 });
 
 // Update context menus when storage changes
