@@ -105,18 +105,49 @@ class PromptLibrarySidebar {
           </div>
         </div>
         <div class="prompt-content">${this.escapeHtml(prompt.content)}</div>
-        <div class="prompt-meta">
-          ${
-            prompt.tags && prompt.tags.length > 0
-              ? `
+
+        <!-- Tags Row -->
+        ${
+          prompt.tags && prompt.tags.length > 0
+            ? `
+          <div class="prompt-tags-row">
             <div class="prompt-tags">
               ${prompt.tags.map((tag) => `<span class="tag">${this.escapeHtml(tag)}</span>`).join("")}
             </div>
-          `
-              : ""
-          }
-          <span>Used: ${prompt.used_times || 0} times</span>
-          ${prompt.last_used ? `<span>Last: ${new Date(prompt.last_used).toLocaleDateString()}</span>` : ""}
+          </div>
+        `
+            : ""
+        }
+
+        <!-- Stats Row -->
+        <div class="prompt-stats-row">
+          <div class="prompt-stats">
+            <span class="stat-item">
+              <svg class="stat-icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M3 3v18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              ${prompt.used_times || 0} times
+            </span>
+            ${
+              prompt.last_used
+                ? `
+              <span class="stat-separator">•</span>
+              <span class="stat-item">
+                <svg class="stat-icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                ${new Date(prompt.last_used).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            `
+                : ""
+            }
+          </div>
         </div>
       </div>
     `
