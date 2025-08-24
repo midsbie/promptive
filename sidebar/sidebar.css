@@ -104,6 +104,7 @@ body {
 .btn:active {
   transform: translateY(1px);
 }
+
 .btn:focus-visible {
   outline: none;
   box-shadow: var(--ring), var(--shadow-md);
@@ -162,13 +163,14 @@ body {
 .search-input::placeholder {
   color: #94a3b8;
 } /* slate-400 */
+
 .search-input:focus {
   outline: none;
   border-color: #bfdbfe;
   box-shadow: var(--ring), var(--shadow-sm);
 }
 
-/* List */
+/* Prompt list */
 .prompt-list {
   display: flex;
   flex-direction: column;
@@ -210,37 +212,6 @@ body {
   letter-spacing: 0.2px;
 }
 
-.prompt-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.prompt-btn {
-  padding: 0.35rem 0.55rem;
-  font-size: 0.78rem;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 8px;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.2s ease;
-}
-
-.prompt-btn:hover {
-  background: #f1f5f9; /* slate-100 */
-  color: var(--text);
-  border-color: #e2e8f0;
-}
-
-.prompt-btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ring);
-}
-
 .prompt-content {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -248,6 +219,158 @@ body {
   line-height: 1.4;
   overflow: hidden;
   margin-bottom: 0.65rem;
+}
+
+.prompt-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.prompt-actions {
+  align-items: center; /* ensure vertical centering for icon buttons */
+  gap: 0.25rem;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.08s ease;
+}
+
+.icon-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: var(--text);
+}
+
+.icon-btn:active {
+  transform: translateY(1px);
+}
+
+.icon-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring), var(--shadow-md);
+}
+
+/* Emphasis variant for Use */
+.icon-btn.use {
+  border-color: #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff, var(--surface));
+  color: var(--primary-hover);
+}
+
+.icon-btn.use:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: var(--primary);
+}
+
+/* Tooltip for icon buttons */
+.icon-btn[data-tooltip] {
+  position: relative;
+}
+
+.icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #0f172a;
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+  box-shadow: var(--shadow-md);
+  z-index: 20;
+}
+
+.icon-btn[data-tooltip]:hover::after,
+.icon-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Overflow kebab menu */
+.menu-wrapper {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: 40px;
+  right: 0;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: none;
+  z-index: 1000;
+}
+
+.menu.open {
+  display: block;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.menu-item svg {
+  flex-shrink: 0;
+}
+
+.menu-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 4px;
+}
+
+.menu-item.danger {
+  color: #b91c1c;
+}
+
+.menu-item.danger:hover,
+.menu-item.danger:focus-visible {
+  background: #fee2e2;
 }
 
 /* Tags Row */
@@ -380,6 +503,7 @@ body {
 .form-group {
   margin-bottom: 0.9rem;
 }
+
 .form-group label {
   display: block;
   margin-bottom: 0.35rem;
@@ -407,6 +531,7 @@ body {
   border-color: #bfdbfe;
   box-shadow: var(--ring);
 }
+
 textarea.form-input {
   resize: vertical;
   min-height: 120px;
@@ -422,6 +547,9 @@ textarea.form-input {
 /* Toast */
 .toast {
   position: fixed;
+  display: flex; /* add */
+  align-items: center; /* add */
+  gap: 12px; /* add */
   bottom: 1.4rem;
   left: 50%;
   transform: translateX(-50%) translateY(16px);
@@ -440,6 +568,21 @@ textarea.form-input {
   letter-spacing: 0.2px;
 }
 
+.toast .toast-action {
+  background: transparent;
+  color: #93c5fd;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.toast .toast-action:hover,
+.toast .toast-action:focus-visible {
+  background: #1e293b;
+  outline: none;
+}
+
 .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
@@ -450,9 +593,11 @@ textarea.form-input {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
+
 .prompt-list::-webkit-scrollbar {
   width: 10px;
 }
+
 .prompt-list::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 999px;
@@ -478,7 +623,6 @@ textarea.form-input {
     --text-muted: #94a3b8;
     --border: #1e293b;
   }
-
   body {
     background: radial-gradient(
         1200px 600px at 50% -10%,
@@ -487,7 +631,6 @@ textarea.form-input {
       )
       var(--bg);
   }
-
   .btn-secondary {
     background: var(--surface);
     border-color: var(--border);
@@ -521,5 +664,27 @@ textarea.form-input {
   }
   .prompt-stats {
     color: #64748b;
+  }
+  .icon-btn {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .icon-btn.use {
+    background: linear-gradient(180deg, #0b1220, #0f172a);
+  }
+  .menu {
+    background: var(--surface);
+    border-color: var(--border);
+  }
+  .menu-item:hover,
+  .menu-item:focus-visible {
+    background: #1e293b;
+  }
+  .menu-item.danger:hover,
+  .menu-item.danger:focus-visible {
+    background: #3b1f20;
+  }
+  .icon-btn[data-tooltip]::after {
+    background: #111827;
   }
 }

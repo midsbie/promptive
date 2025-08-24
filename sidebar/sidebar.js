@@ -7,6 +7,10 @@ class PromptLibrarySidebar {
     this.fuzzySearch = new FuzzySearch();
     this.prompts = [];
     this.editingPrompt = null;
+
+    // Track pending deletes for Undo
+    this.pendingDeletes = new Map(); // id -> { prompt, timerId }
+
     this.init();
   }
 
@@ -23,17 +27,14 @@ class PromptLibrarySidebar {
   }
 
   setupEventListeners() {
-    // Add prompt button
     document.getElementById("addPromptBtn").addEventListener("click", () => {
       this.openModal();
     });
 
-    // Search input
     document.getElementById("searchInput").addEventListener("input", (e) => {
       this.handleSearch(e.target.value);
     });
 
-    // Import/Export
     document.getElementById("importBtn").addEventListener("click", () => {
       document.getElementById("importFile").click();
     });
@@ -46,7 +47,6 @@ class PromptLibrarySidebar {
       await this.handleExport();
     });
 
-    // Modal form
     document.getElementById("promptForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       await this.savePrompt();
@@ -56,18 +56,27 @@ class PromptLibrarySidebar {
       this.closeModal();
     });
 
-    // Close modal on Escape
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.isModalOpen()) {
         this.closeModal();
       }
     });
 
-    // Click outside modal to close
     document.getElementById("promptModal").addEventListener("click", (e) => {
       if (e.target.id === "promptModal") {
         this.closeModal();
       }
+    });
+
+    // Close any open kebab menus when clicking outside
+    document.addEventListener("click", (e) => {
+      const openMenus = document.querySelectorAll(".menu.open");
+      openMenus.forEach((menu) => {
+        const wrapper = menu.closest(".menu-wrapper");
+        if (wrapper && !wrapper.contains(e.target)) {
+          this.closeMenu(wrapper);
+        }
+      });
     });
   }
 
@@ -92,34 +101,150 @@ class PromptLibrarySidebar {
       return;
     }
 
-    container.innerHTML = prompts
-      .map(
-        (prompt) => `
+    container.innerHTML = prompts.map((prompt) => this.renderPromptItem(prompt)).join("");
+
+    // Wire up per-card actions via delegation
+    container.querySelectorAll(".use-btn").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        const id = e.currentTarget.dataset.id;
+        await this.usePrompt(id);
+      });
+    });
+
+    container.querySelectorAll(".kebab-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const wrapper = e.currentTarget.closest(".menu-wrapper");
+        const expanded = e.currentTarget.getAttribute("aria-expanded") === "true";
+        // Close any other open menus first
+        document.querySelectorAll(".menu.open").forEach((m) => {
+          const w = m.closest(".menu-wrapper");
+          if (w !== wrapper) this.closeMenu(w);
+        });
+        if (expanded) this.closeMenu(wrapper);
+        else this.openMenu(wrapper);
+      });
+
+      // Keyboard support to open menu
+      btn.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          const wrapper = e.currentTarget.closest(".menu-wrapper");
+          const expanded = e.currentTarget.getAttribute("aria-expanded") === "true";
+          if (expanded) this.closeMenu(wrapper);
+          else {
+            this.openMenu(wrapper);
+            // focus first item
+            const firstItem = wrapper.querySelector(".menu-item");
+            firstItem?.focus();
+          }
+        }
+      });
+    });
+
+    container.querySelectorAll(".menu").forEach((menu) => {
+      // Click handlers
+      menu.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".menu-item");
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if (action === "edit") {
+          await this.editPrompt(id);
+        } else if (action === "delete") {
+          await this.deletePrompt(id);
+        }
+        // Close menu after action
+        const wrapper = menu.closest(".menu-wrapper");
+        this.closeMenu(wrapper);
+      });
+
+      // Keyboard navigation
+      menu.addEventListener("keydown", (e) => {
+        const items = Array.from(menu.querySelectorAll(".menu-item"));
+        const currentIndex = items.indexOf(document.activeElement);
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const next = items[(currentIndex + 1) % items.length];
+          next.focus();
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const prev = items[(currentIndex - 1 + items.length) % items.length];
+          prev.focus();
+        } else if (e.key === "Home") {
+          e.preventDefault();
+          items[0]?.focus();
+        } else if (e.key === "End") {
+          e.preventDefault();
+          items[items.length - 1]?.focus();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          const wrapper = menu.closest(".menu-wrapper");
+          this.closeMenu(wrapper);
+          wrapper.querySelector(".kebab-btn")?.focus();
+        }
+      });
+    });
+  }
+
+  renderPromptItem(prompt) {
+    const lastUsed = prompt.last_used
+      ? new Date(prompt.last_used).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : "";
+
+    return `
       <div class="prompt-item" role="listitem">
         <div class="prompt-header">
           <div class="prompt-title">${this.escapeHtml(prompt.title)}</div>
           <div class="prompt-actions">
-            <button class="prompt-btn" data-action="use" data-id="${prompt.id}" aria-label="Use prompt">Use</button>
-            <button class="prompt-btn" data-action="edit" data-id="${prompt.id}" aria-label="Edit prompt">Edit</button>
-            <button class="prompt-btn" data-action="delete" data-id="${prompt.id}" aria-label="Delete prompt">Delete</button>
-          </div>
-        </div>
-        <div class="prompt-content">${this.escapeHtml(prompt.content)}</div>
+            <!-- Use (icon button w/ tooltip) -->
+            <button class="icon-btn use use-btn"
+                    data-id="${prompt.id}"
+                    aria-label="Use prompt"
+                    data-tooltip="Use">
+              ${this.iconInsert()}
+            </button>
 
-        <!-- Tags Row -->
-        ${
-          prompt.tags && prompt.tags.length > 0
-            ? `
-          <div class="prompt-tags-row">
-            <div class="prompt-tags">
-              ${prompt.tags.map((tag) => `<span class="tag">${this.escapeHtml(tag)}</span>`).join("")}
+            <!-- Kebab (overflow menu) -->
+            <div class="menu-wrapper">
+              <button class="icon-btn kebab-btn"
+                      aria-label="More actions"
+                      aria-haspopup="menu"
+                      aria-expanded="false"
+                      data-tooltip="More">
+                ${this.iconKebab()}
+              </button>
+              <div class="menu" role="menu" aria-hidden="true">
+                <button class="menu-item" role="menuitem" data-action="edit" data-id="${prompt.id}">
+                  ${this.iconEdit()}
+                  <span>Edit</span>
+                </button>
+                <div class="menu-sep" role="separator"></div>
+                <button class="menu-item danger" role="menuitem" data-action="delete" data-id="${prompt.id}">
+                  ${this.iconTrash()}
+                  <span>Delete</span>
+                </button>
+              </div>
             </div>
           </div>
-        `
+        </div>
+
+        <div class="prompt-content">${this.escapeHtml(prompt.content)}</div>
+
+        ${
+          prompt.tags && prompt.tags.length
+            ? `<div class="prompt-tags-row">
+               <div class="prompt-tags">
+                 ${prompt.tags.map((t) => `<span class="tag">${this.escapeHtml(t)}</span>`).join("")}
+               </div>
+             </div>`
             : ""
         }
 
-        <!-- Stats Row -->
         <div class="prompt-stats-row">
           <div class="prompt-stats">
             <span class="stat-item">
@@ -131,44 +256,37 @@ class PromptLibrarySidebar {
             </span>
             ${
               prompt.last_used
-                ? `
-              <span class="stat-separator">•</span>
-              <span class="stat-item">
-                <svg class="stat-icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                ${new Date(prompt.last_used).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
-            `
+                ? `<span class="stat-separator">•</span>
+                 <span class="stat-item">
+                   <svg class="stat-icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
+                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                     <polyline points="12,6 12,12 16,14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>
+                   ${lastUsed}
+                 </span>`
                 : ""
             }
           </div>
         </div>
       </div>
-    `
-      )
-      .join("");
+    `;
+  }
 
-    // Add event listeners to action buttons
-    container.querySelectorAll(".prompt-btn").forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        const action = e.target.dataset.action;
-        const id = e.target.dataset.id;
+  openMenu(wrapper) {
+    const btn = wrapper.querySelector(".kebab-btn");
+    const menu = wrapper.querySelector(".menu");
+    btn.setAttribute("aria-expanded", "true");
+    menu.classList.add("open");
+    menu.setAttribute("aria-hidden", "false");
+  }
 
-        if (action === "use") {
-          await this.usePrompt(id);
-        } else if (action === "edit") {
-          await this.editPrompt(id);
-        } else if (action === "delete") {
-          await this.deletePrompt(id);
-        }
-      });
-    });
+  closeMenu(wrapper) {
+    if (!wrapper) return;
+    const btn = wrapper.querySelector(".kebab-btn");
+    const menu = wrapper.querySelector(".menu");
+    btn?.setAttribute("aria-expanded", "false");
+    menu?.classList.remove("open");
+    menu?.setAttribute("aria-hidden", "true");
   }
 
   handleSearch(query) {
@@ -176,7 +294,6 @@ class PromptLibrarySidebar {
       this.renderPrompts();
       return;
     }
-
     const results = this.fuzzySearch.search(query, this.prompts);
     this.renderPrompts(results);
   }
@@ -187,11 +304,9 @@ class PromptLibrarySidebar {
 
     await this.storage.recordUsage(id);
 
-    // Copy to clipboard
     await navigator.clipboard.writeText(prompt.content);
     this.showToast("Prompt copied to clipboard");
 
-    // Refresh to show updated usage stats
     await this.loadPrompts();
   }
 
@@ -204,11 +319,35 @@ class PromptLibrarySidebar {
   }
 
   async deletePrompt(id) {
-    if (confirm("Are you sure you want to delete this prompt?")) {
-      await this.storage.deletePrompt(id);
-      await this.loadPrompts();
-      this.showToast("Prompt deleted");
-    }
+    const prompt = this.prompts.find((p) => p.id === id);
+    if (!prompt) return;
+
+    // Remove immediately from storage/UI
+    await this.storage.deletePrompt(id);
+    await this.loadPrompts();
+
+    // Setup Undo window
+    const timerId = setTimeout(() => {
+      // finalize (nothing to do, already deleted)
+      this.pendingDeletes.delete(id);
+    }, 6000);
+
+    this.pendingDeletes.set(id, { prompt, timerId });
+
+    this.showToast(`Deleted "${prompt.title}"`, {
+      actionLabel: "Undo",
+      onAction: async () => {
+        const pending = this.pendingDeletes.get(id);
+        if (pending) {
+          clearTimeout(pending.timerId);
+          this.pendingDeletes.delete(id);
+          // Restore prompt with same id
+          await this.storage.savePrompt({ ...prompt, id: prompt.id });
+          await this.loadPrompts();
+          this.showToast("Restored");
+        }
+      },
+    });
   }
 
   openModal(prompt = null) {
@@ -228,7 +367,6 @@ class PromptLibrarySidebar {
     modal.classList.add("active");
     document.getElementById("promptTitle").focus();
 
-    // Trap focus
     this.trapFocus(modal);
   }
 
@@ -252,15 +390,8 @@ class PromptLibrarySidebar {
 
     if (!title || !content) return;
 
-    const promptData = {
-      title,
-      content,
-      tags,
-    };
-
-    if (this.editingPrompt) {
-      promptData.id = this.editingPrompt.id;
-    }
+    const promptData = { title, content, tags };
+    if (this.editingPrompt) promptData.id = this.editingPrompt.id;
 
     await this.storage.savePrompt(promptData);
     await this.loadPrompts();
@@ -270,7 +401,6 @@ class PromptLibrarySidebar {
 
   async handleImport(file) {
     if (!file) return;
-
     try {
       const text = await file.text();
       const data = JSON.parse(text);
@@ -294,13 +424,26 @@ class PromptLibrarySidebar {
     this.showToast("Prompts exported");
   }
 
-  showToast(message) {
+  showToast(message, options = null) {
     const toast = document.getElementById("toast");
+    toast.innerHTML = ""; // reset
     toast.textContent = message;
     toast.classList.add("show");
-    setTimeout(() => {
+
+    if (options?.actionLabel && typeof options.onAction === "function") {
+      const btn = document.createElement("button");
+      btn.className = "toast-action";
+      btn.textContent = options.actionLabel;
+      btn.addEventListener("click", () => {
+        options.onAction();
+      });
+      toast.appendChild(btn);
+    }
+
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => {
       toast.classList.remove("show");
-    }, 3000);
+    }, 3500);
   }
 
   trapFocus(element) {
@@ -329,8 +472,45 @@ class PromptLibrarySidebar {
 
   escapeHtml(text) {
     const div = document.createElement("div");
-    div.textContent = text;
+    div.textContent = text ?? "";
     return div.innerHTML;
+  }
+
+  /* ---------- SVG Icons ---------- */
+  iconKebab() {
+    return `
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="5" r="2" fill="currentColor"></circle>
+        <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+        <circle cx="12" cy="19" r="2" fill="currentColor"></circle>
+      </svg>`;
+  }
+
+  // “Insert” / “Use” icon: arrow into a square
+  iconInsert() {
+    return `
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14 3h5v18H5V3h5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+        <path d="M12 11V4m0 7l3-3m-3 3L9 8" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>`;
+  }
+
+  iconEdit() {
+    return `
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor"></path>
+        <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"></path>
+      </svg>`;
+  }
+
+  iconTrash() {
+    return `
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 6h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path>
+        <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path>
+        <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path>
+        <path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"></path>
+      </svg>`;
   }
 }
 
