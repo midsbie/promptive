@@ -1,0 +1,200 @@
+#+TITLE: Promptive
+#+AUTHOR:
+#+DATE: 2024
+#+OPTIONS: toc:2 num:nil ^:nil
+
+* Overview
+
+The Promptive extension is a powerful Firefox add-on that helps you manage and quickly access frequently used text snippets, templates, and prompts. Whether you're writing emails, coding, taking notes, or filling out forms, this extension puts your most-used text at your fingertips.
+
+** Key Benefits
+- No more losing track of your best ideas, your prompts stay in one place  
+- Stop retyping the same things, summon your prompt with a shortcut  
+- Search your library easily with tags
+- See which prompts you actually use most  
+- Works entirely offline, your data never leaves Firefox  
+- Open prompts from the sidebar, right-click menu, or a hotkey  
+
+* Getting Started
+
+** Installation
+
+*** From Source (Development)
+1. Clone this repository
+2. Open Firefox and navigate to =about:debugging=
+3. Click "This Firefox" in the left sidebar
+4. Click "Load Temporary Add-on"
+5. Select the =manifest.json= file from the repository's root directory
+
+*** From Mozilla Add-ons (Official Store)
+1. Open Firefox and go to the [Promptive Add-ons page](https://addons.mozilla.org/en-GB/firefox/addon/promptive)
+2. Click *"Add to Firefox"*
+3. Confirm installation when prompted
+4. The Promptive icon will appear in your toolbar
+
+** First Run
+
+When you first install the extension, it comes with three example prompts to help you understand how it works:
+- Professional Email template
+- Code Review Comment template
+- Meeting Notes template
+
+You can edit or delete these examples and add your own prompts.
+
+* Using the Extension
+
+** Accessing Your Prompts
+
+There are *four ways* to access your prompt library:
+
+*** 1. Sidebar Panel
+- Click the Promptive icon in your Firefox toolbar
+- The sidebar opens with your complete prompt library
+- Full management capabilities (add, edit, delete, search)
+
+*** 2. Keyboard Shortcut (Quick Selector)
+- Press =Alt+Shift+P= anywhere on a webpage
+- A centered popup appears with a search box
+- Start typing to filter prompts
+- Use arrow keys to navigate, Enter to select
+
+*** 3. Context Menu (Right-Click)
+- Right-click in any text field or selected text
+- Choose "Promptive" from the menu
+- Your 10 most recently used prompts appear
+- Select "Manage Prompts..." to open the sidebar
+
+*** 4. Toolbar Button
+- Click the extension icon in the Firefox toolbar
+- Opens the quick selector popup on the current page
+
+** Creating a New Prompt
+
+1. Open the sidebar (click toolbar icon)
+2. Click the *"+ Add"* button
+3. Fill in the prompt details:
+   - *Title*: A memorable name for your prompt
+   - *Content*: The actual text to be inserted
+   - *Tags*: Comma-separated keywords for organization (optional)
+4. Click *"Save"*
+
+** Using a Prompt
+
+*** Method 1: Direct Insertion
+1. Click in any text field on a webpage
+2. Press =Alt+Shift+P= or right-click → "Promptive"
+3. Select your prompt
+4. The text is *automatically inserted* at your cursor position
+
+*** Method 2: Copy to Clipboard
+1. Open the sidebar
+2. Find your prompt
+3. Click the *"Use"* button
+4. The prompt is copied to your clipboard
+5. Paste (Ctrl+V) wherever needed
+
+** Searching for Prompts
+
+The extension includes *fuzzy search* that matches against:
+- Prompt titles
+- Prompt content
+- Associated tags
+
+*** In the Sidebar
+- Use the search box at the top
+- Results update as you type
+- Clear the search to see all prompts
+
+*** In the Quick Selector (Alt+Shift+P)
+- The search box is auto-focused
+- Type any part of the title, content, or tags
+- Matching prompts appear instantly
+
+** Managing Your Library
+
+*** Editing a Prompt
+1. Open the sidebar
+2. Click *"Edit"* on any prompt
+3. Modify the title, content, or tags
+4. Click *"Save"* to update
+
+*** Deleting a Prompt
+1. Open the sidebar
+2. Click *"Delete"* on any prompt
+3. Confirm the deletion
+
+*** Viewing Usage Statistics
+Each prompt displays:
+- *Used*: Total number of times used
+- *Last*: Date of most recent use
+
+* Import and Export
+
+** Exporting Your Prompts
+
+1. Open the sidebar
+2. Click the *"Export"* button
+3. Your prompts are downloaded as a JSON file
+4. File is named: =prompts-YYYY-MM-DD.json=
+
+Use this feature to:
+- Create backups of your prompt library
+- Share prompts with colleagues
+- Transfer prompts to another computer
+
+** Importing Prompts
+
+1. Open the sidebar
+2. Click the *"Import"* button
+3. Select a JSON file to import
+4. Prompts are merged with your existing library
+
+*** Import Behavior
+- *Duplicate detection*: Based on exact title + content match
+- *New prompts*: Added to your library
+- *Existing prompts*: Updated only if the imported version is newer
+- *Tags merged*: Combines tags from both versions
+
+** Import/Export Format
+
+The JSON structure for import/export:
+#+BEGIN_SRC json
+{
+  "version": 1,
+  "exported_at": "2024-01-15T10:30:00.000Z",
+  "prompts": [
+    {
+      "title": "Example Prompt",
+      "content": "This is the prompt content",
+      "tags": ["tag1", "tag2"],
+      "created_at": "2024-01-01T00:00:00.000Z",
+      "updated_at": "2024-01-10T00:00:00.000Z",
+      "last_used": "2024-01-14T00:00:00.000Z",
+      "used_times": 5
+    }
+  ]
+}
+#+END_SRC
+
+* Keyboard Shortcuts
+
+| Shortcut         | Action                    | Context                |
+|------------------+---------------------------+------------------------|
+| =Alt+Shift+P=    | Open quick selector       | Any supported webpage  |
+| =↑/↓= Arrow Keys | Navigate prompts          | Quick selector         |
+| =Enter=          | Select highlighted prompt | Quick selector         |
+| =Escape=         | Close popup/modal         | Quick selector, modals |
+| =Tab/Shift+Tab=  | Navigate UI elements      | Sidebar, modals        |
+
+** Customizing the Keyboard Shortcut
+
+1. Right-click the extension icon
+2. Select "Manage Extension"
+3. Click "Options" or go to extension preferences
+4. Click in the shortcut field
+5. Press your desired key combination
+6. The new shortcut is saved automatically
+
+* Privacy and Data
+
+All prompts are stored **locally** in your Firefox profile with no cloud sync, external servers, or telemetry. Your data remains on your device, persists across sessions, and is removed if the extension is uninstalled. To keep your library safe, regularly export prompts as JSON, save backups in a secure location, and consider version control.
