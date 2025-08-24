@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "Prompt Library",
+  "version": "1.0.0",
+  "description": "A powerful prompt library with sidebar UI and quick access",
+  "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab"],
+  "background": {
+    "scripts": ["background.js"],
+    "type": "module"
+  },
+  "sidebar_action": {
+    "default_title": "Prompt Library",
+    "default_panel": "sidebar/sidebar.html",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "96": "icons/icon-96.svg",
+      "128": "icons/icon-128.svg"
+    }
+  },
+  "action": {
+    "default_title": "Open Prompt Selector",
+    "default_icon": {
+      "16": "icons/icon-16.svg",
+      "32": "icons/icon-32.svg",
+      "48": "icons/icon-48.svg",
+      "96": "icons/icon-96.svg",
+      "128": "icons/icon-128.svg"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chat.openai.com/*",
+        "*://claude.ai/*",
+        "*://gemini.google.com/*",
+        "*://bard.google.com/*",
+        "*://copilot.microsoft.com/*",
+        "*://bing.com/chat/*",
+        "*://perplexity.ai/*",
+        "*://poe.com/*",
+        "*://huggingface.co/*",
+        "*://character.ai/*"
+      ],
+      "js": ["content/content.js"],
+      "css": ["content/popover.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "open-prompt-selector": {
+      "suggested_key": {
+        "default": "Alt+Shift+P"
+      },
+      "description": "Open prompt selector popover"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.svg",
+    "32": "icons/icon-32.svg",
+    "48": "icons/icon-48.svg",
+    "96": "icons/icon-96.svg",
+    "128": "icons/icon-128.svg"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": false
+  }
+}
