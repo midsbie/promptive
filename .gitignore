@@ -1,0 +1,9 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+build/
+*.zip
+*.tar.gz
