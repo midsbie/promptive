@@ -32,16 +32,20 @@
   "content_scripts": [
     {
       "matches": [
+        "*://chatgpt.com/*",
         "*://chat.openai.com/*",
-        "*://claude.ai/*",
-        "*://gemini.google.com/*",
+        "*://platform.openai.com/",
         "*://bard.google.com/*",
-        "*://copilot.microsoft.com/*",
         "*://bing.com/chat/*",
-        "*://perplexity.ai/*",
-        "*://poe.com/*",
+        "*://character.ai/*",
+        "*://claude.ai/*",
+        "*://copilot.microsoft.com/*",
+        "*://deepseek.com/*",
+        "*://platform.deepseek.com/*",
+        "*://gemini.google.com/*",
         "*://huggingface.co/*",
-        "*://character.ai/*"
+        "*://perplexity.ai/*",
+        "*://poe.com/*"
       ],
       "js": ["content/content.js"],
       "css": ["content/popover.css"],
