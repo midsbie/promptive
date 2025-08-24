@@ -414,18 +414,6 @@ body {
   box-shadow: var(--ring), var(--shadow-md);
 }
 
-/* Emphasis variant for Use */
-.icon-btn.use {
-  border-color: var(--blue-200);
-  background: linear-gradient(180deg, var(--blue-50), var(--color-surface));
-  color: var(--color-primary-strong);
-}
-.icon-btn.use:hover {
-  background: var(--blue-50);
-  border-color: var(--blue-300);
-  color: var(--color-primary);
-}
-
 /* Tooltips for icon buttons */
 .icon-btn[data-tooltip] {
   position: relative;
@@ -454,6 +442,24 @@ body {
 .icon-btn[data-tooltip]:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* Ghost variant — no border or background until hover/focus */
+.icon-btn.ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-text-muted);
+}
+.icon-btn.ghost:hover,
+.icon-btn.ghost:focus-visible {
+  background: var(--slate-50);
+  border-color: var(--slate-300);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+.icon-btn.ghost:active {
+  transform: translateY(1px);
 }
 
 /* Overflow kebab menu */

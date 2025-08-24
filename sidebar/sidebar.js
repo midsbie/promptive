@@ -202,7 +202,7 @@ class PromptLibrarySidebar {
           <div class="prompt-title">${this.escapeHtml(prompt.title)}</div>
           <div class="prompt-actions">
             <!-- Use (icon button w/ tooltip) -->
-            <button class="icon-btn use use-btn"
+            <button class="icon-btn use-btn ghost"
                     data-id="${prompt.id}"
                     aria-label="Use prompt"
                     data-tooltip="Use">
@@ -211,7 +211,7 @@ class PromptLibrarySidebar {
 
             <!-- Kebab (overflow menu) -->
             <div class="menu-wrapper">
-              <button class="icon-btn kebab-btn"
+              <button class="icon-btn kebab-btn ghost"
                       aria-label="More actions"
                       aria-haspopup="menu"
                       aria-expanded="false"
