@@ -70,12 +70,15 @@ export class PromptStorage {
     const prompts = await this.getAllPrompts();
     const now = new Date().toISOString();
 
+    let index;
     if (prompt.id) {
-      // Update existing
-      const index = prompts.findIndex((p) => p.id === prompt.id);
-      if (index !== -1) {
-        prompts[index] = { ...prompt, updated_at: now };
-      }
+      // If the prompt has an ID, find it.
+      index = prompts.findIndex((p) => p.id === prompt.id);
+    }
+
+    // If an index was found, update existing; otherwise create new.
+    if (index >= 0) {
+      prompts[index] = { ...prompt, updated_at: now };
     } else {
       // Create new
       prompts.push({
