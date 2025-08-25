@@ -2,6 +2,7 @@
 let popoverElement = null;
 let selectedIndex = 0;
 let filteredPrompts = [];
+let targetElement = null;
 
 // Listen for messages from background script
 browser.runtime.onMessage.addListener(async (message) => {
@@ -18,6 +19,9 @@ async function showPopover() {
   if (popoverElement) {
     popoverElement.remove();
   }
+
+  // Store reference to currently focused element
+  targetElement = document.activeElement;
 
   // Get prompts from background
   const prompts = await browser.runtime.sendMessage({ action: "getPrompts" });
@@ -170,33 +174,66 @@ async function selectPrompt(prompt) {
 }
 
 function insertText(text) {
-  const activeElement = document.activeElement;
+  // Use stored target element instead of current activeElement
+  const element = targetElement;
 
-  // Check if we can insert into the active element
+  // Check for conditions where we should copy to clipboard instead
   if (
-    activeElement &&
-    (activeElement.tagName === "INPUT" ||
-      activeElement.tagName === "TEXTAREA" ||
-      activeElement.contentEditable === "true")
+    !element ||
+    element === document.body ||
+    element === document.documentElement ||
+    !(
+      element.tagName === "INPUT" ||
+      element.tagName === "TEXTAREA" ||
+      element.contentEditable === "true" ||
+      element.hasAttribute("contenteditable")
+    )
   ) {
-    if (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA") {
-      const start = activeElement.selectionStart;
-      const end = activeElement.selectionEnd;
-      const value = activeElement.value;
-      activeElement.value = value.substring(0, start) + text + value.substring(end);
-      activeElement.selectionStart = activeElement.selectionEnd = start + text.length;
-      activeElement.focus();
-    } else {
-      // ContentEditable
-      document.execCommand("insertText", false, text);
-    }
-    showToast("Prompt inserted");
-  } else {
-    // Copy to clipboard
+    // Copy to clipboard as fallback
     navigator.clipboard.writeText(text).then(() => {
       showToast("Prompt copied to clipboard");
     });
+    return;
   }
+
+  // We have a valid target element to insert into
+  if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+    // Handle standard input/textarea elements
+    const start = element.selectionStart || 0;
+    const end = element.selectionEnd || 0;
+    const value = element.value || "";
+    element.value = value.substring(0, start) + text + value.substring(end);
+    element.selectionStart = element.selectionEnd = start + text.length;
+    element.focus();
+
+    // Dispatch input event for frameworks that listen for it
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  } else if (element.contentEditable === "true" || element.hasAttribute("contenteditable")) {
+    // Handle contentEditable elements (including ProseMirror)
+    element.focus();
+
+    // Try modern approach first
+    if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
+      document.execCommand("insertText", false, text);
+    } else {
+      // Fallback: use Selection API
+      const selection = window.getSelection();
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(text);
+      range.insertNode(textNode);
+      range.setStartAfter(textNode);
+      range.setEndAfter(textNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+
+    // Dispatch input event for frameworks
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  showToast("Prompt inserted");
 }
 
 function closePopover() {
@@ -204,6 +241,9 @@ function closePopover() {
     popoverElement.remove();
     popoverElement = null;
   }
+
+  targetElement = null;
+
   document.removeEventListener("click", handleOutsideClick);
   document.removeEventListener("keydown", handleEscape);
 }
