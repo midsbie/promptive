@@ -34,7 +34,7 @@
       "matches": [
         "*://chatgpt.com/*",
         "*://chat.openai.com/*",
-        "*://platform.openai.com/",
+        "*://platform.openai.com/*",
         "*://bard.google.com/*",
         "*://bing.com/chat/*",
         "*://character.ai/*",
