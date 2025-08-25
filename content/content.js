@@ -212,20 +212,38 @@ function insertText(text) {
     // Handle contentEditable elements (including ProseMirror)
     element.focus();
 
-    // Try modern approach first
-    if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
+    // Convert plain text to HTML with proper paragraph structure
+    const lines = text.split("\n");
+    const htmlContent = lines
+      .map((line) => (line.trim() === "" ? "<p><br></p>" : `<p>${escapeHtml(line)}</p>`))
+      .join("");
+
+    // Try to insert as HTML first
+    if (document.queryCommandSupported && document.queryCommandSupported("insertHTML")) {
+      document.execCommand("insertHTML", false, htmlContent);
+    } else if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
+      // Fallback to plain text if HTML insertion isn't supported
       document.execCommand("insertText", false, text);
     } else {
-      // Fallback: use Selection API
+      // Manual insertion using Selection API with HTML
       const selection = window.getSelection();
-      const range = selection.getRangeAt(0);
-      range.deleteContents();
-      const textNode = document.createTextNode(text);
-      range.insertNode(textNode);
-      range.setStartAfter(textNode);
-      range.setEndAfter(textNode);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        // Create a temporary div to parse HTML
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = htmlContent;
+
+        // Insert each child node
+        while (tempDiv.firstChild) {
+          range.insertNode(tempDiv.firstChild);
+          range.collapse(false);
+        }
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
     }
 
     // Dispatch input event for frameworks
