@@ -19,6 +19,84 @@ class ToastService {
   }
 }
 
+class CursorPositionManager {
+  static getPosition(el) {
+    if (!el) return null;
+
+    try {
+      // Handle INPUT/TEXTAREA elements
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+        return {
+          type: "input",
+          start: el.selectionStart ?? 0,
+          end: el.selectionEnd ?? 0,
+        };
+      }
+
+      // Handle contentEditable elements
+      if (el.isContentEditable || el.getAttribute?.("contenteditable")) {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+          return { type: "contenteditable", range: null };
+        }
+
+        const range = selection.getRangeAt(0);
+        // Store range as serializable data
+        return {
+          type: "contenteditable",
+          range: {
+            startContainer: range.startContainer,
+            startOffset: range.startOffset,
+            endContainer: range.endContainer,
+            endOffset: range.endOffset,
+            collapsed: range.collapsed,
+          },
+        };
+      }
+    } catch (e) {
+      console.warn("Failed to get cursor position", e);
+    }
+
+    return null;
+  }
+
+  static setPosition(el, position) {
+    if (!el || !position) return;
+
+    try {
+      if (position.type === "input") {
+        // Restore INPUT/TEXTAREA selection
+        if (typeof position.start === "number" && typeof position.end === "number") {
+          el.selectionStart = position.start;
+          el.selectionEnd = position.end;
+        }
+      } else if (position.type === "contenteditable" && position.range) {
+        // Restore contentEditable selection
+        const { startContainer, startOffset, endContainer, endOffset } = position.range;
+
+        // Verify containers are still connected to DOM
+        if (!startContainer?.isConnected || !endContainer?.isConnected) {
+          return;
+        }
+
+        const selection = window.getSelection();
+        const range = document.createRange();
+
+        range.setStart(
+          startContainer,
+          Math.min(startOffset, startContainer.textContent?.length ?? 0)
+        );
+        range.setEnd(endContainer, Math.min(endOffset, endContainer.textContent?.length ?? 0));
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    } catch (e) {
+      console.warn("Failed to set cursor position", e);
+    }
+  }
+}
+
 const escapeHtml = (text = "") => {
   const div = document.createElement("div");
   div.textContent = text;
@@ -90,17 +168,23 @@ class ContentEditableStrategy extends InsertionStrategy {
 
   insert(el, text) {
     if (!el) return false;
-    el.focus();
+
+    if (document.activeElement !== el) {
+      console.warn("Target element is not focused; insertion may be out of place");
+      el.focus();
+    }
 
     // plaintext-only hosts MUST ignore HTML
     const isPlainTextOnly = el.getAttribute?.("contenteditable") === "plaintext-only";
     if (isPlainTextOnly) {
+      console.log('Target is contenteditable="plaintext-only"; inserting as plain text');
       return this._insertPlainText(el, text);
     }
 
     const html = toParagraphHtml(text);
     // 1) Preferred because it triggers editor pipelines: execCommand('insertHTML')
     if (document.queryCommandSupported?.("insertHTML")) {
+      console.log("Using execCommand('insertHTML') for insertion");
       try {
         document.execCommand("insertHTML", false, html);
         this._dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
@@ -112,6 +196,7 @@ class ContentEditableStrategy extends InsertionStrategy {
 
     // 2) Try firing the beforeinput/input path so editors keep newlines
     try {
+      console.log("Using beforeinput/input events for insertion");
       const canceled = el.dispatchEvent(
         new InputEvent("beforeinput", {
           inputType: "insertFromPaste",
@@ -139,6 +224,7 @@ class ContentEditableStrategy extends InsertionStrategy {
     }
 
     // Last resort: plain text
+    console.warn("Falling back to range-based plain text insertion");
     return this._insertPlainText(el, text);
   }
 
@@ -428,6 +514,7 @@ class ContentController {
 
     this.popover = null;
     this.targetElement = null;
+    this.targetCursorPosition = null;
 
     // Bind for runtime listener
     this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
@@ -458,16 +545,12 @@ class ContentController {
       searchFn: simpleSearch,
       onSelect: async (prompt) => {
         await this.api.recordUsage(prompt.id);
+        this._restoreTarget();
         this._insertAndNotify(prompt.content);
         this.popover?.close(); // will trigger onClose
       },
       onClose: () => {
-        // Restore focus to original element (if still attached)
-        if (this.targetElement?.isConnected && typeof this.targetElement.focus === "function") {
-          try {
-            this.targetElement.focus();
-          } catch {}
-        }
+        this._restoreTarget();
         this._clearTarget();
         this.popover = null;
       },
@@ -494,8 +577,44 @@ class ContentController {
     this.targetElement = acceptable ? el : null;
   }
 
+  _rememberTarget(el) {
+    const acceptable = this.textInserter.canHandle(el);
+    if (!acceptable) {
+      this.targetElement = null;
+      this.targetCursorPosition = null;
+      return;
+    }
+
+    this.targetElement = el;
+    this.targetCursorPosition = CursorPositionManager.getPosition(el);
+  }
+
+  _restoreTarget() {
+    if (!this.targetElement?.isConnected) {
+      return false;
+    }
+
+    try {
+      // Focus the element
+      if (typeof this.targetElement.focus === "function") {
+        this.targetElement.focus();
+      }
+
+      // Restore cursor position
+      if (this.targetCursorPosition) {
+        CursorPositionManager.setPosition(this.targetElement, this.targetCursorPosition);
+      }
+
+      return true;
+    } catch (e) {
+      console.warn("Failed to restore target", e);
+      return false;
+    }
+  }
+
   _clearTarget() {
     this.targetElement = null;
+    this.targetCursorPosition = null;
   }
 }
 
