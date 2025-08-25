@@ -192,8 +192,8 @@ class ContentEditableStrategy extends InsertionStrategy {
   }
 }
 
-class ClipboardCopier {
-  copy(text) {
+class ClipboardWriter {
+  write(text) {
     // Never throws; failures are acceptable as last resort.
     navigator.clipboard.writeText(text).then(
       () => ToastService.show("Prompt copied to clipboard"),
@@ -420,7 +420,8 @@ class ContentController {
       new InputTextareaStrategy(),
       new ContentEditableStrategy(),
     ]);
-    this.clipboardCopier = new ClipboardCopier();
+
+    this.clipboardWriter = new ClipboardWriter();
 
     this.popover = null;
     this.targetElement = null;
@@ -428,6 +429,8 @@ class ContentController {
     // Bind for runtime listener
     this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
+
+    console.info("Content script initialized");
   }
 
   async _onRuntimeMessage(message) {
@@ -479,7 +482,7 @@ class ContentController {
       return;
     }
 
-    this.clipboardCopier.copy(text);
+    this.clipboardWriter.write(text);
     ToastService.show("Copied to clipboard");
   }
 
