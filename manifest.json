@@ -44,7 +44,7 @@
         "*://platform.deepseek.com/*",
         "*://gemini.google.com/*",
         "*://huggingface.co/*",
-        "*://perplexity.ai/*",
+        "*://*.perplexity.ai/*",
         "*://poe.com/*"
       ],
       "js": ["content/content.js"],
