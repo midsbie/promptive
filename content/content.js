@@ -98,11 +98,11 @@ class ContentEditableStrategy extends InsertionStrategy {
       return this._insertPlainText(el, text);
     }
 
+    const html = toParagraphHtml(text);
     // 1) Preferred because it triggers editor pipelines: execCommand('insertHTML')
-    const htmlForParagraphs = toParagraphHtml(text);
     if (document.queryCommandSupported?.("insertHTML")) {
       try {
-        document.execCommand("insertHTML", false, htmlForParagraphs);
+        document.execCommand("insertHTML", false, html);
         this._dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
         return true;
       } catch (_) {
