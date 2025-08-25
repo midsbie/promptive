@@ -221,6 +221,8 @@ class TextInserter {
   }
 
   insert(target, text) {
+    if (!target) return false;
+
     for (const s of this.strategies) {
       try {
         if (s.canHandle(target)) {
@@ -231,6 +233,7 @@ class TextInserter {
         console.error("Insertion strategy error", e);
       }
     }
+
     return false;
   }
 }
