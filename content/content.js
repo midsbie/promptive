@@ -80,52 +80,115 @@ class InputTextareaStrategy extends InsertionStrategy {
 
 class ContentEditableStrategy extends InsertionStrategy {
   canHandle(el) {
-    return !!el && (el.isContentEditable || el.getAttribute?.("contenteditable") === "true");
+    return (
+      !!el &&
+      (el.isContentEditable ||
+        el.getAttribute?.("contenteditable") === "true" ||
+        el.getAttribute?.("contenteditable") === "plaintext-only")
+    );
   }
 
   insert(el, text) {
+    if (!el) return false;
     el.focus();
 
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
-      // If no selection, append to end
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      selection?.removeAllRanges();
-      selection?.addRange(range);
+    // plaintext-only hosts MUST ignore HTML
+    const isPlainTextOnly = el.getAttribute?.("contenteditable") === "plaintext-only";
+    if (isPlainTextOnly) {
+      return this._insertPlainText(el, text);
     }
 
-    const range = selection.getRangeAt(0);
-    const html = toParagraphHtml(text);
-
-    // Prefer modern, non-deprecated approach
-    if (range.createContextualFragment) {
-      range.deleteContents();
-      const frag = range.createContextualFragment(html);
-      range.insertNode(frag);
-      // Move caret to end
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
-    } else if (document.execCommand) {
-      // Fallbacks (widely supported but deprecated)
-      if (document.queryCommandSupported("insertHTML")) {
-        document.execCommand("insertHTML", false, html);
-      } else if (document.queryCommandSupported("insertText")) {
-        document.execCommand("insertText", false, text);
-      } else {
-        // Ultimate fallback: plain text node insertion
-        range.deleteContents();
-        range.insertNode(document.createTextNode(text));
-        range.collapse(false);
+    // 1) Preferred because it triggers editor pipelines: execCommand('insertHTML')
+    const htmlForParagraphs = toParagraphHtml(text);
+    if (document.queryCommandSupported?.("insertHTML")) {
+      try {
+        document.execCommand("insertHTML", false, htmlForParagraphs);
+        this._dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
+        return true;
+      } catch (_) {
+        /* continue */
       }
     }
 
-    // Notify reactive frameworks
+    // 2) Try firing the beforeinput/input path so editors keep newlines
+    try {
+      const canceled = el.dispatchEvent(
+        new InputEvent("beforeinput", {
+          inputType: "insertFromPaste",
+          data: text,
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+        })
+      );
+
+      if (!canceled) {
+        el.dispatchEvent(
+          new InputEvent("input", {
+            inputType: "insertFromPaste",
+            data: text,
+            bubbles: true,
+            composed: true,
+          })
+        );
+
+        // Some editors will do their own insertion on beforeinput; if not, we’ll fall through.
+      }
+    } catch (_) {
+      /* not supported */
+    }
+
+    // Last resort: plain text
+    return this._insertPlainText(el, text);
+  }
+
+  _insertPlainText(el, text) {
+    if (document.queryCommandSupported?.("insertText")) {
+      try {
+        document.execCommand("insertText", false, text);
+        this._dispatchInput(el, "insertText");
+        return true;
+      } catch (_) {
+        /* fall through */
+      }
+    }
+
+    // Range-based plain text
+    try {
+      const sel = window.getSelection?.();
+      if (!sel || sel.rangeCount === 0) {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+      }
+
+      const range = window.getSelection().getRangeAt(0);
+      range.deleteContents();
+
+      const tn = document.createTextNode(text);
+      range.insertNode(tn);
+      range.setStartAfter(tn);
+      range.setEndAfter(tn);
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      this._dispatchInput(el, "insertText");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  _dispatchInput(el, inputType = "insertText") {
+    // Generic change/input for frameworks
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
-    return true;
+    // Try to provide richer signal when supported
+    try {
+      el.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType }));
+    } catch (_) {}
   }
 }
 
