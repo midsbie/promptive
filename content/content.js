@@ -182,7 +182,7 @@ class ContentEditableStrategy extends InsertionStrategy {
     }
 
     const html = toParagraphHtml(text);
-    // 1) Preferred because it triggers editor pipelines: execCommand('insertHTML')
+    // First choice: insertHTML command
     if (document.queryCommandSupported?.("insertHTML")) {
       console.log("Using execCommand('insertHTML') for insertion");
       try {
@@ -192,35 +192,6 @@ class ContentEditableStrategy extends InsertionStrategy {
       } catch (_) {
         /* continue */
       }
-    }
-
-    // 2) Try firing the beforeinput/input path so editors keep newlines
-    try {
-      console.log("Using beforeinput/input events for insertion");
-      const canceled = el.dispatchEvent(
-        new InputEvent("beforeinput", {
-          inputType: "insertFromPaste",
-          data: text,
-          bubbles: true,
-          cancelable: true,
-          composed: true,
-        })
-      );
-
-      if (!canceled) {
-        el.dispatchEvent(
-          new InputEvent("input", {
-            inputType: "insertFromPaste",
-            data: text,
-            bubbles: true,
-            composed: true,
-          })
-        );
-
-        // Some editors will do their own insertion on beforeinput; if not, we’ll fall through.
-      }
-    } catch (_) {
-      /* not supported */
     }
 
     // Last resort: plain text
