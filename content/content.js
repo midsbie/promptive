@@ -1,303 +1,448 @@
-// Content script for prompt insertion and popover management
-let popoverElement = null;
-let selectedIndex = 0;
-let filteredPrompts = [];
-let targetElement = null;
+/** ----------------------- Utilities ----------------------- */
 
-// Listen for messages from background script
-browser.runtime.onMessage.addListener(async (message) => {
-  if (message.action === "openPopover") {
-    await showPopover();
-  } else if (message.action === "insertPrompt") {
-    insertText(message.prompt);
-    showToast("Prompt inserted");
-  }
-});
+class ToastService {
+  static show(message, { durationMs = 3000 } = {}) {
+    const toast = document.createElement("div");
+    toast.className = "prompt-library-toast";
+    toast.textContent = message;
+    toast.setAttribute("role", "alert");
+    toast.setAttribute("aria-live", "polite");
+    document.body.appendChild(toast);
 
-async function showPopover() {
-  // Remove existing popover if any
-  if (popoverElement) {
-    popoverElement.remove();
-  }
+    // trigger transition
+    requestAnimationFrame(() => toast.classList.add("show"));
 
-  // Store reference to currently focused element
-  targetElement = document.activeElement;
-
-  // Get prompts from background
-  const prompts = await browser.runtime.sendMessage({ action: "getPrompts" });
-  filteredPrompts = prompts;
-  selectedIndex = 0;
-
-  // Create popover
-  popoverElement = document.createElement("div");
-  popoverElement.className = "prompt-library-popover";
-  popoverElement.innerHTML = `
-    <div class="plp-container">
-      <div class="plp-header">
-        <input type="text" class="plp-search" placeholder="Search prompts..." autocomplete="off">
-        <button class="plp-close" aria-label="Close">×</button>
-      </div>
-      <div class="plp-list" role="listbox">
-        ${renderPromptList(prompts)}
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(popoverElement);
-
-  // Setup event handlers
-  const searchInput = popoverElement.querySelector(".plp-search");
-  const closeBtn = popoverElement.querySelector(".plp-close");
-  const list = popoverElement.querySelector(".plp-list");
-
-  searchInput.focus();
-
-  searchInput.addEventListener("input", (e) => {
-    handleSearch(e.target.value, prompts);
-  });
-
-  searchInput.addEventListener("keydown", (e) => {
-    handleKeyDown(e);
-  });
-
-  closeBtn.addEventListener("click", closePopover);
-
-  list.addEventListener("click", (e) => {
-    const item = e.target.closest(".plp-item");
-    if (item) {
-      const index = parseInt(item.dataset.index);
-      selectPrompt(filteredPrompts[index]);
-    }
-  });
-
-  // Close on outside click
-  document.addEventListener("click", handleOutsideClick);
-
-  // Close on Escape
-  document.addEventListener("keydown", handleEscape);
-}
-
-function renderPromptList(prompts) {
-  if (prompts.length === 0) {
-    return '<div class="plp-empty">No prompts found</div>';
-  }
-
-  return prompts
-    .map(
-      (prompt, index) => `
-    <div class="plp-item ${index === selectedIndex ? "plp-selected" : ""}" 
-         data-index="${index}" 
-         role="option"
-         aria-selected="${index === selectedIndex}">
-      <div class="plp-item-title">${escapeHtml(prompt.title)}</div>
-      <div class="plp-item-content">${escapeHtml(prompt.content.substring(0, 100))}...</div>
-      ${
-        prompt.tags && prompt.tags.length > 0
-          ? `
-        <div class="plp-item-tags">
-          ${prompt.tags.map((tag) => `<span class="plp-tag">${escapeHtml(tag)}</span>`).join("")}
-        </div>
-      `
-          : ""
-      }
-    </div>
-  `
-    )
-    .join("");
-}
-
-function handleSearch(query, allPrompts) {
-  if (!query.trim()) {
-    filteredPrompts = allPrompts;
-  } else {
-    // Simple fuzzy search
-    const queryLower = query.toLowerCase();
-    filteredPrompts = allPrompts.filter((prompt) => {
-      const titleMatch = prompt.title.toLowerCase().includes(queryLower);
-      const contentMatch = prompt.content.toLowerCase().includes(queryLower);
-      const tagsMatch =
-        prompt.tags && prompt.tags.some((tag) => tag.toLowerCase().includes(queryLower));
-      return titleMatch || contentMatch || tagsMatch;
-    });
-  }
-
-  selectedIndex = 0;
-  const list = popoverElement.querySelector(".plp-list");
-  list.innerHTML = renderPromptList(filteredPrompts);
-}
-
-function handleKeyDown(e) {
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    selectedIndex = Math.min(selectedIndex + 1, filteredPrompts.length - 1);
-    updateSelection();
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    selectedIndex = Math.max(selectedIndex - 1, 0);
-    updateSelection();
-  } else if (e.key === "Enter") {
-    e.preventDefault();
-    if (filteredPrompts[selectedIndex]) {
-      selectPrompt(filteredPrompts[selectedIndex]);
-    }
-  } else if (e.key === "Escape") {
-    e.preventDefault();
-    closePopover();
+    setTimeout(() => {
+      toast.classList.remove("show");
+      setTimeout(() => toast.remove(), 300);
+    }, durationMs);
   }
 }
 
-function updateSelection() {
-  const items = popoverElement.querySelectorAll(".plp-item");
-  items.forEach((item, index) => {
-    if (index === selectedIndex) {
-      item.classList.add("plp-selected");
-      item.setAttribute("aria-selected", "true");
-      item.scrollIntoView({ block: "nearest" });
-    } else {
-      item.classList.remove("plp-selected");
-      item.setAttribute("aria-selected", "false");
-    }
-  });
-}
-
-async function selectPrompt(prompt) {
-  // Record usage
-  await browser.runtime.sendMessage({
-    action: "recordUsage",
-    promptId: prompt.id,
-  });
-
-  // Insert or copy
-  insertText(prompt.content);
-
-  closePopover();
-}
-
-function insertText(text) {
-  // Use stored target element instead of current activeElement
-  const element = targetElement;
-
-  // Check for conditions where we should copy to clipboard instead
-  if (
-    !element ||
-    element === document.body ||
-    element === document.documentElement ||
-    !(
-      element.tagName === "INPUT" ||
-      element.tagName === "TEXTAREA" ||
-      element.contentEditable === "true" ||
-      element.hasAttribute("contenteditable")
-    )
-  ) {
-    // Copy to clipboard as fallback
-    navigator.clipboard.writeText(text).then(() => {
-      showToast("Prompt copied to clipboard");
-    });
-    return;
-  }
-
-  // We have a valid target element to insert into
-  if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
-    // Handle standard input/textarea elements
-    const start = element.selectionStart || 0;
-    const end = element.selectionEnd || 0;
-    const value = element.value || "";
-    element.value = value.substring(0, start) + text + value.substring(end);
-    element.selectionStart = element.selectionEnd = start + text.length;
-    element.focus();
-
-    // Dispatch input event for frameworks that listen for it
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  } else if (element.contentEditable === "true" || element.hasAttribute("contenteditable")) {
-    // Handle contentEditable elements (including ProseMirror)
-    element.focus();
-
-    // Convert plain text to HTML with proper paragraph structure
-    const lines = text.split("\n");
-    const htmlContent = lines
-      .map((line) => (line.trim() === "" ? "<p><br></p>" : `<p>${escapeHtml(line)}</p>`))
-      .join("");
-
-    // Try to insert as HTML first
-    if (document.queryCommandSupported && document.queryCommandSupported("insertHTML")) {
-      document.execCommand("insertHTML", false, htmlContent);
-    } else if (document.queryCommandSupported && document.queryCommandSupported("insertText")) {
-      // Fallback to plain text if HTML insertion isn't supported
-      document.execCommand("insertText", false, text);
-    } else {
-      // Manual insertion using Selection API with HTML
-      const selection = window.getSelection();
-      if (selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        range.deleteContents();
-
-        // Create a temporary div to parse HTML
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = htmlContent;
-
-        // Insert each child node
-        while (tempDiv.firstChild) {
-          range.insertNode(tempDiv.firstChild);
-          range.collapse(false);
-        }
-
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }
-
-    // Dispatch input event for frameworks
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-    element.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
-  showToast("Prompt inserted");
-}
-
-function closePopover() {
-  if (popoverElement) {
-    popoverElement.remove();
-    popoverElement = null;
-  }
-
-  targetElement = null;
-
-  document.removeEventListener("click", handleOutsideClick);
-  document.removeEventListener("keydown", handleEscape);
-}
-
-function handleOutsideClick(e) {
-  if (popoverElement && !popoverElement.contains(e.target)) {
-    closePopover();
-  }
-}
-
-function handleEscape(e) {
-  if (e.key === "Escape" && popoverElement) {
-    closePopover();
-  }
-}
-
-function showToast(message) {
-  const toast = document.createElement("div");
-  toast.className = "prompt-library-toast";
-  toast.textContent = message;
-  toast.setAttribute("role", "alert");
-  toast.setAttribute("aria-live", "polite");
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add("show");
-  }, 10);
-
-  setTimeout(() => {
-    toast.classList.remove("show");
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
-
-function escapeHtml(text) {
+const escapeHtml = (text = "") => {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+};
+
+const toParagraphHtml = (text) => {
+  // Convert plaintext with newlines into <p> blocks, preserving empty lines
+  return text
+    .split("\n")
+    .map((line) => (line.trim() === "" ? "<p><br></p>" : `<p>${escapeHtml(line)}</p>`))
+    .join("");
+};
+
+/** ----------------------- Messaging ----------------------- */
+
+class BackgroundAPI {
+  async getPrompts() {
+    return browser.runtime.sendMessage({ action: "getPrompts" });
+  }
+  async recordUsage(promptId) {
+    return browser.runtime.sendMessage({ action: "recordUsage", promptId });
+  }
 }
+
+/** ----------------------- Insertion Strategies ----------------------- */
+
+class InsertionStrategy {
+  /** @returns {boolean} */
+  canHandle(_element) {
+    return false;
+  }
+  /** @returns {boolean} success */
+  insert(_element, _text) {
+    return false;
+  }
+}
+
+class InputTextareaStrategy extends InsertionStrategy {
+  canHandle(el) {
+    return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+  }
+
+  insert(el, text) {
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const value = el.value ?? "";
+    el.value = value.slice(0, start) + text + value.slice(end);
+    const caret = start + text.length;
+    el.selectionStart = el.selectionEnd = caret;
+    el.focus();
+
+    // Notify reactive frameworks
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+}
+
+class ContentEditableStrategy extends InsertionStrategy {
+  canHandle(el) {
+    return !!el && (el.isContentEditable || el.getAttribute?.("contenteditable") === "true");
+  }
+
+  insert(el, text) {
+    el.focus();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+      // If no selection, append to end
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+
+    const range = selection.getRangeAt(0);
+    const html = toParagraphHtml(text);
+
+    // Prefer modern, non-deprecated approach
+    if (range.createContextualFragment) {
+      range.deleteContents();
+      const frag = range.createContextualFragment(html);
+      range.insertNode(frag);
+      // Move caret to end
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    } else if (document.execCommand) {
+      // Fallbacks (widely supported but deprecated)
+      if (document.queryCommandSupported("insertHTML")) {
+        document.execCommand("insertHTML", false, html);
+      } else if (document.queryCommandSupported("insertText")) {
+        document.execCommand("insertText", false, text);
+      } else {
+        // Ultimate fallback: plain text node insertion
+        range.deleteContents();
+        range.insertNode(document.createTextNode(text));
+        range.collapse(false);
+      }
+    }
+
+    // Notify reactive frameworks
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+}
+
+class ClipboardCopier {
+  copy(text) {
+    // Never throws; failures are acceptable as last resort.
+    navigator.clipboard.writeText(text).then(
+      () => ToastService.show("Prompt copied to clipboard"),
+      () => ToastService.show("Failed to copy to clipboard")
+    );
+    return true;
+  }
+}
+
+class TextInserter {
+  /** @param {InsertionStrategy[]} strategies */
+  constructor(strategies) {
+    this.strategies = strategies;
+  }
+
+  canHandle(target) {
+    for (const s of this.strategies) {
+      try {
+        if (s.canHandle(target)) return true;
+      } catch (e) {
+        console.error("Failed to determine strategy capability", e);
+      }
+    }
+    return false;
+  }
+
+  insert(target, text) {
+    for (const s of this.strategies) {
+      try {
+        if (s.canHandle(target)) {
+          const ok = s.insert(target, text);
+          if (ok) return true;
+        }
+      } catch (e) {
+        console.error("Insertion strategy error", e);
+      }
+    }
+    return false;
+  }
+}
+
+/** ----------------------- Popover UI ----------------------- */
+
+class PopoverUI {
+  /**
+   * @param {object} deps
+   * @param {(query:string, list:any[]) => any[]} deps.searchFn
+   * @param {(prompt:any) => void} deps.onSelect
+   * @param {() => void} deps.onClose
+   */
+  constructor({ searchFn, onSelect, onClose }) {
+    this.searchFn = searchFn;
+    this.onSelect = onSelect;
+    this.onClose = onClose;
+
+    this.root = null;
+    this.searchInput = null;
+    this.listEl = null;
+
+    this.allPrompts = [];
+    this.filtered = [];
+    this.selectedIndex = 0;
+
+    // bound handlers
+    this._onKeyDown = this._onKeyDown.bind(this);
+    this._onDocKeyDown = this._onDocKeyDown.bind(this);
+    this._onDocClick = this._onDocClick.bind(this);
+    this._onListClick = this._onListClick.bind(this);
+  }
+
+  open(prompts) {
+    this.close(); // ensure only one
+    this.allPrompts = prompts ?? [];
+    this.filtered = [...this.allPrompts];
+    this.selectedIndex = 0;
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "prompt-library-popover";
+    wrapper.innerHTML = `
+        <div class="plp-container" role="dialog" aria-modal="true" aria-label="Prompt Library">
+          <div class="plp-header">
+            <input type="text" class="plp-search" placeholder="Search prompts..." autocomplete="off" aria-label="Search prompts" />
+            <button class="plp-close" aria-label="Close">×</button>
+          </div>
+          <div class="plp-list" role="listbox" aria-label="Prompts">
+            ${this._renderList()}
+          </div>
+        </div>
+      `;
+
+    document.body.appendChild(wrapper);
+
+    this.root = wrapper;
+    this.searchInput = wrapper.querySelector(".plp-search");
+    this.listEl = wrapper.querySelector(".plp-list");
+
+    // Event wiring
+    this.searchInput.addEventListener("input", (e) => {
+      const q = e.target.value;
+      this.filtered = this._filter(q);
+      this.selectedIndex = 0;
+      this._rerenderList();
+    });
+    this.searchInput.addEventListener("keydown", this._onKeyDown);
+    wrapper.querySelector(".plp-close").addEventListener("click", () => this.close());
+    this.listEl.addEventListener("click", this._onListClick);
+
+    // Global listeners
+    document.addEventListener("keydown", this._onDocKeyDown);
+    document.addEventListener("click", this._onDocClick, true); // capture to beat page handlers
+
+    // Focus the search box
+    this.searchInput.focus();
+  }
+
+  close() {
+    if (!this.root) return;
+    document.removeEventListener("keydown", this._onDocKeyDown);
+    document.removeEventListener("click", this._onDocClick, true);
+    this.root.remove();
+    this.root = null;
+    this.searchInput = null;
+    this.listEl = null;
+    this.onClose?.();
+  }
+
+  _filter(query) {
+    const q = (query || "").trim();
+    if (!q) return [...this.allPrompts];
+    try {
+      return this.searchFn(q, this.allPrompts);
+    } catch {
+      // Defensive: fall back to simple contains
+      const lower = q.toLowerCase();
+      return this.allPrompts.filter((p) => {
+        const t = (p.title || "").toLowerCase();
+        const c = (p.content || "").toLowerCase();
+        const tags = (p.tags || []).join(" ").toLowerCase();
+        return t.includes(lower) || c.includes(lower) || tags.includes(lower);
+      });
+    }
+  }
+
+  _renderList() {
+    if (!this.filtered.length) {
+      return `<div class="plp-empty">No prompts found</div>`;
+    }
+    return this.filtered
+      .map((p, i) => {
+        const sel = i === this.selectedIndex;
+        const aria = sel ? `aria-selected="true"` : `aria-selected="false"`;
+        const classes = `plp-item ${sel ? "plp-selected" : ""}`;
+        const tags = p.tags?.length
+          ? `<div class="plp-item-tags">${p.tags
+              .map((t) => `<span class="plp-tag">${escapeHtml(t)}</span>`)
+              .join("")}</div>`
+          : "";
+        return `
+            <div class="${classes}" data-index="${i}" role="option" ${aria} tabindex="-1">
+              <div class="plp-item-title">${escapeHtml(p.title || "")}</div>
+              <div class="plp-item-content">${escapeHtml((p.content || "").slice(0, 100))}...</div>
+              ${tags}
+            </div>
+          `;
+      })
+      .join("");
+  }
+
+  _rerenderList() {
+    if (!this.listEl) return;
+    this.listEl.innerHTML = this._renderList();
+    // Ensure selected is visible
+    const selected = this.listEl.querySelector(".plp-item.plp-selected");
+    selected?.scrollIntoView({ block: "nearest" });
+  }
+
+  _onListClick(e) {
+    const item = e.target.closest(".plp-item");
+    if (!item) return;
+    const idx = Number(item.dataset.index);
+    const prompt = this.filtered[idx];
+    if (prompt) this.onSelect?.(prompt);
+  }
+
+  _onKeyDown(e) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      this.selectedIndex = Math.min(this.selectedIndex + 1, this.filtered.length - 1);
+      this._rerenderList();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+      this._rerenderList();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const p = this.filtered[this.selectedIndex];
+      if (p) this.onSelect?.(p);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      this.close();
+    }
+  }
+
+  _onDocKeyDown(e) {
+    if (e.key === "Escape") this.close();
+  }
+
+  _onDocClick(e) {
+    // Robust outside-click detection (supports shadow DOM)
+    if (!this.root) return;
+    const path = e.composedPath?.() ?? [];
+    if (!path.includes(this.root)) {
+      this.close();
+    }
+  }
+}
+
+/** ----------------------- Controller ----------------------- */
+
+class ContentController {
+  constructor() {
+    this.api = new BackgroundAPI();
+    this.textInserter = new TextInserter([
+      new InputTextareaStrategy(),
+      new ContentEditableStrategy(),
+    ]);
+    this.clipboardCopier = new ClipboardCopier();
+
+    this.popover = null;
+    this.targetElement = null;
+
+    // Bind for runtime listener
+    this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
+    browser.runtime.onMessage.addListener(this._onRuntimeMessage);
+  }
+
+  async _onRuntimeMessage(message) {
+    if (message?.action === "openPopover") {
+      await this.openPopover();
+    } else if (message?.action === "insertPrompt") {
+      // Direct insertion path (bypassing popover)
+      this._rememberTarget(document.activeElement);
+      this._insertAndNotify(message.prompt);
+      this._clearTarget();
+    }
+  }
+
+  async openPopover() {
+    // Remember where to insert *before* opening UI
+    this._rememberTarget(document.activeElement);
+
+    const prompts = await this.api.getPrompts();
+
+    // Lazy init popover to wire handlers with dependencies
+    this.popover = new PopoverUI({
+      searchFn: simpleSearch,
+      onSelect: async (prompt) => {
+        await this.api.recordUsage(prompt.id);
+        this._insertAndNotify(prompt.content);
+        this.popover?.close(); // will trigger onClose
+      },
+      onClose: () => {
+        // Restore focus to original element (if still attached)
+        if (this.targetElement?.isConnected && typeof this.targetElement.focus === "function") {
+          try {
+            this.targetElement.focus();
+          } catch {}
+        }
+        this._clearTarget();
+        this.popover = null;
+      },
+    });
+
+    this.popover.open(prompts);
+  }
+
+  _insertAndNotify(text) {
+    // Try the strategies in order
+    const target = this.targetElement;
+    const ok = this.textInserter.insert(target, text);
+    if (ok) {
+      ToastService.show("Prompt inserted");
+      return;
+    }
+
+    this.clipboardCopier.copy(text);
+    ToastService.show("Copied to clipboard");
+  }
+
+  _rememberTarget(el) {
+    const acceptable = this.textInserter.canHandle(el);
+    this.targetElement = acceptable ? el : null;
+  }
+
+  _clearTarget() {
+    this.targetElement = null;
+  }
+}
+
+/** ----------------------- Search (pluggable) ----------------------- */
+
+function simpleSearch(query, items) {
+  const q = query.toLowerCase();
+  return items.filter((item) => {
+    const title = (item.title || "").toLowerCase();
+    const content = (item.content || "").toLowerCase();
+    const tags = (item.tags || []).join(" ").toLowerCase();
+    return title.includes(q) || content.includes(q) || tags.includes(q);
+  });
+}
+
+/** ----------------------- Boot ----------------------- */
+
+// Instantiate controller once; content scripts may run per page
+new ContentController();
