@@ -1,4 +1,4 @@
-.prompt-library-popover {
+.promptive-popover {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -120,7 +120,7 @@
 }
 
 /* Toast */
-.prompt-library-toast {
+.promptive-toast {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
@@ -136,7 +136,7 @@
   font-size: 14px;
 }
 
-.prompt-library-toast.show {
+.promptive-toast.show {
   opacity: 1;
   transform: translateY(0);
 }

@@ -3,7 +3,7 @@
 class ToastService {
   static show(message, { durationMs = 3000 } = {}) {
     const toast = document.createElement("div");
-    toast.className = "prompt-library-toast";
+    toast.className = "promptive-toast";
     toast.textContent = message;
     toast.setAttribute("role", "alert");
     toast.setAttribute("aria-live", "polite");
@@ -331,7 +331,7 @@ class PopoverUI {
     this.selectedIndex = 0;
 
     const wrapper = document.createElement("div");
-    wrapper.className = "prompt-library-popover";
+    wrapper.className = "promptive-popover";
     wrapper.innerHTML = `
         <div class="plp-container" role="dialog" aria-modal="true" aria-label="Prompt Library">
           <div class="plp-header">

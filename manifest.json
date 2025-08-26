@@ -1,15 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Prompt Library",
+  "name": "Promptive",
   "version": "1.0.0",
-  "description": "A powerful prompt library with sidebar UI and quick access",
+  "description": "A powerful prompt library to make you more creative and productive with sidebar UI and quick access",
   "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab"],
   "background": {
     "scripts": ["background/main.js"],
     "type": "module"
   },
   "sidebar_action": {
-    "default_title": "Prompt Library",
+    "default_title": "Promptive",
     "default_panel": "sidebar/sidebar.html",
     "default_icon": {
       "16": "icons/icon-16.svg",

@@ -4,6 +4,8 @@ import { logger } from "./logger.js";
  * Minimal context-menu builder.
  */
 export class ContextMenuService {
+  static MENU_ID = "promptive";
+
   constructor(getPrompts, limit = 10) {
     this.getPrompts = getPrompts;
     this.limit = limit;
@@ -24,8 +26,8 @@ export class ContextMenuService {
 
     // Parent
     browser.contextMenus.create({
-      id: "prompt-library",
-      title: "Prompt Library",
+      id: ContextMenuService.MENU_ID,
+      title: "Promptive",
       contexts: ["editable", "selection"],
     });
 
@@ -33,7 +35,7 @@ export class ContextMenuService {
     for (const p of sorted) {
       browser.contextMenus.create({
         id: `prompt-${p.id}`,
-        parentId: "prompt-library",
+        parentId: ContextMenuService.MENU_ID,
         title: p.title,
         contexts: ["editable", "selection"],
       });
@@ -42,7 +44,7 @@ export class ContextMenuService {
     if (sorted.length > 0) {
       browser.contextMenus.create({
         id: "separator",
-        parentId: "prompt-library",
+        parentId: ContextMenuService.MENU_ID,
         type: "separator",
         contexts: ["editable", "selection"],
       });
@@ -52,7 +54,7 @@ export class ContextMenuService {
     if (prompts.length > this.limit) {
       browser.contextMenus.create({
         id: "more-prompts",
-        parentId: "prompt-library",
+        parentId: ContextMenuService.MENU_ID,
         title: "More...",
         contexts: ["editable", "selection"],
       });
@@ -61,7 +63,7 @@ export class ContextMenuService {
     // Manage
     browser.contextMenus.create({
       id: "manage-prompts",
-      parentId: "prompt-library",
+      parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
       contexts: ["editable", "selection"],
     });
