@@ -1,7 +1,8 @@
+import { PromptRepository } from "../shared/storage.js";
+
 import { MenuController } from "./MenuController.js";
 import { ModalController } from "./ModalController.js";
 import { PromptRenderer } from "./PromptRenderer.js";
-import { PromptRepository } from "./PromptRepository.js";
 import { logger } from "./logger.js";
 import { ClipboardService, ImportExportService, SearchService, ToastService } from "./services.js";
 
@@ -13,7 +14,7 @@ class UndoDeleteManager {
   }
 
   async deleteAndOfferUndo(prompt, refresh) {
-    await this.repo.remove(prompt.id);
+    await this.repo.deletePrompt(prompt.id);
     await refresh();
 
     const timerId = setTimeout(() => {
@@ -30,7 +31,7 @@ class UndoDeleteManager {
 
         clearTimeout(p.timerId);
         this.pending.delete(prompt.id);
-        await this.repo.save({ ...prompt, id: prompt.id });
+        await this.repo.savePrompt({ ...prompt, id: prompt.id });
         await refresh();
         this.toasts.show("Restored");
       },
@@ -75,16 +76,20 @@ export class PromptiveSidebar {
 
   // --- lifecycle ---
   async init() {
-    await this.repo.init();
+    await this.repo.initialize();
     await this.loadAndRender();
     this.bindDom();
-    this.repo.onChanged(async () => {
-      await this.loadAndRender();
+
+    // Listen to storage changes (local or sync)
+    browser.storage.onChanged.addListener((changes, area) => {
+      if ((area === "local" || area === "sync") && changes.prompts) {
+        this.loadAndRender();
+      }
     });
   }
 
   async loadAndRender() {
-    this.prompts = await this.repo.list();
+    this.prompts = await this.repo.getAllPrompts();
     this.render(this.prompts);
   }
 
@@ -205,7 +210,7 @@ export class PromptiveSidebar {
     if (this.editingPrompt) payload.id = this.editingPrompt.id;
 
     try {
-      await this.repo.save(payload);
+      await this.repo.savePrompt(payload);
       await this.loadAndRender();
       this.closeModal();
       this.toasts.show(this.editingPrompt ? "Prompt updated" : "Prompt added");

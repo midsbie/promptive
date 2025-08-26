@@ -5,7 +5,7 @@
   "description": "A powerful prompt library with sidebar UI and quick access",
   "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab"],
   "background": {
-    "scripts": ["background.js"],
+    "scripts": ["background/main.js"],
     "type": "module"
   },
   "sidebar_action": {

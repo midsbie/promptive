@@ -3,6 +3,10 @@ export class Logger {
     this.namespace = namespace;
   }
 
+  debug(...args) {
+    console.debug(`[${this.namespace}]`, ...args);
+  }
+
   info(...args) {
     console.info(`[${this.namespace}]`, ...args);
   }

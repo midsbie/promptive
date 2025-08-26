@@ -1,3 +1,3 @@
 import { Logger } from "../shared/logging.js";
 
-export const logger = new Logger("sidebar");
+export const logger = new Logger("background");

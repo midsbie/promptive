@@ -1,5 +1,5 @@
-import { HtmlEscaper } from "../shared/HtmlEscaper.js";
 import { Icons } from "../shared/Icons.js";
+import { HtmlEscaper } from "../shared/string.js";
 
 export class PromptRenderer {
   constructor(escaper = HtmlEscaper) {
