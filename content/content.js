@@ -16,6 +16,32 @@ function createMessage(type, payload = {}) {
   return { type, ...payload };
 }
 
+/** ----------------------- Logging ----------------------- */
+// Duplicate of ../shared/logging.js
+class Logger {
+  constructor(namespace) {
+    this.namespace = namespace;
+  }
+
+  debug(...args) {
+    console.debug(`[${this.namespace}]`, ...args);
+  }
+
+  info(...args) {
+    console.info(`[${this.namespace}]`, ...args);
+  }
+
+  warn(...args) {
+    console.warn(`[${this.namespace}]`, ...args);
+  }
+
+  error(...args) {
+    console.error(`[${this.namespace}]`, ...args);
+  }
+}
+
+const logger = new Logger("content-script");
+
 /** ----------------------- Utilities ----------------------- */
 
 class ToastService {
@@ -72,7 +98,7 @@ class CursorPositionManager {
         };
       }
     } catch (e) {
-      console.warn("Failed to get cursor position", e);
+      logger.warn("Failed to get cursor position", e);
     }
 
     return null;
@@ -110,7 +136,7 @@ class CursorPositionManager {
         selection.addRange(range);
       }
     } catch (e) {
-      console.warn("Failed to set cursor position", e);
+      logger.warn("Failed to set cursor position", e);
     }
   }
 }
@@ -195,21 +221,21 @@ class ContentEditableStrategy extends InsertionStrategy {
     if (!el) return false;
 
     if (document.activeElement !== el) {
-      console.warn("Target element is not focused; insertion may be out of place");
+      logger.warn("Target element is not focused; insertion may be out of place");
       el.focus();
     }
 
     // plaintext-only hosts MUST ignore HTML
     const isPlainTextOnly = el.getAttribute?.("contenteditable") === "plaintext-only";
     if (isPlainTextOnly) {
-      console.log('Target is contenteditable="plaintext-only"; inserting as plain text');
+      logger.log('Target is contenteditable="plaintext-only"; inserting as plain text');
       return this._insertPlainText(el, text);
     }
 
     const html = toParagraphHtml(text);
     // First choice: insertHTML command
     if (document.queryCommandSupported?.("insertHTML")) {
-      console.log("Using execCommand('insertHTML') for insertion");
+      logger.log("Using execCommand('insertHTML') for insertion");
       try {
         document.execCommand("insertHTML", false, html);
         this._dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
@@ -220,7 +246,7 @@ class ContentEditableStrategy extends InsertionStrategy {
     }
 
     // Last resort: plain text
-    console.warn("Falling back to range-based plain text insertion");
+    logger.warn("Falling back to range-based plain text insertion");
     return this._insertPlainText(el, text);
   }
 
@@ -296,7 +322,7 @@ class TextInserter {
       try {
         if (s.canHandle(target)) return true;
       } catch (e) {
-        console.error("Failed to determine strategy capability", e);
+        logger.error("Failed to determine strategy capability", e);
       }
     }
     return false;
@@ -312,7 +338,7 @@ class TextInserter {
           if (ok) return true;
         }
       } catch (e) {
-        console.error("Insertion strategy error", e);
+        logger.error("Insertion strategy error", e);
       }
     }
 
@@ -519,7 +545,7 @@ class ContentController {
     this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
 
-    console.info("Content script initialized");
+    logger.info("initialized");
   }
 
   async _onRuntimeMessage(message) {
@@ -627,7 +653,7 @@ class ContentController {
 
       return true;
     } catch (e) {
-      console.warn("Failed to restore target", e);
+      logger.warn("Failed to restore target", e);
       return false;
     }
   }
