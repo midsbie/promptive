@@ -32,7 +32,7 @@ export class ContextMenuService {
     browser.contextMenus.create({
       id: ContextMenuService.MENU_ID,
       title: "Promptive",
-      contexts: ["editable"],
+      contexts: ["editable", "page"],
       documentUrlPatterns: this.documentUrlPatterns,
     });
 
@@ -42,7 +42,7 @@ export class ContextMenuService {
         id: `prompt-${p.id}`,
         parentId: ContextMenuService.MENU_ID,
         title: p.title,
-        contexts: ["editable"],
+        contexts: ["editable", "page"],
         documentUrlPatterns: this.documentUrlPatterns,
       });
     }
@@ -52,7 +52,7 @@ export class ContextMenuService {
         id: "separator",
         parentId: ContextMenuService.MENU_ID,
         type: "separator",
-        contexts: ["editable"],
+        contexts: ["editable", "page"],
         documentUrlPatterns: this.documentUrlPatterns,
       });
     }
@@ -63,7 +63,7 @@ export class ContextMenuService {
         id: "more-prompts",
         parentId: ContextMenuService.MENU_ID,
         title: "More...",
-        contexts: ["editable"],
+        contexts: ["editable", "page"],
         documentUrlPatterns: this.documentUrlPatterns,
       });
     }
@@ -73,7 +73,7 @@ export class ContextMenuService {
       id: "manage-prompts",
       parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
-      contexts: ["editable"],
+      contexts: ["editable", "page"],
       documentUrlPatterns: this.documentUrlPatterns,
     });
 
