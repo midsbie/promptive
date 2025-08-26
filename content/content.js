@@ -1,3 +1,21 @@
+/** ----------------------- Messaging ----------------------- */
+// Duplicate of ../shared/message.js
+const MSG = {
+  GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
+  RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",
+  QUERY_STATUS: "PROMPTIVE/QUERY_STATUS",
+  OPEN_POPOVER: "PROMPTIVE/OPEN_POPOVER",
+  INSERT_PROMPT: "PROMPTIVE/INSERT_PROMPT",
+};
+
+function isMessage(msg) {
+  return typeof msg === "object" && msg !== null && typeof msg.type === "string";
+}
+
+function createMessage(type, payload = {}) {
+  return { type, ...payload };
+}
+
 /** ----------------------- Utilities ----------------------- */
 
 class ToastService {
@@ -115,10 +133,17 @@ const toParagraphHtml = (text) => {
 
 class BackgroundAPI {
   async getPrompts() {
-    return browser.runtime.sendMessage({ action: "getPrompts" });
+    return browser.runtime.sendMessage(createMessage(MSG.GET_PROMPTS));
   }
+
   async recordUsage(promptId) {
-    return browser.runtime.sendMessage({ action: "recordUsage", promptId });
+    return browser.runtime.sendMessage(createMessage(MSG.RECORD_PROMPT_USAGE, { promptId }));
+  }
+}
+
+class MessageHandler {
+  attachAll() {
+    browser.runtime.onMessage.addListener((msg) => {});
   }
 }
 
@@ -476,6 +501,9 @@ class PopoverUI {
 class ContentController {
   constructor() {
     this.api = new BackgroundAPI();
+    this.messageHandler = new MessageHandler();
+    this.messageHandler.attachAll();
+
     this.textInserter = new TextInserter([
       new InputTextareaStrategy(),
       new ContentEditableStrategy(),
@@ -495,13 +523,29 @@ class ContentController {
   }
 
   async _onRuntimeMessage(message) {
-    if (message?.action === "openPopover") {
-      await this.openPopover();
-    } else if (message?.action === "insertPrompt") {
-      // Direct insertion path (bypassing popover)
-      this._rememberTarget(document.activeElement);
-      this._insertAndNotify(message.prompt);
-      this._clearTarget();
+    if (!isMessage(message)) {
+      logger.warn("Ignoring non-message:", message);
+      return;
+    }
+
+    switch (message.type) {
+      case MSG.QUERY_STATUS:
+        return Promise.resolve({ active: true });
+
+      case MSG.OPEN_POPOVER:
+        await this.openPopover();
+        return;
+
+      case MSG.INSERT_PROMPT:
+        // Direct insertion path (bypassing popover)
+        this._rememberTarget(document.activeElement);
+        this._insertAndNotify(message.prompt);
+        this._clearTarget();
+        return;
+
+      default:
+        logger.warn("Unknown message:", message);
+        return;
     }
   }
 

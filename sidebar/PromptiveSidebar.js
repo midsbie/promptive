@@ -145,7 +145,7 @@ export class PromptiveSidebar {
     const prompt = this.prompts.find((p) => p.id === id);
     if (!prompt) return;
     try {
-      await this.repo.recordUse(id);
+      await this.repo.recordUsage(id);
       await this.clipboard.copy(prompt.content);
       this.toasts.show("Prompt copied to clipboard");
       await this.loadAndRender();

@@ -1,3 +1,5 @@
+import { MSG, createMessage } from "../shared/messages.js";
+
 import { logger } from "./logger.js";
 
 /**
@@ -23,31 +25,50 @@ export class Handlers {
     });
 
     browser.contextMenus.onClicked.addListener(async (info, tab) => {
-      if (info.menuItemId === "manage-prompts") {
-        await browser.sidebarAction.open();
-      } else if (info.menuItemId === "more-prompts") {
-        await browser.tabs.sendMessage(tab.id, { action: "openPopover" });
-      } else if (typeof info.menuItemId === "string" && info.menuItemId.startsWith("prompt-")) {
-        const promptId = info.menuItemId.slice("prompt-".length);
-        const prompt = await this.repo.getPrompt(promptId);
-        if (prompt) {
-          await this.repo.recordUsage(promptId);
-          await browser.tabs.sendMessage(tab.id, {
-            action: "insertPrompt",
-            prompt: prompt.content,
-          });
-        }
+      if (!tab?.id) {
+        logger.warn("Ignoring context menu click with no tab id");
+        return;
       }
+
+      const { menuItemId } = info;
+
+      switch (info.menuItemId) {
+        case "manage-prompts":
+          await browser.sidebarAction.open();
+          return;
+
+        case "more-prompts":
+          await browser.tabs.sendMessage(tab.id, createMessage(MSG.OPEN_POPOVER));
+          return;
+      }
+
+      if (typeof menuItemId !== "string" || !menuItemId.startsWith("prompt-")) {
+        logger.warn("Ignoring unknown context menu item:", menuItemId);
+        return;
+      }
+
+      const promptId = menuItemId.slice("prompt-".length);
+      const prompt = await this.repo.getPrompt(promptId);
+      if (!prompt) {
+        logger.warn("Prompt not found for id:", promptId);
+        return;
+      }
+
+      await this.repo.recordUsage(promptId);
+      await browser.tabs.sendMessage(
+        tab.id,
+        createMessage(MSG.INSERT_PROMPT, { prompt: prompt.content })
+      );
     });
 
     browser.action.onClicked.addListener(async (tab) => {
-      await browser.tabs.sendMessage(tab.id, { action: "openPopover" });
+      await browser.tabs.sendMessage(tab.id, createMessage(MSG.OPEN_POPOVER));
     });
 
     browser.commands.onCommand.addListener(async (command) => {
       if (command === "open-prompt-selector") {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-        await browser.tabs.sendMessage(tab.id, { action: "openPopover" });
+        await browser.tabs.sendMessage(tab.id, createMessage(MSG.OPEN_POPOVER));
       }
     });
   }
