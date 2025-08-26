@@ -550,6 +550,11 @@ class ContentController {
   }
 
   async openPopover() {
+    if (this.popover) {
+      logger.warn("Refusing to open popover: already open");
+      return;
+    }
+
     // Remember where to insert *before* opening UI
     this._rememberTarget(document.activeElement);
 
