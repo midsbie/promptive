@@ -9,6 +9,10 @@ export class ContextMenuService {
   constructor(getPrompts, limit = 10) {
     this.getPrompts = getPrompts;
     this.limit = limit;
+
+    // Derive the same URL patterns as the content script so menus only show there
+    const manifest = browser.runtime.getManifest?.();
+    this.documentUrlPatterns = manifest?.content_scripts?.flatMap((cs) => cs.matches) ?? [];
   }
 
   async rebuild() {
@@ -28,7 +32,8 @@ export class ContextMenuService {
     browser.contextMenus.create({
       id: ContextMenuService.MENU_ID,
       title: "Promptive",
-      contexts: ["editable", "selection"],
+      contexts: ["editable"],
+      documentUrlPatterns: this.documentUrlPatterns,
     });
 
     // Items
@@ -37,7 +42,8 @@ export class ContextMenuService {
         id: `prompt-${p.id}`,
         parentId: ContextMenuService.MENU_ID,
         title: p.title,
-        contexts: ["editable", "selection"],
+        contexts: ["editable"],
+        documentUrlPatterns: this.documentUrlPatterns,
       });
     }
 
@@ -46,7 +52,8 @@ export class ContextMenuService {
         id: "separator",
         parentId: ContextMenuService.MENU_ID,
         type: "separator",
-        contexts: ["editable", "selection"],
+        contexts: ["editable"],
+        documentUrlPatterns: this.documentUrlPatterns,
       });
     }
 
@@ -56,7 +63,8 @@ export class ContextMenuService {
         id: "more-prompts",
         parentId: ContextMenuService.MENU_ID,
         title: "More...",
-        contexts: ["editable", "selection"],
+        contexts: ["editable"],
+        documentUrlPatterns: this.documentUrlPatterns,
       });
     }
 
@@ -65,7 +73,8 @@ export class ContextMenuService {
       id: "manage-prompts",
       parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
-      contexts: ["editable", "selection"],
+      contexts: ["editable"],
+      documentUrlPatterns: this.documentUrlPatterns,
     });
 
     logger.debug("Context menus rebuilt");
