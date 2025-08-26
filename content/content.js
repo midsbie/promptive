@@ -1,5 +1,5 @@
 /** ----------------------- Messaging ----------------------- */
-// Duplicate of ../shared/message.js
+// Duplicate of ../shared/messaging.js
 const MSG = {
   GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
   RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",

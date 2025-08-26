@@ -1,5 +1,5 @@
 import { withTimeout } from "../shared/async.js";
-import { MSG, createMessage } from "../shared/messages.js";
+import { MSG, createMessage } from "../shared/messaging.js";
 
 export class ContentStatusProbe {
   async isActive(tabId) {

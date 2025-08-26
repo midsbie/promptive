@@ -1,4 +1,4 @@
-import { MSG } from "../shared/messages.js";
+import { MSG } from "../shared/messaging.js";
 
 export class TabObserver {
   constructor(updateTabFn) {

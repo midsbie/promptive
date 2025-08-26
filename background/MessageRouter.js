@@ -1,4 +1,4 @@
-import { MSG, isMessage } from "../shared/messages.js";
+import { MSG, isMessage } from "../shared/messaging.js";
 
 /**
  * Handles messages routed from content scripts or sidebar.
