@@ -1,6 +1,5 @@
 /**
  * Handles messages routed from content scripts or sidebar.
- * Keeps methods tiny and single-purpose.
  */
 export class MessageRouter {
   constructor(repo) {
