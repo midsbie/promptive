@@ -70,5 +70,11 @@
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": false
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "@promptive.softgeist",
+      "strict_min_version": "58.0"
+    }
   }
 }
