@@ -1,5 +1,5 @@
-import { Icons } from "../shared/Icons.js";
 import { HtmlEscaper } from "../shared/string.js";
+import * as icons from "../shared/ui/icons.js";
 
 export class PromptRenderer {
   constructor(escaper = HtmlEscaper) {
@@ -25,19 +25,19 @@ export class PromptRenderer {
           <div class="prompt-title">${e(prompt.title)}</div>
           <div class="prompt-actions">
             <button class="icon-btn use-btn ghost" data-id="${prompt.id}" aria-label="Use prompt" data-tooltip="Use">
-              ${Icons.insert()}
+              ${icons.insert}
             </button>
             <div class="menu-wrapper">
               <button class="icon-btn kebab-btn ghost" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" data-tooltip="More">
-                ${Icons.kebab()}
+                ${icons.kebab}
               </button>
               <div class="menu" role="menu" aria-hidden="true">
                 <button class="menu-item" role="menuitem" data-action="edit" data-id="${prompt.id}">
-                  ${Icons.edit()} <span>Edit</span>
+                  ${icons.edit} <span>Edit</span>
                 </button>
                 <div class="menu-sep" role="separator"></div>
                 <button class="menu-item danger" role="menuitem" data-action="delete" data-id="${prompt.id}">
-                  ${Icons.trash()} <span>Delete</span>
+                  ${icons.trash} <span>Delete</span>
                 </button>
               </div>
             </div>

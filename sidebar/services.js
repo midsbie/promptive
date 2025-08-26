@@ -1,4 +1,4 @@
-import { FuzzySearch } from "../shared/fuzzy-search.js";
+import { FuzzySearch } from "../shared/search.js";
 
 export class ToastService {
   show(message, options = null) {
