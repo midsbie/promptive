@@ -48,21 +48,27 @@ You can edit or delete these examples and add your own prompts.
 There are *four ways* to access your prompt library:
 
 *** 1. Sidebar Panel
-- Click the Promptive icon in your Firefox toolbar
+- Open the sidebar from Firefox’s Sidebar menu (≡ → View → Sidebar → Promptive)
 - The sidebar opens with your complete prompt library
 - Full management capabilities (add, edit, delete, search)
 
 *** 2. Keyboard Shortcut (Quick Selector)
-- Press =Alt+Shift+P= anywhere on a webpage
+- Press =Alt+Shift+P= anywhere on a **supported** webpage
 - A centered popup appears with a search box
 - Start typing to filter prompts
 - Use arrow keys to navigate, Enter to select
+- Selected prompt is inserted directly at your cursor position, with fallback to clipboard if insertion isn’t possible)
 
 *** 3. Context Menu (Right-Click)
-- Right-click in any text field or selected text
+- Right-click anywhere on a supported webpage
 - Choose "Promptive" from the menu
-- Your 10 most recently used prompts appear
-- Select "Manage Prompts..." to open the sidebar
+- Your 10 most recently used prompts are shown
+- If more exist, select "More..." to open the quick selector
+- "Manage Prompts..." opens the sidebar
+- On selection:
+  - If the currently focused element is editable, the prompt is inserted at the caret
+  - Otherwise, the prompt is copied to your clipboard
+  - In either case, a toast notification is shown
 
 *** 4. Toolbar Button
 - Click the extension icon in the Firefox toolbar
@@ -84,7 +90,7 @@ There are *four ways* to access your prompt library:
 1. Click in any text field on a webpage
 2. Press =Alt+Shift+P= or right-click → "Promptive"
 3. Select your prompt
-4. The text is *automatically inserted* at your cursor position
+4. Text is automatically inserted at your cursor (if supported); otherwise copied to clipboard
 
 *** Method 2: Copy to Clipboard
 1. Open the sidebar
