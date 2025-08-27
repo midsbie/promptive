@@ -1,12 +1,31 @@
 import { HtmlEscaper } from "../lib/string.js";
 import * as icons from "../lib/ui/icons.js";
 
+interface Prompt {
+  id: string;
+  title: string;
+  content: string;
+  tags?: string[];
+  last_used_at?: string | null;
+  used_times?: number;
+}
+
+interface EscapeFunction {
+  (text: string | null | undefined): string;
+}
+
+interface HtmlEscaperInterface {
+  escape: EscapeFunction;
+}
+
 export class PromptRenderer {
-  constructor(escaper = HtmlEscaper) {
+  private escaper: HtmlEscaperInterface;
+
+  constructor(escaper: HtmlEscaperInterface = HtmlEscaper) {
     this.escaper = escaper;
   }
 
-  formatLastUsed(lastUsedAt) {
+  formatLastUsed(lastUsedAt?: string | null): string {
     if (!lastUsedAt) return "";
     try {
       const d = new Date(lastUsedAt);
@@ -16,7 +35,7 @@ export class PromptRenderer {
     }
   }
 
-  item(prompt) {
+  item(prompt: Prompt): string {
     const e = this.escaper.escape;
     const lastUsed = this.formatLastUsed(prompt.last_used_at);
     return `
@@ -79,7 +98,7 @@ export class PromptRenderer {
     `;
   }
 
-  empty() {
+  empty(): string {
     return `
       <div class="empty-state">
         <h3>No prompts yet</h3>
@@ -88,7 +107,7 @@ export class PromptRenderer {
     `;
   }
 
-  list(prompts) {
+  list(prompts: Prompt[]): string {
     if (!prompts || !prompts.length) return this.empty();
     return prompts.map((p) => this.item(p)).join("");
   }

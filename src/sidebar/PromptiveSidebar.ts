@@ -1,4 +1,4 @@
-import { PromptRepository } from "../lib/storage.js";
+import { PromptRepository, type Prompt } from "../lib/storage.js";
 
 import { MenuController } from "./MenuController.js";
 import { ModalController } from "./ModalController.js";
@@ -6,14 +6,57 @@ import { PromptRenderer } from "./PromptRenderer.js";
 import { logger } from "./logger.js";
 import { ClipboardService, ImportExportService, SearchService, ToastService } from "./services.js";
 
-class UndoDeleteManager {
-  constructor(toasts, repo) {
-    this.toasts = toasts;
-    this.repo = repo;
-    this.pending = new Map(); // id -> { prompt, timerId }
+interface UndoDeletePending {
+  prompt: Prompt;
+  timerId: NodeJS.Timeout;
+}
+
+interface PromptiveSidebarDependencies {
+  repository?: PromptRepository;
+  search?: SearchService;
+  renderer?: PromptRenderer;
+  menu?: MenuController;
+  modal?: ModalController;
+  toasts?: ToastService;
+  clipboard?: ClipboardService;
+  importerExporter?: ImportExportService | null;
+}
+
+interface ModalFields {
+  title?: string;
+  content?: string;
+  tags?: string[];
+}
+
+interface ModalOptions {
+  title: string;
+  fields: ModalFields;
+}
+
+declare global {
+  interface Browser {
+    storage?: {
+      onChanged?: {
+        addListener(callback: (changes: Record<string, any>, area: string) => void): void;
+      };
+    };
   }
 
-  async deleteAndOfferUndo(prompt, refresh) {
+  const browser: Browser | undefined;
+}
+
+class UndoDeleteManager {
+  private toasts: ToastService;
+  private repo: PromptRepository;
+  private pending: Map<string, UndoDeletePending>;
+
+  constructor(toasts: ToastService, repo: PromptRepository) {
+    this.toasts = toasts;
+    this.repo = repo;
+    this.pending = new Map<string, UndoDeletePending>();
+  }
+
+  async deleteAndOfferUndo(prompt: Prompt, refresh: () => Promise<void>): Promise<void> {
     await this.repo.deletePrompt(prompt.id);
     await refresh();
 
@@ -40,6 +83,18 @@ class UndoDeleteManager {
 }
 
 export class PromptiveSidebar {
+  private repo: PromptRepository;
+  private search: SearchService;
+  private renderer: PromptRenderer;
+  private menu: MenuController;
+  private modal: ModalController;
+  private toasts: ToastService;
+  private clipboard: ClipboardService;
+  private importExport: ImportExportService;
+  private undoDelete: UndoDeleteManager;
+  private prompts: Prompt[];
+  private editingPrompt: Prompt | null;
+
   constructor({
     repository = new PromptRepository(),
     search = new SearchService(),
@@ -49,7 +104,7 @@ export class PromptiveSidebar {
     toasts = new ToastService(),
     clipboard = new ClipboardService(),
     importerExporter = null,
-  } = {}) {
+  }: PromptiveSidebarDependencies = {}) {
     // collaborators
     this.repo = repository;
     this.search = search;
@@ -62,8 +117,8 @@ export class PromptiveSidebar {
     this.undoDelete = new UndoDeleteManager(this.toasts, this.repo);
 
     // state
-    this.prompts = /** @type {Prompt[]} */ ([]);
-    this.editingPrompt = /** @type {Prompt|null} */ (null);
+    this.prompts = [];
+    this.editingPrompt = null;
 
     // init
     this.init().catch((e) => {
@@ -75,31 +130,31 @@ export class PromptiveSidebar {
   }
 
   // --- lifecycle ---
-  async init() {
+  async init(): Promise<void> {
     await this.repo.initialize();
     await this.loadAndRender();
     this.bindDom();
 
     // Listen to storage changes (local or sync)
-    browser.storage.onChanged.addListener((changes, area) => {
+    browser?.storage?.onChanged?.addListener((changes, area) => {
       if ((area === "local" || area === "sync") && changes.prompts) {
         this.loadAndRender();
       }
     });
   }
 
-  async loadAndRender() {
+  async loadAndRender(): Promise<void> {
     this.prompts = await this.repo.getAllPrompts();
     this.render(this.prompts);
   }
 
-  render(prompts) {
-    const container = document.getElementById("promptList");
+  render(prompts: Prompt[]): void {
+    const container = document.getElementById("promptList")!;
     container.innerHTML = this.renderer.list(prompts);
     // per-card: use
     container.querySelectorAll(".use-btn").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
-        const id = e.currentTarget.dataset.id;
+        const id = (e.currentTarget as HTMLElement).dataset.id!;
         await this.usePrompt(id);
       });
     });
@@ -111,28 +166,31 @@ export class PromptiveSidebar {
   }
 
   // --- event binding ---
-  bindDom() {
-    document.getElementById("addPromptBtn").addEventListener("click", () => this.openModal());
+  bindDom(): void {
+    document.getElementById("addPromptBtn")!.addEventListener("click", () => this.openModal());
 
-    document.getElementById("searchInput").addEventListener("input", (e) => {
-      const q = e.target.value;
+    (document.getElementById("searchInput") as HTMLInputElement).addEventListener("input", (e) => {
+      const q = (e.target as HTMLInputElement).value;
       const results = this.search.search(q, this.prompts);
       this.render(results);
     });
 
-    document.getElementById("importBtn").addEventListener("click", () => {
-      document.getElementById("importFile").click();
+    document.getElementById("importBtn")!.addEventListener("click", () => {
+      (document.getElementById("importFile") as HTMLInputElement).click();
     });
-    document.getElementById("importFile").addEventListener("change", async (e) => {
-      await this.importExport.importFromFile(e.target.files[0]);
-      await this.loadAndRender();
+    (document.getElementById("importFile") as HTMLInputElement).addEventListener("change", async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        await this.importExport.importFromFile(files[0]);
+        await this.loadAndRender();
+      }
     });
 
-    document.getElementById("exportBtn").addEventListener("click", async () => {
+    document.getElementById("exportBtn")!.addEventListener("click", async () => {
       await this.importExport.exportToDownload();
     });
 
-    document.getElementById("promptForm").addEventListener("submit", async (e) => {
+    (document.getElementById("promptForm") as HTMLFormElement).addEventListener("submit", async (e) => {
       e.preventDefault();
       await this.savePrompt();
     });
@@ -141,7 +199,7 @@ export class PromptiveSidebar {
   }
 
   // --- user actions (facade methods kept compatible) ---
-  async usePrompt(id) {
+  async usePrompt(id: string): Promise<void> {
     const prompt = this.prompts.find((p) => p.id === id);
     if (!prompt) return;
     try {
@@ -155,14 +213,14 @@ export class PromptiveSidebar {
     }
   }
 
-  async editPrompt(id) {
+  async editPrompt(id: string): Promise<void> {
     const prompt = this.prompts.find((p) => p.id === id);
     if (!prompt) return;
     this.editingPrompt = prompt;
     this.openModal(prompt);
   }
 
-  async deletePrompt(id) {
+  async deletePrompt(id: string): Promise<void> {
     const prompt = this.prompts.find((p) => p.id === id);
     if (!prompt) return;
     try {
@@ -175,7 +233,7 @@ export class PromptiveSidebar {
     }
   }
 
-  openModal(prompt = null) {
+  openModal(prompt: Prompt | null = null): void {
     this.modal.open({
       title: prompt ? "Edit Prompt" : "Add Prompt",
       fields: {
@@ -186,27 +244,26 @@ export class PromptiveSidebar {
     });
   }
 
-  closeModal() {
+  closeModal(): void {
     this.modal.close();
     this.editingPrompt = null;
   }
 
-  isModalOpen() {
+  isModalOpen(): boolean {
     return this.modal.isOpen();
   }
 
-  async savePrompt() {
-    const title = document.getElementById("promptTitle").value.trim();
-    const content = document.getElementById("promptContent").value.trim();
-    const tags = document
-      .getElementById("promptTags")
+  async savePrompt(): Promise<void> {
+    const title = (document.getElementById("promptTitle") as HTMLInputElement).value.trim();
+    const content = (document.getElementById("promptContent") as HTMLTextAreaElement).value.trim();
+    const tags = (document.getElementById("promptTags") as HTMLInputElement)
       .value.split(",")
       .map((t) => t.trim())
       .filter((t) => t);
 
     if (!title || !content) return;
 
-    const payload = { title, content, tags };
+    const payload: any = { title, content, tags };
     if (this.editingPrompt) payload.id = this.editingPrompt.id;
 
     try {

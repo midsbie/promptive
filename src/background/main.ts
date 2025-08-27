@@ -10,12 +10,27 @@ import { logger } from "./logger.js";
 
 const CONTEXT_MENU_LIMIT = 10;
 
+interface BackgroundAppOptions {
+  repo?: PromptRepository;
+  icons?: ToolbarIconService;
+  probe?: ContentStatusProbe;
+}
+
 export class BackgroundApp {
+  private repo: PromptRepository;
+  private icons: ToolbarIconService;
+  private probe: ContentStatusProbe;
+  private menus: ContextMenuService;
+  private router: MessageRouter;
+  private handlers: Handlers;
+  private tabObserver: TabObserver;
+  private isInitialized: boolean = false;
+
   constructor({
     repo = new PromptRepository(),
     icons = new ToolbarIconService(),
     probe = new ContentStatusProbe(),
-  } = {}) {
+  }: BackgroundAppOptions = {}) {
     this.repo = repo;
     this.icons = icons;
     this.probe = probe;
@@ -23,10 +38,9 @@ export class BackgroundApp {
     this.router = new MessageRouter(this.repo);
     this.handlers = new Handlers(this.repo, this.menus);
     this.tabObserver = new TabObserver(this.updateTabIcon.bind(this));
-    this.isInitialized = false;
   }
 
-  async updateTabIcon(tabId) {
+  async updateTabIcon(tabId: number): Promise<void> {
     try {
       const active = await this.probe.isActive(tabId);
       await this.icons.setSupported(tabId, active);
@@ -35,7 +49,7 @@ export class BackgroundApp {
     }
   }
 
-  async initialize() {
+  async initialize(): Promise<void> {
     if (this.isInitialized) {
       logger.warn("Background already initialized");
       return;

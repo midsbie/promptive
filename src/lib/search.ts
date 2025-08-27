@@ -1,9 +1,20 @@
+interface SearchableItem {
+  title?: string;
+  content?: string;
+  tags?: string[];
+}
+
+interface ScoredItem<T extends SearchableItem> {
+  item: T;
+  score: number;
+}
+
 export class FuzzySearch {
-  search(query, items) {
+  search<T extends SearchableItem>(query: string, items: T[]): T[] {
     const queryLower = query.toLowerCase();
     const queryTokens = queryLower.split(/\s+/);
 
-    const scored = items.map((item) => {
+    const scored: ScoredItem<T>[] = items.map((item) => {
       let score = 0;
       const titleLower = (item.title || "").toLowerCase();
       const contentLower = (item.content || "").toLowerCase();

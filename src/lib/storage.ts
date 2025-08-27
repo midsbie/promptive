@@ -5,25 +5,95 @@ import { TimeProvider } from "./time.js";
 
 const logger = new Logger("storage");
 
+// Type definitions for browser storage API
+declare global {
+  interface Browser {
+    storage?: {
+      local?: StorageArea;
+      sync?: StorageArea;
+    };
+  }
+
+  interface StorageArea {
+    get(keys: string | string[] | Record<string, any>): Promise<Record<string, any>>;
+    set(items: Record<string, any>): Promise<void>;
+    remove(keys: string | string[]): Promise<void>;
+  }
+
+  const browser: Browser | undefined;
+}
+
+// Core interfaces for prompts and storage
+export interface Prompt {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+  used_times: number;
+}
+
+export interface PartialPrompt {
+  id?: string;
+  title?: string;
+  content?: string;
+  tags?: string[];
+  created_at?: string;
+  updated_at?: string;
+  last_used_at?: string | null;
+  used_times?: number;
+}
+
+export interface ImportData {
+  version: number;
+  exported_at?: string;
+  prompts: Prompt[];
+}
+
+export interface ExportData {
+  version: number;
+  exported_at: string;
+  prompts: Prompt[];
+}
+
+interface BackendState {
+  backend: BaseStorageAdapter;
+  prompts: Prompt[];
+  version: number;
+  updatedAt: number;
+}
+
+interface StorageKeys {
+  [key: string]: any;
+}
+
 /**
  * Unified minimal interface over WebExtensions storage areas.
  * Adapters expose get/set/remove for namespaced keys.
  */
 class BaseStorageAdapter {
-  constructor(area, namespace = "") {
+  protected area: string;
+  protected namespace: string;
+  protected api: StorageArea;
+
+  constructor(area: string, namespace: string = "") {
     this.area = area;
     this.namespace = namespace;
-    this.api = browser?.storage?.[area];
+    this.api = browser?.storage?.[area as keyof NonNullable<Browser['storage']>] as StorageArea;
     if (!this.api) {
       throw new Error(`browser.storage.${area} not available`);
     }
   }
 
-  _ns(key) {
+  private _ns(key: string): string {
     return this.namespace ? `${this.namespace}:${key}` : key;
   }
 
-  async get(key) {
+  async get(key: string): Promise<StorageKeys>;
+  async get(key: string[]): Promise<StorageKeys>;
+  async get(key: string | string[]): Promise<StorageKeys> {
     const keys = Array.isArray(key) ? key.map((k) => this._ns(k)) : this._ns(key);
     const out = await this.api.get(keys);
     // Strip namespace on return
@@ -31,35 +101,36 @@ class BaseStorageAdapter {
       return key.reduce((acc, k) => {
         acc[k] = out[this._ns(k)];
         return acc;
-      }, {});
+      }, {} as StorageKeys);
     }
     return { [key]: out[this._ns(key)] };
   }
 
-  async set(obj) {
-    const payload = {};
+  async set(obj: StorageKeys): Promise<void> {
+    const payload: StorageKeys = {};
     for (const [k, v] of Object.entries(obj)) payload[this._ns(k)] = v;
     return this.api.set(payload);
   }
 
-  async remove(key) {
+  async remove(key: string | string[]): Promise<void> {
     const keys = Array.isArray(key) ? key.map((k) => this._ns(k)) : [this._ns(key)];
     return this.api.remove(keys);
   }
 }
 
 export class LocalStorageAdapter extends BaseStorageAdapter {
-  constructor(namespace = "") {
+  constructor(namespace: string = "") {
     super("local", namespace);
   }
 }
+
 export class SyncStorageAdapter extends BaseStorageAdapter {
-  constructor(namespace = "") {
+  constructor(namespace: string = "") {
     super("sync", namespace);
   }
 }
 
-export async function isSyncAvailable() {
+export async function isSyncAvailable(): Promise<boolean> {
   try {
     if (!browser?.storage?.sync) return false;
     // Quota touch (no-op write/read to validate permissions)
@@ -67,7 +138,7 @@ export async function isSyncAvailable() {
     await browser.storage.sync.set({ [pingKey]: 1 });
     await browser.storage.sync.remove(pingKey);
     return true;
-  } catch (e) {
+  } catch (e: any) {
     logger.warn("Sync storage not available:", e?.message ?? e);
     return false;
   }
@@ -80,16 +151,16 @@ export async function isSyncAvailable() {
  * - Preserve higher used_times and latest last_used_at.
  * - Ensure required fields exist post-merge.
  */
-export function mergePrompts(base, incoming) {
-  const byKey = new Map();
+export function mergePrompts(base: Prompt[], incoming: PartialPrompt[]): Prompt[] {
+  const byKey = new Map<string, Prompt>();
 
-  function keyOf(p) {
+  function keyOf(p: PartialPrompt): string {
     // If both id and core fields exist, allow id to short-circuit;
     // otherwise fall back to semantic key (title+content).
     return p.id ? `id:${p.id}` : `tc:${p.title}::${p.content}`;
   }
 
-  const upsert = (p) => {
+  const upsert = (p: PartialPrompt): void => {
     const k = keyOf(p);
     const prev = byKey.get(k);
     if (!prev) {
@@ -110,20 +181,20 @@ export function mergePrompts(base, incoming) {
   return Array.from(byKey.values());
 }
 
-function isNewer(a, b) {
-  const ta = Date.parse(a.updated_at || 0);
-  const tb = Date.parse(b.updated_at || 0);
+function isNewer(a: PartialPrompt, b: PartialPrompt): boolean {
+  const ta = Date.parse(a.updated_at || "0");
+  const tb = Date.parse(b.updated_at || "0");
   return ta > tb;
 }
 
-function latestIso(a, b) {
+function latestIso(a: string | null | undefined, b: string | null | undefined): string | null {
   const ta = a ? Date.parse(a) : 0;
   const tb = b ? Date.parse(b) : 0;
   if (ta === 0 && tb === 0) return null;
-  return ta >= tb ? a : b;
+  return ta >= tb ? a || null : b || null;
 }
 
-function normalizePrompt(p) {
+function normalizePrompt(p: PartialPrompt): Prompt {
   const now = TimeProvider.nowIso();
   return {
     id: p.id || "",
@@ -138,17 +209,19 @@ function normalizePrompt(p) {
 }
 
 class PromptRepositoryLoader {
-  constructor(backends) {
+  private backends: BaseStorageAdapter[];
+
+  constructor(backends: BaseStorageAdapter[]) {
     this.backends = backends;
   }
 
-  async load() {
-    const dataset = [];
+  async load(): Promise<Prompt[] | null> {
+    const dataset: BackendState[] = [];
     for (const backend of this.backends) {
       try {
         const state = await this._readFromBackend(backend);
         if (state != null) dataset.push(state);
-      } catch (e) {
+      } catch (e: any) {
         logger.warn(`Read failed from ${backend.area}:`, e?.message ?? e);
       }
     }
@@ -160,7 +233,7 @@ class PromptRepositoryLoader {
     return state.prompts;
   }
 
-  async _readFromBackend(backend) {
+  private async _readFromBackend(backend: BaseStorageAdapter): Promise<BackendState | null> {
     const state = await backend.get([
       PromptRepository.STORAGE_KEY,
       PromptRepository.VERSION_KEY,
@@ -209,39 +282,41 @@ class PromptRepositoryLoader {
  * It hides cross-store merge, seeding, and conflict resolution.
  */
 export class PromptRepository {
-  static NAMESPACE = "promptive";
-  static STORAGE_KEY = "prompts";
-  static VERSION_KEY = "version";
-  static UPDATED_AT_KEY = "updated_at";
-  static VERSION = 1;
+  static readonly NAMESPACE = "promptive";
+  static readonly STORAGE_KEY = "prompts";
+  static readonly VERSION_KEY = "version";
+  static readonly UPDATED_AT_KEY = "updated_at";
+  static readonly VERSION = 1;
+
+  private backends: readonly BaseStorageAdapter[] = [];
+  private primary: LocalStorageAdapter;
+  private sync: SyncStorageAdapter | null = null;
+  private initialized: boolean = false;
 
   constructor() {
-    this.backends = [];
     this.primary = new LocalStorageAdapter(PromptRepository.NAMESPACE); // always available in extensions
-    this.sync = null;
-    this.initialized = false;
   }
 
-  async initialize() {
+  async initialize(): Promise<void> {
     if (this.initialized) {
       logger.warn("PromptRepository already initialized");
       return;
     }
 
-    this.backends = [this.primary];
+    const backends: BaseStorageAdapter[] = [this.primary];
 
     // Detect and append sync as a writer if available
     if (await isSyncAvailable()) {
       const sync = new SyncStorageAdapter(PromptRepository.NAMESPACE);
-      this.backends.push(sync);
+      backends.push(sync);
       this.sync = sync;
       logger.info("Sync storage available; enabling cloud backup.");
     } else {
       logger.warn("Sync storage unavailable; falling back to local-only.");
     }
 
-    this.backends = Object.freeze(this.backends.slice());
-    const loader = new PromptRepositoryLoader(this.backends);
+    this.backends = Object.freeze(backends.slice());
+    const loader = new PromptRepositoryLoader(Array.from(this.backends));
     let prompts = await loader.load();
     if (prompts == null || prompts.length < 1) {
       prompts = defaultSeed(); // fresh install
@@ -251,19 +326,19 @@ export class PromptRepository {
     this.initialized = true;
   }
 
-  async getAllPrompts() {
+  async getAllPrompts(): Promise<Prompt[]> {
     try {
       const { [PromptRepository.STORAGE_KEY]: prompts = [] } = await this.primary.get(
         PromptRepository.STORAGE_KEY
       );
       return Array.isArray(prompts) ? prompts : [];
-    } catch (e) {
+    } catch (e: any) {
       logger.warn("Primary read failed; returning empty list:", e?.message ?? e);
       return [];
     }
   }
 
-  async getPrompt(id) {
+  async getPrompt(id: string): Promise<Prompt | undefined> {
     const prompts = await this.getAllPrompts();
     return prompts.find((p) => p.id === id);
   }
@@ -271,7 +346,7 @@ export class PromptRepository {
   /**
    * Creates or updates a prompt; updates timestamps, keeps usage meta.
    */
-  async savePrompt(prompt) {
+  async savePrompt(prompt: PartialPrompt): Promise<Prompt[]> {
     const prompts = await this.getAllPrompts();
     const now = TimeProvider.nowIso();
 
@@ -318,14 +393,14 @@ export class PromptRepository {
     return prompts;
   }
 
-  async deletePrompt(id) {
+  async deletePrompt(id: string): Promise<Prompt[]> {
     const prompts = await this.getAllPrompts();
     const filtered = prompts.filter((p) => p.id !== id);
     await this._persistPrompts(filtered);
     return filtered;
   }
 
-  async recordUsage(id) {
+  async recordUsage(id: string): Promise<void> {
     const prompts = await this.getAllPrompts();
     const p = prompts.find((x) => x.id === id);
     if (!p) {
@@ -338,7 +413,7 @@ export class PromptRepository {
     await this._persistPrompts(prompts);
   }
 
-  async importPrompts(importData) {
+  async importPrompts(importData: ImportData): Promise<Prompt[]> {
     if (!importData?.version || !Array.isArray(importData.prompts)) {
       throw new Error("Invalid import format");
     }
@@ -358,7 +433,7 @@ export class PromptRepository {
     return merged;
   }
 
-  async exportPrompts() {
+  async exportPrompts(): Promise<ExportData> {
     const prompts = await this.getAllPrompts();
     return {
       version: PromptRepository.VERSION,
@@ -368,7 +443,7 @@ export class PromptRepository {
   }
 
   // --- internals ---
-  async _persistPrompts(prompts) {
+  private async _persistPrompts(prompts: Prompt[]): Promise<void> {
     if (!Array.isArray(prompts)) {
       logger.error("_persistPrompts expects array");
       return;
@@ -383,13 +458,13 @@ export class PromptRepository {
     });
   }
 
-  async _writeToBackends(obj) {
+  private async _writeToBackends(obj: StorageKeys): Promise<void> {
     const results = await Promise.allSettled(this.backends.map((b) => b.set(obj)));
     results.forEach((r, i) => {
       if (r.status === "rejected") {
         logger.warn(
           `Write failed to ${this.backends[i].area} backend; continuing:`,
-          r.reason?.message ?? r.reason
+          (r.reason as any)?.message ?? r.reason
         );
       }
     });

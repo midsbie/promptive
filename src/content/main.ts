@@ -1,60 +1,76 @@
-/** ----------------------- Messaging ----------------------- */
-// Duplicate of ../lib/messaging.js
-const MSG = {
-  GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
-  RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",
-  QUERY_STATUS: "PROMPTIVE/QUERY_STATUS",
-  OPEN_POPOVER: "PROMPTIVE/OPEN_POPOVER",
-  INSERT_PROMPT: "PROMPTIVE/INSERT_PROMPT",
-};
+import { MSG, createMessage, isMessage } from "../lib/messaging";
 
-function isMessage(msg) {
-  return typeof msg === "object" && msg !== null && typeof msg.type === "string";
+import { logger } from "./logger";
+
+/** ----------------------- Type Definitions ----------------------- */
+
+// Message types
+interface Message {
+  type: string;
+  [key: string]: any;
 }
 
-function createMessage(type, payload = {}) {
-  return { type, ...payload };
+interface PromptUsageMessage extends Message {
+  type: typeof MSG.RECORD_PROMPT_USAGE;
+  promptId: string;
 }
 
-/** ----------------------- Logging ----------------------- */
-// Duplicate of ../lib/logging.js
-class Logger {
-  constructor(namespace) {
-    this.namespace = namespace;
-  }
-
-  debug(...args) {
-    this._log('debug', ...args);
-  }
-
-  log(...args) {
-    this._log('log', ...args);
-  }
-
-  info(...args) {
-    this._log('info', ...args);
-  }
-
-  warn(...args) {
-    this._log('warn', ...args);
-  }
-
-  error(...args) {
-    this._log('error', ...args);
-  }
-
-  _log(fn, ...args) {
-    // eslint-disable-next-line no-console
-    console[fn](`[${this.namespace}]`, ...args);
-  }
+interface InsertPromptMessage extends Message {
+  type: typeof MSG.INSERT_PROMPT;
+  prompt: Prompt;
 }
 
-const logger = new Logger("content-script");
+interface StatusResponse {
+  active: boolean;
+}
+
+// Cursor position types
+interface InputCursorPosition {
+  type: "input";
+  start: number;
+  end: number;
+}
+
+interface ContentEditableCursorPosition {
+  type: "contenteditable";
+  range: {
+    startContainer: Node;
+    startOffset: number;
+    endContainer: Node;
+    endOffset: number;
+    collapsed: boolean;
+  } | null;
+}
+
+type CursorPosition = InputCursorPosition | ContentEditableCursorPosition | null;
+
+// Prompt object structure
+interface Prompt {
+  id: string;
+  title: string;
+  content: string;
+  tags?: string[];
+}
+
+// Search function type
+type SearchFunction = (query: string, items: Prompt[]) => Prompt[];
+
+// Toast options
+interface ToastOptions {
+  durationMs?: number;
+}
+
+// PopoverUI constructor dependencies
+interface PopoverDependencies {
+  searchFn: SearchFunction;
+  onSelect: (prompt: Prompt) => void;
+  onClose: () => void;
+}
 
 /** ----------------------- Utilities ----------------------- */
 
 class ToastService {
-  static show(message, { durationMs = 3000 } = {}) {
+  static show(message: string, { durationMs = 3000 }: ToastOptions = {}): void {
     const toast = document.createElement("div");
     toast.className = "promptive-toast";
     toast.textContent = message;
@@ -73,21 +89,22 @@ class ToastService {
 }
 
 class CursorPositionManager {
-  static getPosition(el) {
+  static getPosition(el: Element | null): CursorPosition {
     if (!el) return null;
 
     try {
       // Handle INPUT/TEXTAREA elements
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
+        const inputEl = el as HTMLInputElement | HTMLTextAreaElement;
         return {
           type: "input",
-          start: el.selectionStart ?? 0,
-          end: el.selectionEnd ?? 0,
+          start: inputEl.selectionStart ?? 0,
+          end: inputEl.selectionEnd ?? 0,
         };
       }
 
       // Handle contentEditable elements
-      if (el.isContentEditable || el.getAttribute?.("contenteditable")) {
+      if ((el as HTMLElement).isContentEditable || el.getAttribute?.("contenteditable")) {
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
           return { type: "contenteditable", range: null };
@@ -113,15 +130,16 @@ class CursorPositionManager {
     return null;
   }
 
-  static setPosition(el, position) {
+  static setPosition(el: Element | null, position: CursorPosition): void {
     if (!el || !position) return;
 
     try {
       if (position.type === "input") {
+        const inputEl = el as HTMLInputElement | HTMLTextAreaElement;
         // Restore INPUT/TEXTAREA selection
         if (typeof position.start === "number" && typeof position.end === "number") {
-          el.selectionStart = position.start;
-          el.selectionEnd = position.end;
+          inputEl.selectionStart = position.start;
+          inputEl.selectionEnd = position.end;
         }
       } else if (position.type === "contenteditable" && position.range) {
         // Restore contentEditable selection
@@ -133,6 +151,8 @@ class CursorPositionManager {
         }
 
         const selection = window.getSelection();
+        if (!selection) return;
+
         const range = document.createRange();
 
         range.setStart(
@@ -150,13 +170,13 @@ class CursorPositionManager {
   }
 }
 
-const escapeHtml = (text = "") => {
+const escapeHtml = (text: string = ""): string => {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
 };
 
-const toParagraphHtml = (text) => {
+const toParagraphHtml = (text: string): string => {
   // Convert plaintext with newlines into <p> blocks, preserving empty lines
   return text
     .split("\n")
@@ -167,33 +187,30 @@ const toParagraphHtml = (text) => {
 /** ----------------------- Messaging ----------------------- */
 
 class BackgroundAPI {
-  async getPrompts() {
+  async getPrompts(): Promise<Prompt[]> {
     return browser.runtime.sendMessage(createMessage(MSG.GET_PROMPTS));
   }
 
-  async recordUsage(promptId) {
+  async recordUsage(promptId: string): Promise<void> {
     return browser.runtime.sendMessage(createMessage(MSG.RECORD_PROMPT_USAGE, { promptId }));
   }
 }
 
 /** ----------------------- Insertion Strategies ----------------------- */
 
-class InsertionStrategy {
-  canHandle(_element) {
-    return false;
-  }
-
-  insert(_element, _text) {
-    return false;
-  }
+abstract class InsertionStrategy {
+  abstract canHandle(element: Element | null): boolean;
+  abstract insert(element: Element | null, text: string): boolean;
 }
 
 class InputTextareaStrategy extends InsertionStrategy {
-  canHandle(el) {
-    return el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
+  canHandle(el: Element | null): el is HTMLInputElement | HTMLTextAreaElement {
+    return el !== null && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
   }
 
-  insert(el, text) {
+  insert(el: Element | null, text: string): boolean {
+    if (!this.canHandle(el)) return false;
+
     const start = el.selectionStart ?? 0;
     const end = el.selectionEnd ?? 0;
     const value = el.value ?? "";
@@ -210,17 +227,17 @@ class InputTextareaStrategy extends InsertionStrategy {
 }
 
 class ContentEditableStrategy extends InsertionStrategy {
-  canHandle(el) {
+  canHandle(el: Element | null): el is HTMLElement {
     return (
       !!el &&
-      (el.isContentEditable ||
+      ((el as HTMLElement).isContentEditable ||
         el.getAttribute?.("contenteditable") === "true" ||
         el.getAttribute?.("contenteditable") === "plaintext-only")
     );
   }
 
-  insert(el, text) {
-    if (!el) return false;
+  insert(el: Element | null, text: string): boolean {
+    if (!this.canHandle(el)) return false;
 
     if (document.activeElement !== el) {
       logger.warn("Target element is not focused; insertion may be out of place");
@@ -252,7 +269,7 @@ class ContentEditableStrategy extends InsertionStrategy {
     return this._insertPlainText(el, text);
   }
 
-  _insertPlainText(el, text) {
+  private _insertPlainText(el: HTMLElement, text: string): boolean {
     if (document.queryCommandSupported?.("insertText")) {
       try {
         document.execCommand("insertText", false, text);
@@ -274,15 +291,15 @@ class ContentEditableStrategy extends InsertionStrategy {
         sel?.addRange(r);
       }
 
-      const range = window.getSelection().getRangeAt(0);
+      const range = window.getSelection()!.getRangeAt(0);
       range.deleteContents();
 
       const tn = document.createTextNode(text);
       range.insertNode(tn);
       range.setStartAfter(tn);
       range.setEndAfter(tn);
-      sel.removeAllRanges();
-      sel.addRange(range);
+      sel!.removeAllRanges();
+      sel!.addRange(range);
 
       this._dispatchInput(el, "insertText");
       return true;
@@ -291,7 +308,7 @@ class ContentEditableStrategy extends InsertionStrategy {
     }
   }
 
-  _dispatchInput(el, inputType = "insertText") {
+  private _dispatchInput(el: HTMLElement, inputType: string = "insertText"): void {
     // Generic change/input for frameworks
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
@@ -306,7 +323,7 @@ class ContentEditableStrategy extends InsertionStrategy {
 }
 
 class ClipboardWriter {
-  write(text) {
+  write(text: string): boolean {
     // Never throws; failures are acceptable as last resort.
     navigator.clipboard.writeText(text).then(
       () => ToastService.show("Prompt copied to clipboard"),
@@ -317,12 +334,13 @@ class ClipboardWriter {
 }
 
 class TextInserter {
-  /** @param {InsertionStrategy[]} strategies */
-  constructor(strategies) {
+  private strategies: InsertionStrategy[];
+
+  constructor(strategies: InsertionStrategy[]) {
     this.strategies = strategies;
   }
 
-  canHandle(target) {
+  canHandle(target: Element | null): boolean {
     for (const s of this.strategies) {
       try {
         if (s.canHandle(target)) return true;
@@ -333,7 +351,7 @@ class TextInserter {
     return false;
   }
 
-  insert(target, text) {
+  insert(target: Element | null, text: string): boolean {
     if (!target) return false;
 
     for (const s of this.strategies) {
@@ -354,24 +372,28 @@ class TextInserter {
 /** ----------------------- Popover UI ----------------------- */
 
 class PopoverUI {
-  /**
-   * @param {object} deps
-   * @param {(query:string, list:any[]) => any[]} deps.searchFn
-   * @param {(prompt:any) => void} deps.onSelect
-   * @param {() => void} deps.onClose
-   */
-  constructor({ searchFn, onSelect, onClose }) {
+  private searchFn: SearchFunction;
+  private onSelect: (prompt: Prompt) => void;
+  private onClose: () => void;
+
+  private root: HTMLElement | null = null;
+  private searchInput: HTMLInputElement | null = null;
+  private listEl: HTMLElement | null = null;
+
+  private allPrompts: Prompt[] = [];
+  private filtered: Prompt[] = [];
+  private selectedIndex: number = 0;
+
+  // bound handlers
+  private _onKeyDown: (e: KeyboardEvent) => void;
+  private _onDocKeyDown: (e: KeyboardEvent) => void;
+  private _onDocClick: (e: MouseEvent) => void;
+  private _onListClick: (e: MouseEvent) => void;
+
+  constructor({ searchFn, onSelect, onClose }: PopoverDependencies) {
     this.searchFn = searchFn;
     this.onSelect = onSelect;
     this.onClose = onClose;
-
-    this.root = null;
-    this.searchInput = null;
-    this.listEl = null;
-
-    this.allPrompts = [];
-    this.filtered = [];
-    this.selectedIndex = 0;
 
     // bound handlers
     this._onKeyDown = this._onKeyDown.bind(this);
@@ -380,7 +402,7 @@ class PopoverUI {
     this._onListClick = this._onListClick.bind(this);
   }
 
-  open(prompts) {
+  open(prompts: Prompt[]): void {
     this.close(); // ensure only one
     this.allPrompts = prompts ?? [];
     this.filtered = [...this.allPrompts];
@@ -403,18 +425,17 @@ class PopoverUI {
     document.body.appendChild(wrapper);
 
     this.root = wrapper;
-    this.searchInput = wrapper.querySelector(".plp-search");
-    this.listEl = wrapper.querySelector(".plp-list");
+    this.searchInput = wrapper.querySelector(".plp-search") as HTMLInputElement;
+    this.listEl = wrapper.querySelector(".plp-list") as HTMLElement;
 
     // Event wiring
     this.searchInput.addEventListener("input", (e) => {
-      const q = e.target.value;
-      this.filtered = this._filter(q);
+      this.filtered = this._filter((e.target as HTMLInputElement).value);
       this.selectedIndex = 0;
       this._rerenderList();
     });
     this.searchInput.addEventListener("keydown", this._onKeyDown);
-    wrapper.querySelector(".plp-close").addEventListener("click", () => this.close());
+    wrapper.querySelector(".plp-close")!.addEventListener("click", () => this.close());
     this.listEl.addEventListener("click", this._onListClick);
 
     // Global listeners
@@ -425,7 +446,7 @@ class PopoverUI {
     this.searchInput.focus();
   }
 
-  close() {
+  close(): void {
     if (!this.root) return;
     document.removeEventListener("keydown", this._onDocKeyDown);
     document.removeEventListener("click", this._onDocClick, true);
@@ -436,7 +457,7 @@ class PopoverUI {
     this.onClose?.();
   }
 
-  _filter(query) {
+  private _filter(query: string): Prompt[] {
     const q = (query || "").trim();
     if (!q) return [...this.allPrompts];
     try {
@@ -453,7 +474,7 @@ class PopoverUI {
     }
   }
 
-  _renderList() {
+  private _renderList(): string {
     if (!this.filtered.length) {
       return `<div class="plp-empty">No prompts found</div>`;
     }
@@ -464,8 +485,8 @@ class PopoverUI {
         const classes = `plp-item ${sel ? "plp-selected" : ""}`;
         const tags = p.tags?.length
           ? `<div class="plp-item-tags">${p.tags
-            .map((t) => `<span class="plp-tag">${escapeHtml(t)}</span>`)
-            .join("")}</div>`
+              .map((t) => `<span class="plp-tag">${escapeHtml(t)}</span>`)
+              .join("")}</div>`
           : "";
         return `
             <div class="${classes}" data-index="${i}" role="option" ${aria} tabindex="-1">
@@ -478,23 +499,24 @@ class PopoverUI {
       .join("");
   }
 
-  _rerenderList() {
+  private _rerenderList(): void {
     if (!this.listEl) return;
     this.listEl.innerHTML = this._renderList();
     // Ensure selected is visible
     const selected = this.listEl.querySelector(".plp-item.plp-selected");
-    selected?.scrollIntoView({ block: "nearest" });
+    (selected as HTMLElement)?.scrollIntoView({ block: "nearest" });
   }
 
-  _onListClick(e) {
-    const item = e.target.closest(".plp-item");
+  private _onListClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+    const item = target.closest(".plp-item") as HTMLElement;
     if (!item) return;
     const idx = Number(item.dataset.index);
     const prompt = this.filtered[idx];
     if (prompt) this.onSelect?.(prompt);
   }
 
-  _onKeyDown(e) {
+  private _onKeyDown(e: KeyboardEvent): void {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       this.selectedIndex = Math.min(this.selectedIndex + 1, this.filtered.length - 1);
@@ -513,11 +535,11 @@ class PopoverUI {
     }
   }
 
-  _onDocKeyDown(e) {
+  private _onDocKeyDown(e: KeyboardEvent): void {
     if (e.key === "Escape") this.close();
   }
 
-  _onDocClick(e) {
+  private _onDocClick(e: MouseEvent): void {
     // Robust outside-click detection (supports shadow DOM)
     if (!this.root) return;
     const path = e.composedPath?.() ?? [];
@@ -530,6 +552,16 @@ class PopoverUI {
 /** ----------------------- Controller ----------------------- */
 
 class ContentController {
+  private api: BackgroundAPI;
+  private textInserter: TextInserter;
+  private clipboardWriter: ClipboardWriter;
+  private popover: PopoverUI | null = null;
+  private targetElement: Element | null = null;
+  private targetCursorPosition: CursorPosition = null;
+
+  // Bind for runtime listener
+  private _onRuntimeMessage: (message: unknown) => Promise<StatusResponse | void>;
+
   constructor() {
     this.api = new BackgroundAPI();
 
@@ -540,10 +572,6 @@ class ContentController {
 
     this.clipboardWriter = new ClipboardWriter();
 
-    this.popover = null;
-    this.targetElement = null;
-    this.targetCursorPosition = null;
-
     // Bind for runtime listener
     this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
@@ -551,7 +579,7 @@ class ContentController {
     logger.info("initialized");
   }
 
-  async _onRuntimeMessage(message) {
+  private async _onRuntimeMessage(message: unknown): Promise<StatusResponse | void> {
     if (!isMessage(message)) {
       logger.warn("Ignoring non-message:", message);
       return;
@@ -567,8 +595,9 @@ class ContentController {
 
       case MSG.INSERT_PROMPT:
         // Direct insertion path (bypassing popover)
+        const insertMessage = message as InsertPromptMessage;
         this._rememberTarget(document.activeElement);
-        this._insertAndNotify(message.prompt);
+        this._insertAndNotify(insertMessage.prompt.content);
         this._clearTarget();
         return;
 
@@ -578,7 +607,7 @@ class ContentController {
     }
   }
 
-  async openPopover() {
+  async openPopover(): Promise<void> {
     if (this.popover) {
       logger.warn("Refusing to open popover: already open");
       return;
@@ -592,7 +621,7 @@ class ContentController {
     // Lazy init popover to wire handlers with dependencies
     this.popover = new PopoverUI({
       searchFn: simpleSearch,
-      onSelect: async (prompt) => {
+      onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
         this._restoreTarget();
         this._insertAndNotify(prompt.content);
@@ -608,7 +637,7 @@ class ContentController {
     this.popover.open(prompts);
   }
 
-  _insertAndNotify(text) {
+  private _insertAndNotify(text: string): void {
     const target = this.targetElement;
     const ok = this.textInserter.insert(target, text);
     if (ok) {
@@ -620,7 +649,7 @@ class ContentController {
     ToastService.show("Copied to clipboard");
   }
 
-  _rememberTarget(el) {
+  private _rememberTarget(el: Element | null): void {
     const acceptable = this.textInserter.canHandle(el);
     if (!acceptable) {
       this.targetElement = null;
@@ -632,15 +661,16 @@ class ContentController {
     this.targetCursorPosition = CursorPositionManager.getPosition(el);
   }
 
-  _restoreTarget() {
+  private _restoreTarget(): boolean {
     if (!this.targetElement?.isConnected) {
       return false;
     }
 
     try {
       // Focus the element
-      if (typeof this.targetElement.focus === "function") {
-        this.targetElement.focus();
+      const focusableElement = this.targetElement as HTMLElement;
+      if (typeof focusableElement.focus === "function") {
+        focusableElement.focus();
       }
 
       // Restore cursor position
@@ -655,7 +685,7 @@ class ContentController {
     }
   }
 
-  _clearTarget() {
+  private _clearTarget(): void {
     this.targetElement = null;
     this.targetCursorPosition = null;
   }
@@ -663,7 +693,7 @@ class ContentController {
 
 /** ----------------------- Search (pluggable) ----------------------- */
 
-function simpleSearch(query, items) {
+function simpleSearch(query: string, items: Prompt[]): Prompt[] {
   const q = query.toLowerCase();
   return items.filter((item) => {
     const title = (item.title || "").toLowerCase();

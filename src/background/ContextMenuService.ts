@@ -1,30 +1,44 @@
+import { Prompt } from "../lib/storage.js";
+
 import { logger } from "./logger.js";
+
+type GetPromptsFunction = () => Promise<Prompt[]>;
+
+interface Manifest {
+  content_scripts?: Array<{
+    matches: string[];
+  }>;
+}
 
 /**
  * Minimal context-menu builder.
  */
 export class ContextMenuService {
-  static MENU_ID = "promptive";
+  static readonly MENU_ID = "promptive";
 
-  constructor(getPrompts, limit = 10) {
+  private getPrompts: GetPromptsFunction;
+  private limit: number;
+  private documentUrlPatterns: string[];
+
+  constructor(getPrompts: GetPromptsFunction, limit: number = 10) {
     this.getPrompts = getPrompts;
     this.limit = limit;
 
     // Derive the same URL patterns as the content script so menus only show there
-    const manifest = browser.runtime.getManifest?.();
+    const manifest = browser.runtime.getManifest?.() as Manifest | undefined;
     this.documentUrlPatterns = manifest?.content_scripts?.flatMap((cs) => cs.matches) ?? [];
   }
 
-  async rebuild() {
+  async rebuild(): Promise<void> {
     await browser.contextMenus.removeAll();
 
     const prompts = await this.getPrompts();
     const sorted = [...prompts]
-      .sort((a, b) => {
+      .sort((a: Prompt, b: Prompt) => {
         if (!a.last_used_at && !b.last_used_at) return 0;
         if (!a.last_used_at) return 1;
         if (!b.last_used_at) return -1;
-        return new Date(b.last_used_at) - new Date(a.last_used_at);
+        return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
       })
       .slice(0, this.limit);
 

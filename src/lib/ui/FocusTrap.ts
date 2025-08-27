@@ -1,10 +1,10 @@
 export class FocusTrap {
-  static trap(element) {
-    function onKey(e) {
+  static trap(element: HTMLElement): () => void {
+    function onKey(e: KeyboardEvent): void {
       if (e.key !== "Tab") return;
       const nodes = element.querySelectorAll(
         'button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])'
-      );
+      ) as NodeListOf<HTMLElement>;
       if (!nodes.length) return;
       const first = nodes[0];
       const last = nodes[nodes.length - 1];

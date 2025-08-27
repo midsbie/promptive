@@ -1,6 +1,5 @@
 export class IdGenerator {
-  /** @returns {string} */
-  static newId() {
+  static newId(): string {
     // 12+ chars, URL-safe, stable across environments
     return (
       Date.now().toString(36) +

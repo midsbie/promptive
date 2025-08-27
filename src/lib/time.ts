@@ -1,6 +1,5 @@
 export class TimeProvider {
-  /** @returns {string} ISO-8601 */
-  static nowIso() {
+  static nowIso(): string {
     return new Date().toISOString();
   }
 }

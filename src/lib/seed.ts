@@ -1,9 +1,23 @@
 import { IdGenerator } from "./id.js";
 import { TimeProvider } from "./time.js";
 
-export function defaultSeed() {
+interface PromptTemplate {
+  title: string;
+  content: string;
+  tags: string[];
+}
+
+interface Prompt extends PromptTemplate {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+  used_times: number;
+}
+
+export function defaultSeed(): Prompt[] {
   const now = TimeProvider.nowIso();
-  const withMeta = (p) => ({
+  const withMeta = (p: PromptTemplate): Prompt => ({
     id: IdGenerator.newId(),
     created_at: now,
     updated_at: now,

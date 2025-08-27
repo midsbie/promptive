@@ -1,9 +1,9 @@
 // Options page for configuring shortcuts
-const shortcutInput = document.getElementById("shortcut");
-const status = document.getElementById("status");
+const shortcutInput = document.getElementById("shortcut") as HTMLInputElement;
+const status = document.getElementById("status") as HTMLElement;
 
 // Load current shortcut
-browser.commands.getAll().then((commands) => {
+browser.commands.getAll().then((commands: browser.commands.Command[]) => {
   const command = commands.find((c) => c.name === "open-prompt-selector");
   if (command && command.shortcut) {
     shortcutInput.value = command.shortcut;
@@ -11,10 +11,10 @@ browser.commands.getAll().then((commands) => {
 });
 
 // Capture new shortcut
-shortcutInput.addEventListener("keydown", async (e) => {
+shortcutInput.addEventListener("keydown", async (e: KeyboardEvent) => {
   e.preventDefault();
 
-  const keys = [];
+  const keys: string[] = [];
   if (e.ctrlKey) keys.push("Ctrl");
   if (e.altKey) keys.push("Alt");
   if (e.shiftKey) keys.push("Shift");
@@ -38,7 +38,7 @@ shortcutInput.addEventListener("keydown", async (e) => {
       setTimeout(() => {
         status.textContent = "";
       }, 3000);
-    } catch (err) {
+    } catch (err: any) {
       status.textContent = "Error: " + err.message;
       status.style.color = "#e74c3c";
     }
