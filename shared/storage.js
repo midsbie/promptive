@@ -359,7 +359,7 @@ export class PromptRepository {
   async exportPrompts() {
     const prompts = await this.getAllPrompts();
     return {
-      version: 1,
+      version: PromptRepository.VERSION,
       exported_at: TimeProvider.nowIso(),
       prompts,
     };
