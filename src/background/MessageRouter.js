@@ -1,4 +1,4 @@
-import { MSG, isMessage } from "../shared/messaging.js";
+import { MSG, isMessage } from "../lib/messaging.js";
 
 import { logger } from "./logger.js";
 

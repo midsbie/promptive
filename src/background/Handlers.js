@@ -1,4 +1,4 @@
-import { MSG, createMessage } from "../shared/messaging.js";
+import { MSG, createMessage } from "../lib/messaging.js";
 
 import { logger } from "./logger.js";
 

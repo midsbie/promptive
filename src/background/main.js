@@ -1,4 +1,4 @@
-import { PromptRepository } from "../shared/storage.js";
+import { PromptRepository } from "../lib/storage.js";
 
 import { ContentStatusProbe } from "./ContentStatusProbe.js";
 import { ContextMenuService } from "./ContextMenuService.js";

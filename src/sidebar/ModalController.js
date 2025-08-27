@@ -1,4 +1,4 @@
-import { FocusTrap } from "../shared/ui/FocusTrap.js";
+import { FocusTrap } from "../lib/ui/FocusTrap.js";
 
 export class ModalController {
   constructor() {

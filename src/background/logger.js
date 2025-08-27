@@ -1,3 +1,3 @@
-import { Logger } from "../shared/logging.js";
+import { Logger } from "../lib/logging.js";
 
 export const logger = new Logger("background");

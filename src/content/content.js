@@ -1,5 +1,5 @@
 /** ----------------------- Messaging ----------------------- */
-// Duplicate of ../shared/messaging.js
+// Duplicate of ../lib/messaging.js
 const MSG = {
   GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
   RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",
@@ -17,7 +17,7 @@ function createMessage(type, payload = {}) {
 }
 
 /** ----------------------- Logging ----------------------- */
-// Duplicate of ../shared/logging.js
+// Duplicate of ../lib/logging.js
 class Logger {
   constructor(namespace) {
     this.namespace = namespace;
@@ -464,8 +464,8 @@ class PopoverUI {
         const classes = `plp-item ${sel ? "plp-selected" : ""}`;
         const tags = p.tags?.length
           ? `<div class="plp-item-tags">${p.tags
-              .map((t) => `<span class="plp-tag">${escapeHtml(t)}</span>`)
-              .join("")}</div>`
+            .map((t) => `<span class="plp-tag">${escapeHtml(t)}</span>`)
+            .join("")}</div>`
           : "";
         return `
             <div class="${classes}" data-index="${i}" role="option" ${aria} tabindex="-1">

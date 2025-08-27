@@ -1,4 +1,4 @@
-import { PromptRepository } from "../shared/storage.js";
+import { PromptRepository } from "../lib/storage.js";
 
 import { MenuController } from "./MenuController.js";
 import { ModalController } from "./ModalController.js";
