@@ -4,18 +4,27 @@ export class Logger {
   }
 
   debug(...args) {
-    console.debug(`[${this.namespace}]`, ...args);
+    this._log("debug", ...args);
+  }
+
+  log(...args) {
+    this._log("log", ...args);
   }
 
   info(...args) {
-    console.info(`[${this.namespace}]`, ...args);
+    this._log("info", ...args);
   }
 
   warn(...args) {
-    console.warn(`[${this.namespace}]`, ...args);
+    this._log("warn", ...args);
   }
 
   error(...args) {
-    console.error(`[${this.namespace}]`, ...args);
+    this._log("error", ...args);
+  }
+
+  _log(fn, ...args) {
+    // eslint-disable-next-line no-console
+    console[fn](`[${this.namespace}]`, ...args);
   }
 }
