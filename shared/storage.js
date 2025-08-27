@@ -383,13 +383,14 @@ export class PromptRepository {
   }
 
   async _writeToBackends(obj) {
-    for (const b of this.backends) {
-      try {
-        await b.set(obj);
-      } catch (e) {
-        // Non-fatal: keep going so other backends are updated
-        logger.warn(`Write failed to ${b.area} backend; continuing:`, e?.message ?? e);
+    const results = await Promise.allSettled(this.backends.map((b) => b.set(obj)));
+    results.forEach((r, i) => {
+      if (r.status === "rejected") {
+        logger.warn(
+          `Write failed to ${this.backends[i].area} backend; continuing:`,
+          r.reason?.message ?? r.reason
+        );
       }
-    }
+    });
   }
 }
