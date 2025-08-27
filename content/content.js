@@ -170,11 +170,10 @@ class BackgroundAPI {
 /** ----------------------- Insertion Strategies ----------------------- */
 
 class InsertionStrategy {
-  /** @returns {boolean} */
   canHandle(_element) {
     return false;
   }
-  /** @returns {boolean} success */
+
   insert(_element, _text) {
     return false;
   }
@@ -287,10 +286,13 @@ class ContentEditableStrategy extends InsertionStrategy {
     // Generic change/input for frameworks
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
+
     // Try to provide richer signal when supported
     try {
       el.dispatchEvent(new InputEvent("input", { bubbles: true, composed: true, inputType }));
-    } catch (_) {}
+    } catch (e) {
+      logger.error("Failed to dispatch rich InputEvent", e);
+    }
   }
 }
 

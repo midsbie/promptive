@@ -11,7 +11,7 @@ export class MessageRouter {
   }
 
   attach() {
-    browser.runtime.onMessage.addListener((request, sender) => {
+    browser.runtime.onMessage.addListener((request, _sender) => {
       if (!isMessage(request)) {
         logger.warn("Ignoring invalid message:", request);
         return;

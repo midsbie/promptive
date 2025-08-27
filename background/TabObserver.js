@@ -1,5 +1,3 @@
-import { MSG } from "../shared/messaging.js";
-
 export class TabObserver {
   constructor(updateTabFn) {
     this.updateTabFn = updateTabFn;
