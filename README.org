@@ -48,7 +48,9 @@ You can edit or delete these examples and add your own prompts.
 There are *four ways* to access your prompt library:
 
 *** 1. Sidebar Panel
-- Open the sidebar from Firefox’s Sidebar menu (≡ → View → Sidebar → Promptive)
+- Open the sidebar
+  - From Firefox’s Sidebar menu: View → Sidebar → Promptive
+  - From Context Menu: Right-Click → Promptive → Manage Prompts...
 - The sidebar opens with your complete prompt library
 - Full management capabilities (add, edit, delete, search)
 
