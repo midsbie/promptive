@@ -5,12 +5,12 @@
   "description": "A powerful prompt library to make you more creative and productive with sidebar UI and quick access",
   "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab"],
   "background": {
-    "scripts": ["background/main.js"],
+    "scripts": ["dist/background.js"],
     "type": "module"
   },
   "sidebar_action": {
     "default_title": "Promptive",
-    "default_panel": "sidebar/sidebar.html",
+    "default_panel": "dist/sidebar.html",
     "default_icon": {
       "16": "icons/icon-16.svg",
       "32": "icons/icon-32.svg",
@@ -47,8 +47,8 @@
         "*://huggingface.co/*",
         "*://poe.com/*"
       ],
-      "js": ["content/content.js"],
-      "css": ["content/popover.css"],
+      "js": ["dist/content.js"],
+      "css": ["dist/content.css"],
       "run_at": "document_idle"
     }
   ],
@@ -68,7 +68,7 @@
     "128": "icons/icon-128.svg"
   },
   "options_ui": {
-    "page": "options/options.html",
+    "page": "dist/options.html",
     "open_in_tab": false
   },
   "browser_specific_settings": {
