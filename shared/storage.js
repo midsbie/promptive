@@ -175,6 +175,7 @@ class PromptRepositoryLoader {
       logger.warn(`Missing or invalid VERSION_KEY in ${backend.area}; skipping backend`);
       return null;
     } else if (version !== PromptRepository.VERSION) {
+      // TODO: Handle migrations
       logger.warn(
         `Unsupported version in ${backend.area} (${version}); expected ${PromptRepository.VERSION}`
       );
