@@ -167,12 +167,6 @@ class BackgroundAPI {
   }
 }
 
-class MessageHandler {
-  attachAll() {
-    browser.runtime.onMessage.addListener((msg) => {});
-  }
-}
-
 /** ----------------------- Insertion Strategies ----------------------- */
 
 class InsertionStrategy {
@@ -527,8 +521,6 @@ class PopoverUI {
 class ContentController {
   constructor() {
     this.api = new BackgroundAPI();
-    this.messageHandler = new MessageHandler();
-    this.messageHandler.attachAll();
 
     this.textInserter = new TextInserter([
       new InputTextareaStrategy(),
