@@ -35,8 +35,8 @@ The Promptive extension is a powerful Firefox add-on that helps you manage and q
 ** First Run
 
 When you first install the extension, it comes with three example prompts to help you understand how it works:
-- Professional Email template
-- Code Review Comment template
+- Polite Follow-Up Email
+- Code Review Request
 - Meeting Notes template
 
 You can edit or delete these examples and add your own prompts.

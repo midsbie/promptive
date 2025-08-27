@@ -14,16 +14,15 @@ export function defaultSeed() {
 
   return [
     withMeta({
-      title: "Professional Email",
+      title: "Polite Follow-Up Email",
       content:
-        "Dear [Name],\n\nI hope this email finds you well. I wanted to reach out regarding [topic].\n\nBest regards,\n[Your name]",
-      tags: ["email", "professional", "template"],
+        "Subject: Following up on [topic/project]\n\nHello [Recipient's Name],\n\nI hope this message finds you well. I just wanted to follow up regarding [specific item/topic] that I reached out about on [date]. I completely understand you may be busy, but I would appreciate it if you could let me know when you have a chance.\n\nPlease let me know if you need any additional information from my side to move things forward.\n\nThank you for your time and attention.\n\nBest regards,\n[Your Name]",
+      tags: ["email", "follow-up", "professional"]
     }),
     withMeta({
-      title: "Code Review Comment",
-      content:
-        "Great work! A few suggestions:\n1. Consider extracting this logic into a separate function for reusability\n2. Add error handling for edge cases\n3. Could we add unit tests for this functionality?",
-      tags: ["code", "review", "feedback"],
+      title: "Code Review Request",
+      content: "You are an expert software engineer. Please review the following code for correctness, readability, maintainability, and performance. Provide:\n\n1. **Summary** of what the code does\n2. **Strengths** — what is done well\n3. **Issues** — possible bugs, edge cases, or anti-patterns\n4. **Improvements** — suggestions for clearer structure, naming, efficiency, or standards\n\nHere is the code:\n\n```{{CODE}}```",
+      tags: ["code", "review", "engineering"],
     }),
     withMeta({
       title: "Meeting Notes Template",
