@@ -1,5 +1,7 @@
 import { MSG, isMessage } from "../shared/messaging.js";
 
+import { logger } from "./logger.js";
+
 /**
  * Handles messages routed from content scripts or sidebar.
  */
