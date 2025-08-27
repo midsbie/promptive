@@ -1,11 +1,18 @@
-// eslint.config.js
-import { defineConfig } from "eslint/config";
+import js from "@eslint/js";
+import globals from "globals";
 
-export default defineConfig([
+export default [
+  js.configs.recommended,
+
   {
-    rules: {
-      semi: ["error", "always"],
-      "prefer-const": "error",
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: {
+        // Browser runtime + web extension APIs
+        ...globals.browser, // window, document, Event, console, etc.
+        ...globals.webextensions, // browser, chrome, etc.
+      },
     },
   },
-]);
+];
