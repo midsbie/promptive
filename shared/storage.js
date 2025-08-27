@@ -77,7 +77,7 @@ export async function isSyncAvailable() {
  * Merge strategy:
  * - Identity: by (title, content) OR by id when both present.
  * - Prefer the record with the newer updated_at.
- * - Preserve higher used_times and latest last_used.
+ * - Preserve higher used_times and latest last_used_at.
  * - Ensure required fields exist post-merge.
  */
 export function mergePrompts(base, incoming) {
@@ -100,8 +100,8 @@ export function mergePrompts(base, incoming) {
     const newer = isNewer(p, prev) ? p : prev;
     // Accumulate usage metadata conservatively
     const used_times = Math.max(prev.used_times || 0, p.used_times || 0);
-    const last_used = latestIso(prev.last_used, p.last_used);
-    byKey.set(k, { ...normalizePrompt(newer), used_times, last_used });
+    const last_used_at = latestIso(prev.last_used_at, p.last_used_at);
+    byKey.set(k, { ...normalizePrompt(newer), used_times, last_used_at });
   };
 
   base.forEach(upsert);
@@ -132,7 +132,7 @@ function normalizePrompt(p) {
     tags: Array.isArray(p.tags) ? p.tags : [],
     created_at: p.created_at || now,
     updated_at: p.updated_at || now,
-    last_used: p.last_used ?? null,
+    last_used_at: p.last_used_at ?? null,
     used_times: Number.isFinite(p.used_times) ? p.used_times : 0,
   };
 }
@@ -283,7 +283,8 @@ export class PromptRepository {
           updated_at: now,
           // Preserve usage counters unless explicitly provided
           used_times: Number.isFinite(prompt.used_times) ? prompt.used_times : preserve.used_times,
-          last_used: prompt.last_used !== undefined ? prompt.last_used : preserve.last_used,
+          last_used_at:
+            prompt.last_used_at !== undefined ? prompt.last_used_at : preserve.last_used_at,
         };
       } else {
         // Unknown id -> treat as create
@@ -294,7 +295,7 @@ export class PromptRepository {
           tags: Array.isArray(prompt.tags) ? prompt.tags : [],
           created_at: now,
           updated_at: now,
-          last_used: null,
+          last_used_at: null,
           used_times: 0,
         });
       }
@@ -306,7 +307,7 @@ export class PromptRepository {
         tags: Array.isArray(prompt.tags) ? prompt.tags : [],
         created_at: now,
         updated_at: now,
-        last_used: null,
+        last_used_at: null,
         used_times: 0,
       });
     }
@@ -330,7 +331,7 @@ export class PromptRepository {
       return;
     }
 
-    p.last_used = TimeProvider.nowIso();
+    p.last_used_at = TimeProvider.nowIso();
     p.used_times = (p.used_times || 0) + 1;
     await this._persistPrompts(prompts);
   }

@@ -21,10 +21,10 @@ export class ContextMenuService {
     const prompts = await this.getPrompts();
     const sorted = [...prompts]
       .sort((a, b) => {
-        if (!a.last_used && !b.last_used) return 0;
-        if (!a.last_used) return 1;
-        if (!b.last_used) return -1;
-        return new Date(b.last_used) - new Date(a.last_used);
+        if (!a.last_used_at && !b.last_used_at) return 0;
+        if (!a.last_used_at) return 1;
+        if (!b.last_used_at) return -1;
+        return new Date(b.last_used_at) - new Date(a.last_used_at);
       })
       .slice(0, this.limit);
 

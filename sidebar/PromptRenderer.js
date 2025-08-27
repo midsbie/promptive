@@ -6,10 +6,10 @@ export class PromptRenderer {
     this.escaper = escaper;
   }
 
-  formatLastUsed(last_used) {
-    if (!last_used) return "";
+  formatLastUsed(lastUsedAt) {
+    if (!lastUsedAt) return "";
     try {
-      const d = new Date(last_used);
+      const d = new Date(lastUsedAt);
       return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     } catch {
       return "";
@@ -18,7 +18,7 @@ export class PromptRenderer {
 
   item(prompt) {
     const e = this.escaper.escape;
-    const lastUsed = this.formatLastUsed(prompt.last_used);
+    const lastUsed = this.formatLastUsed(prompt.last_used_at);
     return `
       <div class="prompt-item" role="listitem">
         <div class="prompt-header">
@@ -44,15 +44,14 @@ export class PromptRenderer {
           </div>
         </div>
         <div class="prompt-content">${e(prompt.content)}</div>
-        ${
-          prompt.tags && prompt.tags.length
-            ? `<div class="prompt-tags-row">
+        ${prompt.tags && prompt.tags.length
+        ? `<div class="prompt-tags-row">
                  <div class="prompt-tags">
                    ${prompt.tags.map((t) => `<span class="tag">${e(t)}</span>`).join("")}
                  </div>
                </div>`
-            : ""
-        }
+        : ""
+      }
         <div class="prompt-stats-row">
           <div class="prompt-stats">
             <span class="stat-item">
@@ -62,9 +61,8 @@ export class PromptRenderer {
               </svg>
               ${prompt.used_times || 0} times
             </span>
-            ${
-              prompt.last_used
-                ? `
+            ${prompt.last_used_at
+        ? `
               <span class="stat-separator">•</span>
               <span class="stat-item">
                 <svg class="stat-icon" width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -73,8 +71,8 @@ export class PromptRenderer {
                 </svg>
                 ${lastUsed}
               </span>`
-                : ""
-            }
+        : ""
+      }
           </div>
         </div>
       </div>

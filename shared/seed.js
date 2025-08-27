@@ -7,7 +7,7 @@ export function defaultSeed() {
     id: IdGenerator.newId(),
     created_at: now,
     updated_at: now,
-    last_used: null,
+    last_used_at: null,
     used_times: 0,
     ...p,
   });
