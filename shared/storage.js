@@ -150,7 +150,6 @@ class PromptRepositoryLoader {
         if (state != null) dataset.push(state);
       } catch (e) {
         logger.warn(`Read failed from ${backend.area}:`, e?.message ?? e);
-        return null;
       }
     }
 
