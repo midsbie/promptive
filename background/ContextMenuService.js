@@ -33,7 +33,6 @@ export class ContextMenuService {
       id: ContextMenuService.MENU_ID,
       title: "Promptive",
       contexts: ["editable", "page"],
-      documentUrlPatterns: this.documentUrlPatterns,
     });
 
     // Items
@@ -74,7 +73,6 @@ export class ContextMenuService {
       parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
       contexts: ["editable", "page"],
-      documentUrlPatterns: this.documentUrlPatterns,
     });
 
     logger.debug("Context menus rebuilt");
