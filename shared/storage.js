@@ -371,9 +371,11 @@ export class PromptRepository {
       return;
     }
 
+    const normalizedPrompts = prompts.map(normalizePrompt);
+
     await this._writeToBackends({
       [PromptRepository.VERSION_KEY]: PromptRepository.VERSION,
-      [PromptRepository.STORAGE_KEY]: prompts,
+      [PromptRepository.STORAGE_KEY]: normalizedPrompts,
       [PromptRepository.UPDATED_AT_KEY]: TimeProvider.nowIso(),
     });
   }
