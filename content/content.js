@@ -620,11 +620,6 @@ class ContentController {
 
   _rememberTarget(el) {
     const acceptable = this.textInserter.canHandle(el);
-    this.targetElement = acceptable ? el : null;
-  }
-
-  _rememberTarget(el) {
-    const acceptable = this.textInserter.canHandle(el);
     if (!acceptable) {
       this.targetElement = null;
       this.targetCursorPosition = null;
