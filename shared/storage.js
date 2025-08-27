@@ -233,12 +233,13 @@ export class PromptRepository {
     if (await isSyncAvailable()) {
       const sync = new SyncStorageAdapter(PromptRepository.NAMESPACE);
       this.backends.push(sync);
-      this.sync = sync; // compat
+      this.sync = sync;
       logger.info("Sync storage available; enabling cloud backup.");
     } else {
       logger.warn("Sync storage unavailable; falling back to local-only.");
     }
 
+    this.backends = Object.freeze(this.backends.slice());
     const loader = new PromptRepositoryLoader(this.backends);
     let prompts = await loader.load();
     if (prompts == null || prompts.length < 1) {
