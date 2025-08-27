@@ -205,4 +205,6 @@ The JSON structure for import/export:
 
 * Privacy and Data
 
-All prompts are stored **locally** in your Firefox profile with no cloud sync, external servers, or telemetry. Your data remains on your device, persists across sessions, and is removed if the extension is uninstalled. To keep your library safe, regularly export prompts as JSON, save backups in a secure location, and consider version control.
+All prompts are stored locally in your browser and also synced via Firefox Sync if you have it enabled. No third-party servers or telemetry are involved. Your data persists across sessions and is removed if the extension is uninstalled.
+
+To keep your library safe, you may still wish to export prompts as JSON, maintain backups in a secure location, and optionally use version control.
