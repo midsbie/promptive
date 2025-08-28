@@ -1,0 +1,31 @@
+import { Prompt } from "../lib/storage";
+
+// Cursor position types
+export interface InputCursorPosition {
+  type: "input";
+  start: number;
+  end: number;
+}
+
+export interface ContentEditableCursorPosition {
+  type: "contenteditable";
+  range: {
+    startContainer: Node;
+    startOffset: number;
+    endContainer: Node;
+    endOffset: number;
+    collapsed: boolean;
+  } | null;
+}
+
+export type CursorPosition = InputCursorPosition | ContentEditableCursorPosition | null;
+
+// Search function type
+export type SearchFunction = (query: string, items: Prompt[]) => Prompt[];
+
+// PopoverUI constructor dependencies
+export interface PopoverDependencies {
+  searchFn: SearchFunction;
+  onSelect: (prompt: Prompt) => void;
+  onClose: () => void;
+}
