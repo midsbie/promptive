@@ -22,6 +22,8 @@ DIST_DIR := dist
 ARTIFACTS_DIR := artifacts
 CSS_SRC := src/content/content.css src/sidebar/sidebar.css
 CSS_OUT := $(DIST_DIR)/content.css $(DIST_DIR)/sidebar.css
+HTML_SRC := src/options/options.html src/sidebar/sidebar.html
+HTML_OUT := $(DIST_DIR)/options.html $(DIST_DIR)/sidebar.html
 SOURCE_FILES := $(shell find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.mjs' \))
 
 # Package metadata; read from package.json
@@ -76,13 +78,18 @@ $(BUNDLE_STAMP): package.json scripts/build.mjs $(SOURCE_FILES)
 $(DIST_DIR)/%.css: src/*/%.css | $(DIST_DIR)
 	@$(INSTALL) -m 0644 "$<" "$@"
 
+# Map src/<name>/<name>.html -> dist/<name>.html (e.g., content, sidebar)
+# This matches src/options/options.html -> dist/options.html and src/sidebar/sidebar.html -> dist/sidebar.html
+$(DIST_DIR)/%.html: src/*/%.html | $(DIST_DIR)
+	@$(INSTALL) -m 0644 "$<" "$@"
+
 # Ensure dist folder exists for order-only prerequisites
 $(DIST_DIR):
 	@$(MKDIR) $(DIST_DIR)
 
 # High-level build target
 .PHONY: build
-build: verify-version $(BUNDLE_STAMP) $(CSS_OUT)
+build: verify-version $(BUNDLE_STAMP) $(CSS_OUT) $(HTML_OUT)
 	@echo "Build completed in: $(DIST_DIR)"
 
 # -----------------------------------------------------------------------------
