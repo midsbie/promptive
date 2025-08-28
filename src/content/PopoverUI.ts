@@ -1,7 +1,21 @@
 import { Prompt } from "../lib/storage";
 import { HtmlEscaper } from "../lib/string";
 
-import { PopoverDependencies, SearchFunction } from "./typedefs";
+interface PromptListItem extends Prompt {
+  escapedTitle: string;
+  escapedContent: string;
+  escapedTags: string[];
+}
+
+// Search function type
+export type SearchFunction = (query: string, items: PromptListItem[]) => PromptListItem[];
+
+// PopoverUI constructor dependencies
+export interface PopoverDependencies {
+  searchFn: SearchFunction;
+  onSelect: (prompt: Prompt) => void;
+  onClose: () => void;
+}
 
 export class PopoverUI {
   private searchFn: SearchFunction;
@@ -12,8 +26,8 @@ export class PopoverUI {
   private searchInput: HTMLInputElement | null = null;
   private listEl: HTMLElement | null = null;
 
-  private allPrompts: Prompt[] = [];
-  private filtered: Prompt[] = [];
+  private allPrompts: PromptListItem[] = [];
+  private filtered: PromptListItem[] = [];
   private selectedIndex: number = 0;
 
   constructor({ searchFn, onSelect, onClose }: PopoverDependencies) {
@@ -24,7 +38,14 @@ export class PopoverUI {
 
   open(prompts: Prompt[]): void {
     this.close(); // ensure only one
-    this.allPrompts = prompts ?? [];
+
+    this.allPrompts = (prompts ?? []).map((p) => ({
+      ...p,
+      escapedTitle: HtmlEscaper.escape(p.title || ""),
+      escapedContent: HtmlEscaper.escape(p.content || ""),
+      escapedTags: (p.tags || []).map((t) => HtmlEscaper.escape(t)),
+    }));
+
     this.filtered = [...this.allPrompts];
     this.selectedIndex = 0;
 
@@ -68,8 +89,10 @@ export class PopoverUI {
 
   close(): void {
     if (!this.root) return;
+
     document.removeEventListener("keydown", this._onDocKeyDown);
     document.removeEventListener("click", this._onDocClick, true);
+
     this.root.remove();
     this.root = null;
     this.searchInput = null;
@@ -77,19 +100,20 @@ export class PopoverUI {
     this.onClose?.();
   }
 
-  private _filter(query: string): Prompt[] {
+  private _filter(query: string): PromptListItem[] {
     const q = (query || "").trim();
     if (!q) return [...this.allPrompts];
+
     try {
       return this.searchFn(q, this.allPrompts);
     } catch {
       // Defensive: fall back to simple contains
-      const lower = q.toLowerCase();
+      const lq = q.toLowerCase();
       return this.allPrompts.filter((p) => {
         const t = (p.title || "").toLowerCase();
         const c = (p.content || "").toLowerCase();
         const tags = (p.tags || []).join(" ").toLowerCase();
-        return t.includes(lower) || c.includes(lower) || tags.includes(lower);
+        return t.includes(lq) || c.includes(lq) || tags.includes(lq);
       });
     }
   }
@@ -98,20 +122,23 @@ export class PopoverUI {
     if (!this.filtered.length) {
       return `<div class="plp-empty">No prompts found</div>`;
     }
+
     return this.filtered
       .map((p, i) => {
         const sel = i === this.selectedIndex;
         const aria = sel ? `aria-selected="true"` : `aria-selected="false"`;
         const classes = `plp-item ${sel ? "plp-selected" : ""}`;
-        const tags = p.tags?.length
-          ? `<div class="plp-item-tags">${p.tags
-              .map((t) => `<span class="plp-tag">${HtmlEscaper.escape(t)}</span>`)
+
+        const tags = p.escapedTags?.length
+          ? `<div class="plp-item-tags">${p.escapedTags
+              .map((t) => `<span class="plp-tag">${t}</span>`)
               .join("")}</div>`
           : "";
+
         return `
             <div class="${classes}" data-index="${i}" role="option" ${aria} tabindex="-1">
-              <div class="plp-item-title">${HtmlEscaper.escape(p.title || "")}</div>
-              <div class="plp-item-content">${HtmlEscaper.escape((p.content || "").slice(0, 100))}...</div>
+              <div class="plp-item-title">${p.escapedTitle || ""}</div>
+              <div class="plp-item-content">${(p.escapedContent || "").slice(0, 100)}...</div>
               ${tags}
             </div>
           `;
@@ -121,6 +148,7 @@ export class PopoverUI {
 
   private _rerenderList(): void {
     if (!this.listEl) return;
+
     this.listEl.innerHTML = this._renderList();
     // Ensure selected is visible
     const selected = this.listEl.querySelector(".plp-item.plp-selected");
@@ -131,6 +159,7 @@ export class PopoverUI {
     const target = e.target as HTMLElement;
     const item = target.closest(".plp-item") as HTMLElement;
     if (!item) return;
+
     const idx = Number(item.dataset.index);
     const prompt = this.filtered[idx];
     if (prompt) this.onSelect?.(prompt);

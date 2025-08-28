@@ -19,13 +19,3 @@ export interface ContentEditableCursorPosition {
 }
 
 export type CursorPosition = InputCursorPosition | ContentEditableCursorPosition | null;
-
-// Search function type
-export type SearchFunction = (query: string, items: Prompt[]) => Prompt[];
-
-// PopoverUI constructor dependencies
-export interface PopoverDependencies {
-  searchFn: SearchFunction;
-  onSelect: (prompt: Prompt) => void;
-  onClose: () => void;
-}
