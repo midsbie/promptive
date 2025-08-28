@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 
 # Build artifacts
+artifacts/
 dist/
 build/
 *.zip
