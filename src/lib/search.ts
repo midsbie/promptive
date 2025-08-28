@@ -1,5 +1,5 @@
 import { Prompt } from "./storage";
-import { normalizeForSearch } from "./string";
+import { normalizeForComparison } from "./string";
 
 export type SearchableItem = Prompt;
 
@@ -237,8 +237,8 @@ export class AdvancedSearch {
 
     // Deduplicate and normalize
     return {
-      phrases: [...new Set(result.phrases.map(normalizeForSearch))],
-      regularTerms: [...new Set(result.regularTerms.map(normalizeForSearch))],
+      phrases: [...new Set(result.phrases.map(normalizeForComparison))],
+      regularTerms: [...new Set(result.regularTerms.map(normalizeForComparison))],
     };
   }
 

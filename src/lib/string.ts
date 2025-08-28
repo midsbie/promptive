@@ -23,7 +23,7 @@ export class HtmlEscaper {
  *
  * The result is suitable for accent-insensitive, lowercase search or matching.
  */
-export function normalizeForSearch(s: string): string {
+export function normalizeForComparison(s: string): string {
   return s
     .trim()
     .toLowerCase()
