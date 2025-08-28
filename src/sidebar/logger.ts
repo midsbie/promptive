@@ -1,3 +1,3 @@
-import { Logger } from "../lib/logging.js";
+import { Logger } from "../lib/logging";
 
 export const logger: Logger = new Logger("sidebar");

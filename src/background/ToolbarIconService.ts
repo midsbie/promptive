@@ -1,3 +1,5 @@
+import browser from "webextension-polyfill";
+
 type IconPaths = Record<string, string>;
 
 const ACTIVE: IconPaths = {

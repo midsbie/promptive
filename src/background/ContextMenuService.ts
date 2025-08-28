@@ -1,6 +1,8 @@
-import { Prompt } from "../lib/storage.js";
+import browser from "webextension-polyfill";
 
-import { logger } from "./logger.js";
+import { Prompt } from "../lib/storage";
+
+import { logger } from "./logger";
 
 type GetPromptsFunction = () => Promise<Prompt[]>;
 

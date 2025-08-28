@@ -1,12 +1,14 @@
-import { PromptRepository } from "../lib/storage.js";
+import browser from "webextension-polyfill";
 
-import { ContentStatusProbe } from "./ContentStatusProbe.js";
-import { ContextMenuService } from "./ContextMenuService.js";
-import { Handlers } from "./Handlers.js";
-import { MessageRouter } from "./MessageRouter.js";
-import { TabObserver } from "./TabObserver.js";
-import { ToolbarIconService } from "./ToolbarIconService.js";
-import { logger } from "./logger.js";
+import { PromptRepository } from "../lib/storage";
+
+import { ContentStatusProbe } from "./ContentStatusProbe";
+import { ContextMenuService } from "./ContextMenuService";
+import { Handlers } from "./Handlers";
+import { MessageRouter } from "./MessageRouter";
+import { TabObserver } from "./TabObserver";
+import { ToolbarIconService } from "./ToolbarIconService";
+import { logger } from "./logger";
 
 const CONTEXT_MENU_LIMIT = 10;
 

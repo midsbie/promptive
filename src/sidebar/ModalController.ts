@@ -1,12 +1,12 @@
-import { FocusTrap } from "../lib/ui/FocusTrap.js";
+import { FocusTrap } from "../lib/ui/FocusTrap";
 
-interface ModalFields {
+export interface ModalFields {
   title?: string;
   content?: string;
   tags?: string[];
 }
 
-interface ModalOptions {
+export interface ModalOptions {
   title: string;
   fields?: ModalFields;
 }
@@ -25,7 +25,8 @@ export class ModalController {
     (document.getElementById("promptForm") as HTMLFormElement).reset();
     (document.getElementById("promptTitle") as HTMLInputElement).value = fields?.title ?? "";
     (document.getElementById("promptContent") as HTMLTextAreaElement).value = fields?.content ?? "";
-    (document.getElementById("promptTags") as HTMLInputElement).value = fields?.tags?.join(", ") ?? "";
+    (document.getElementById("promptTags") as HTMLInputElement).value =
+      fields?.tags?.join(", ") ?? "";
     modal.classList.add("active");
     (document.getElementById("promptTitle") as HTMLInputElement).focus();
     this._release = FocusTrap.trap(modal);

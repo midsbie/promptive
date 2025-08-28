@@ -23,9 +23,11 @@ export class MenuController {
   bind(container: HTMLElement, onAction: MenuActionHandler): void {
     // kebab open/close
     container.querySelectorAll(".kebab-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
+      btn.addEventListener("click", (e: MouseEvent) => {
         e.stopPropagation();
-        const wrapper = (e.currentTarget as HTMLElement).closest(".menu-wrapper") as HTMLElement | null;
+        const wrapper = (e.currentTarget as HTMLElement).closest(
+          ".menu-wrapper"
+        ) as HTMLElement | null;
         const expanded = (e.currentTarget as HTMLElement).getAttribute("aria-expanded") === "true";
         document.querySelectorAll(".menu.open").forEach((m) => {
           const w = m.closest(".menu-wrapper") as HTMLElement | null;
@@ -33,11 +35,15 @@ export class MenuController {
         });
         expanded ? this.close(wrapper) : this.open(wrapper!);
       });
-      btn.addEventListener("keydown", (e) => {
+
+      btn.addEventListener("keydown", (e: KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          const wrapper = (e.currentTarget as HTMLElement).closest(".menu-wrapper") as HTMLElement | null;
-          const expanded = (e.currentTarget as HTMLElement).getAttribute("aria-expanded") === "true";
+          const wrapper = (e.currentTarget as HTMLElement).closest(
+            ".menu-wrapper"
+          ) as HTMLElement | null;
+          const expanded =
+            (e.currentTarget as HTMLElement).getAttribute("aria-expanded") === "true";
           if (expanded) this.close(wrapper);
           else {
             this.open(wrapper!);
@@ -49,7 +55,7 @@ export class MenuController {
 
     // click & keyboard on menu items
     container.querySelectorAll(".menu").forEach((menu) => {
-      menu.addEventListener("click", (e) => {
+      menu.addEventListener("click", (e: MouseEvent) => {
         const btn = (e.target as HTMLElement).closest(".menu-item") as HTMLElement | null;
         if (!btn) return;
         const id = btn.dataset.id!;
@@ -57,7 +63,8 @@ export class MenuController {
         onAction(action, id);
         this.close(menu.closest(".menu-wrapper") as HTMLElement | null);
       });
-      menu.addEventListener("keydown", (e) => {
+
+      menu.addEventListener("keydown", (e: KeyboardEvent) => {
         const items = Array.from(menu.querySelectorAll(".menu-item")) as HTMLElement[];
         const idx = items.indexOf(document.activeElement as HTMLElement);
         if (e.key === "ArrowDown") {
@@ -82,7 +89,7 @@ export class MenuController {
     });
 
     // global close-on-outside-click
-    document.addEventListener("click", (e) => {
+    document.addEventListener("click", (e: MouseEvent) => {
       const openMenus = document.querySelectorAll(".menu.open");
       openMenus.forEach((menu) => {
         const wrapper = menu.closest(".menu-wrapper") as HTMLElement | null;

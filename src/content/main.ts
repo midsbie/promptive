@@ -1,28 +1,12 @@
-import { MSG, createMessage, isMessage } from "../lib/messaging";
+import browser from "webextension-polyfill";
+
+import { MSG, Message, MessageResponse, createMessage, isMessage, send } from "../lib/messaging";
+import { Prompt } from "../lib/storage";
+import { ToastOptions } from "../lib/typedefs";
 
 import { logger } from "./logger";
 
 /** ----------------------- Type Definitions ----------------------- */
-
-// Message types
-interface Message {
-  type: string;
-  [key: string]: any;
-}
-
-interface PromptUsageMessage extends Message {
-  type: typeof MSG.RECORD_PROMPT_USAGE;
-  promptId: string;
-}
-
-interface InsertPromptMessage extends Message {
-  type: typeof MSG.INSERT_PROMPT;
-  prompt: Prompt;
-}
-
-interface StatusResponse {
-  active: boolean;
-}
 
 // Cursor position types
 interface InputCursorPosition {
@@ -44,21 +28,8 @@ interface ContentEditableCursorPosition {
 
 type CursorPosition = InputCursorPosition | ContentEditableCursorPosition | null;
 
-// Prompt object structure
-interface Prompt {
-  id: string;
-  title: string;
-  content: string;
-  tags?: string[];
-}
-
 // Search function type
 type SearchFunction = (query: string, items: Prompt[]) => Prompt[];
-
-// Toast options
-interface ToastOptions {
-  durationMs?: number;
-}
 
 // PopoverUI constructor dependencies
 interface PopoverDependencies {
@@ -188,11 +159,12 @@ const toParagraphHtml = (text: string): string => {
 
 class BackgroundAPI {
   async getPrompts(): Promise<Prompt[]> {
-    return browser.runtime.sendMessage(createMessage(MSG.GET_PROMPTS));
+    const r = await send(createMessage(MSG.GET_PROMPTS));
+    return r.prompts;
   }
 
   async recordUsage(promptId: string): Promise<void> {
-    return browser.runtime.sendMessage(createMessage(MSG.RECORD_PROMPT_USAGE, { promptId }));
+    await send(createMessage(MSG.RECORD_PROMPT_USAGE, { promptId }));
   }
 }
 
@@ -384,22 +356,10 @@ class PopoverUI {
   private filtered: Prompt[] = [];
   private selectedIndex: number = 0;
 
-  // bound handlers
-  private _onKeyDown: (e: KeyboardEvent) => void;
-  private _onDocKeyDown: (e: KeyboardEvent) => void;
-  private _onDocClick: (e: MouseEvent) => void;
-  private _onListClick: (e: MouseEvent) => void;
-
   constructor({ searchFn, onSelect, onClose }: PopoverDependencies) {
     this.searchFn = searchFn;
     this.onSelect = onSelect;
     this.onClose = onClose;
-
-    // bound handlers
-    this._onKeyDown = this._onKeyDown.bind(this);
-    this._onDocKeyDown = this._onDocKeyDown.bind(this);
-    this._onDocClick = this._onDocClick.bind(this);
-    this._onListClick = this._onListClick.bind(this);
   }
 
   open(prompts: Prompt[]): void {
@@ -507,16 +467,16 @@ class PopoverUI {
     (selected as HTMLElement)?.scrollIntoView({ block: "nearest" });
   }
 
-  private _onListClick(e: MouseEvent): void {
+  private _onListClick = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
     const item = target.closest(".plp-item") as HTMLElement;
     if (!item) return;
     const idx = Number(item.dataset.index);
     const prompt = this.filtered[idx];
     if (prompt) this.onSelect?.(prompt);
-  }
+  };
 
-  private _onKeyDown(e: KeyboardEvent): void {
+  private _onKeyDown = (e: KeyboardEvent): void => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       this.selectedIndex = Math.min(this.selectedIndex + 1, this.filtered.length - 1);
@@ -533,20 +493,20 @@ class PopoverUI {
       e.preventDefault();
       this.close();
     }
-  }
+  };
 
-  private _onDocKeyDown(e: KeyboardEvent): void {
+  private _onDocKeyDown = (e: KeyboardEvent): void => {
     if (e.key === "Escape") this.close();
-  }
+  };
 
-  private _onDocClick(e: MouseEvent): void {
+  private _onDocClick = (e: MouseEvent): void => {
     // Robust outside-click detection (supports shadow DOM)
     if (!this.root) return;
     const path = e.composedPath?.() ?? [];
     if (!path.includes(this.root)) {
       this.close();
     }
-  }
+  };
 }
 
 /** ----------------------- Controller ----------------------- */
@@ -559,9 +519,6 @@ class ContentController {
   private targetElement: Element | null = null;
   private targetCursorPosition: CursorPosition = null;
 
-  // Bind for runtime listener
-  private _onRuntimeMessage: (message: unknown) => Promise<StatusResponse | void>;
-
   constructor() {
     this.api = new BackgroundAPI();
 
@@ -571,21 +528,18 @@ class ContentController {
     ]);
 
     this.clipboardWriter = new ClipboardWriter();
-
-    // Bind for runtime listener
-    this._onRuntimeMessage = this._onRuntimeMessage.bind(this);
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
 
     logger.info("initialized");
   }
 
-  private async _onRuntimeMessage(message: unknown): Promise<StatusResponse | void> {
+  private _onRuntimeMessage = async (message: Message): Promise<MessageResponse | void> => {
     if (!isMessage(message)) {
       logger.warn("Ignoring non-message:", message);
       return;
     }
 
-    switch (message.type) {
+    switch (message.action) {
       case MSG.QUERY_STATUS:
         return Promise.resolve({ active: true });
 
@@ -595,9 +549,8 @@ class ContentController {
 
       case MSG.INSERT_PROMPT:
         // Direct insertion path (bypassing popover)
-        const insertMessage = message as InsertPromptMessage;
         this._rememberTarget(document.activeElement);
-        this._insertAndNotify(insertMessage.prompt.content);
+        this._insertAndNotify(message.prompt.content);
         this._clearTarget();
         return;
 
@@ -605,7 +558,7 @@ class ContentController {
         logger.warn("Unknown message:", message);
         return;
     }
-  }
+  };
 
   async openPopover(): Promise<void> {
     if (this.popover) {

@@ -1,7 +1,9 @@
-import { MSG, isMessage, Message } from "../lib/messaging.js";
-import { PromptRepository } from "../lib/storage.js";
+import browser from "webextension-polyfill";
 
-import { logger } from "./logger.js";
+import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
+import { PromptRepository } from "../lib/storage";
+
+import { logger } from "./logger";
 
 /**
  * Handles messages routed from content scripts or sidebar.
@@ -14,20 +16,26 @@ export class MessageRouter {
   }
 
   attach(): void {
-    browser.runtime.onMessage.addListener((request: any, _sender: browser.runtime.MessageSender) => {
-      if (!isMessage(request)) {
-        logger.warn("Ignoring invalid message:", request);
-        return;
-      }
+    browser.runtime.onMessage.addListener(
+      async (request: Message): Promise<MessageResponse | void> => {
+        if (!isMessage(request)) {
+          logger.warn("Ignoring invalid message:", request);
+          return;
+        }
 
-      switch (request?.type) {
-        case MSG.GET_PROMPTS:
-          return this.repo.getAllPrompts();
-        case MSG.RECORD_PROMPT_USAGE:
-          return this.repo.recordUsage((request as Message & { promptId: string }).promptId);
-        default:
-          return false;
+        switch (request?.action) {
+          case MSG.GET_PROMPTS:
+            return { prompts: this.repo.getAllPrompts() };
+
+          case MSG.RECORD_PROMPT_USAGE:
+            this.repo.recordUsage((request as Message & { promptId: string }).promptId);
+            return;
+
+          default:
+            logger.error("Ignoring unhandled message action:", request.action);
+            return;
+        }
       }
-    });
+    );
   }
 }

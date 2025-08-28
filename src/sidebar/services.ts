@@ -1,25 +1,10 @@
-import { FuzzySearch } from "../lib/search.js";
-import type { Logger } from "../lib/logging.js";
-
-interface ToastOptions {
-  actionLabel?: string;
-  onAction?: () => void;
-}
-
-interface Prompt {
-  id: string;
-  title: string;
-  content: string;
-  tags?: string[];
-}
-
-interface PromptRepository {
-  import(data: any): Promise<void>;
-  export(): Promise<any>;
-}
+import type { Logger } from "../lib/logging";
+import { FuzzySearch } from "../lib/search";
+import { Prompt, PromptRepository } from "../lib/storage";
+import { ToastOptions } from "../lib/typedefs";
 
 export class ToastService {
-  private _timer?: NodeJS.Timeout;
+  private _timer?: number;
 
   show(message: string, options: ToastOptions | null = null): void {
     const toast = document.getElementById("toast")!;
@@ -75,7 +60,7 @@ export class ImportExportService {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      await this.repo.import(data);
+      await this.repo.importPrompts(data);
       this.toast.show("Prompts imported successfully");
     } catch (e: any) {
       this.logger.error("Import failed", e);
@@ -84,7 +69,7 @@ export class ImportExportService {
   }
 
   async exportToDownload(): Promise<void> {
-    const data = await this.repo.export();
+    const data = await this.repo.exportPrompts();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

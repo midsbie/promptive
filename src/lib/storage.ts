@@ -1,27 +1,11 @@
-import { IdGenerator } from "./id.js";
-import { Logger } from "./logging.js";
-import { defaultSeed } from "./seed.js";
-import { TimeProvider } from "./time.js";
+import browser from "webextension-polyfill";
+
+import { IdGenerator } from "./id";
+import { Logger } from "./logging";
+import { defaultSeed } from "./seed";
+import { TimeProvider } from "./time";
 
 const logger = new Logger("storage");
-
-// Type definitions for browser storage API
-declare global {
-  interface Browser {
-    storage?: {
-      local?: StorageArea;
-      sync?: StorageArea;
-    };
-  }
-
-  interface StorageArea {
-    get(keys: string | string[] | Record<string, any>): Promise<Record<string, any>>;
-    set(items: Record<string, any>): Promise<void>;
-    remove(keys: string | string[]): Promise<void>;
-  }
-
-  const browser: Browser | undefined;
-}
 
 // Core interfaces for prompts and storage
 export interface Prompt {
@@ -74,14 +58,14 @@ interface StorageKeys {
  * Adapters expose get/set/remove for namespaced keys.
  */
 class BaseStorageAdapter {
-  protected area: string;
+  public readonly area: string;
   protected namespace: string;
-  protected api: StorageArea;
+  protected api: Storage;
 
   constructor(area: string, namespace: string = "") {
     this.area = area;
     this.namespace = namespace;
-    this.api = browser?.storage?.[area as keyof NonNullable<Browser['storage']>] as StorageArea;
+    this.api = browser?.storage?.[area as keyof NonNullable<Storage>] as unknown as Storage;
     if (!this.api) {
       throw new Error(`browser.storage.${area} not available`);
     }

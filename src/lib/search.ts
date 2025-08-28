@@ -1,8 +1,6 @@
-interface SearchableItem {
-  title?: string;
-  content?: string;
-  tags?: string[];
-}
+import { Prompt } from "./storage";
+
+export type SearchableItem = Pick<Prompt, "title" | "content" | "tags">;
 
 interface ScoredItem<T extends SearchableItem> {
   item: T;

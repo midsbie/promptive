@@ -1,10 +1,16 @@
+import browser, { Commands } from "webextension-polyfill";
+
+import { commands } from "../lib/commands";
+
+import { logger } from "./logger";
+
 // Options page for configuring shortcuts
 const shortcutInput = document.getElementById("shortcut") as HTMLInputElement;
 const status = document.getElementById("status") as HTMLElement;
 
 // Load current shortcut
-browser.commands.getAll().then((commands: browser.commands.Command[]) => {
-  const command = commands.find((c) => c.name === "open-prompt-selector");
+browser.commands.getAll().then((all: Commands.Command[]) => {
+  const command = all.find((c) => c.name === commands.OPEN_PROMPT_SELECTOR);
   if (command && command.shortcut) {
     shortcutInput.value = command.shortcut;
   }
@@ -25,22 +31,26 @@ shortcutInput.addEventListener("keydown", async (e: KeyboardEvent) => {
     keys.push(e.key.toUpperCase());
   }
 
-  if (keys.length > 1) {
-    const shortcut = keys.join("+");
-    shortcutInput.value = shortcut;
+  if (keys.length < 2) {
+    logger.warn("Ignoring shortcut with less than 2 keys");
+    return;
+  }
 
-    try {
-      await browser.commands.update({
-        name: "open-prompt-selector",
-        shortcut: shortcut,
-      });
-      status.textContent = "Shortcut updated successfully!";
-      setTimeout(() => {
-        status.textContent = "";
-      }, 3000);
-    } catch (err: any) {
-      status.textContent = "Error: " + err.message;
-      status.style.color = "#e74c3c";
-    }
+  const shortcut = keys.join("+");
+  shortcutInput.value = shortcut;
+
+  try {
+    await browser.commands.update({
+      name: commands.OPEN_PROMPT_SELECTOR,
+      shortcut: shortcut,
+    });
+
+    status.textContent = "Shortcut updated successfully!";
+    setTimeout(() => {
+      status.textContent = "";
+    }, 3000);
+  } catch (err: any) {
+    status.textContent = "Error: " + err.message;
+    status.style.color = "#e74c3c";
   }
 });

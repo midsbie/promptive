@@ -1,4 +1,8 @@
-type UpdateTabFunction = (tabId: number) => void;
+import browser, { Tabs } from "webextension-polyfill";
+
+interface UpdateTabFunction {
+  (tabId: number): void;
+}
 
 export class TabObserver {
   private updateTabFn: UpdateTabFunction;
@@ -8,11 +12,11 @@ export class TabObserver {
   }
 
   start(): void {
-    browser.tabs.onUpdated.addListener((tabId: number, info: browser.tabs.TabChangeInfo, tab: browser.tabs.Tab) => {
+    browser.tabs.onUpdated.addListener((tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
       if (info.status === "complete" && tab?.url) this.updateTabFn(tabId);
     });
 
-    browser.tabs.onActivated.addListener(({ tabId }: browser.tabs.TabActiveInfo) => this.updateTabFn(tabId));
+    browser.tabs.onActivated.addListener(({ tabId }: Tabs.OnActivatedActiveInfoType) => this.updateTabFn(tabId));
 
     browser.windows.onFocusChanged.addListener(async (winId: number) => {
       if (winId === browser.windows.WINDOW_ID_NONE) return;

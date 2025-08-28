@@ -1,8 +1,11 @@
-import { MSG, createMessage } from "../lib/messaging.js";
-import { PromptRepository } from "../lib/storage.js";
+import browser, { Menus, Storage, Tabs } from "webextension-polyfill";
 
-import { ContextMenuService } from "./ContextMenuService.js";
-import { logger } from "./logger.js";
+import { commands } from "../lib/commands";
+import { MSG, createMessage, sendToTab } from "../lib/messaging";
+import { PromptRepository } from "../lib/storage";
+
+import { ContextMenuService } from "./ContextMenuService";
+import { logger } from "./logger";
 
 /**
  * Centralized event handlers to keep background bootstrap tidy.
@@ -21,15 +24,17 @@ export class Handlers {
       logger.info("Extension installed");
     });
 
-    browser.storage.onChanged.addListener(async (changes: Record<string, browser.storage.StorageChange>, area: string) => {
-      const key = "promptlib:prompts"; // namespaced key written by adapters
-      if (area === "local" && (changes.prompts || changes[key])) {
-        await this.menus.rebuild();
+    browser.storage.onChanged.addListener(
+      async (changes: Record<string, Storage.StorageChange>, area: string) => {
+        const key = "promptlib:prompts"; // namespaced key written by adapters
+        if (area === "local" && (changes.prompts || changes[key])) {
+          await this.menus.rebuild();
+        }
+        // No need to rebuild on sync changes directly; local is the UI source of truth.
       }
-      // No need to rebuild on sync changes directly; local is the UI source of truth.
-    });
+    );
 
-    browser.contextMenus.onClicked.addListener(async (info: browser.contextMenus.OnClickData, tab?: browser.tabs.Tab) => {
+    browser.contextMenus.onClicked.addListener(async (info: Menus.OnClickData, tab?: Tabs.Tab) => {
       if (!tab?.id) {
         logger.warn("Ignoring context menu click with no tab id");
         return;
@@ -43,7 +48,7 @@ export class Handlers {
           return;
 
         case "more-prompts":
-          await browser.tabs.sendMessage(tab.id, createMessage(MSG.OPEN_POPOVER));
+          await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
           return;
       }
 
@@ -60,20 +65,17 @@ export class Handlers {
       }
 
       await this.repo.recordUsage(promptId);
-      await browser.tabs.sendMessage(
-        tab.id,
-        createMessage(MSG.INSERT_PROMPT, { prompt: prompt.content })
-      );
+      await sendToTab(tab.id, createMessage(MSG.INSERT_PROMPT, { prompt }));
     });
 
-    browser.action.onClicked.addListener(async (tab: browser.tabs.Tab) => {
-      await browser.tabs.sendMessage(tab.id!, createMessage(MSG.OPEN_POPOVER));
+    browser.action.onClicked.addListener(async (tab: Tabs.Tab) => {
+      await sendToTab(tab.id!, createMessage(MSG.OPEN_POPOVER));
     });
 
     browser.commands.onCommand.addListener(async (command: string) => {
-      if (command === "open-prompt-selector") {
+      if (command === commands.OPEN_PROMPT_SELECTOR) {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-        await browser.tabs.sendMessage(tab.id!, createMessage(MSG.OPEN_POPOVER));
+        await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
       }
     });
   }

@@ -1,3 +1,3 @@
-import { PromptiveSidebar } from "./PromptiveSidebar.js";
+import { PromptiveSidebar } from "./PromptiveSidebar";
 
 new PromptiveSidebar();

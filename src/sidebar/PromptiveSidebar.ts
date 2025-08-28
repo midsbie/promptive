@@ -1,14 +1,16 @@
-import { PromptRepository, type Prompt } from "../lib/storage.js";
+import browser from "webextension-polyfill";
 
-import { MenuController } from "./MenuController.js";
-import { ModalController } from "./ModalController.js";
-import { PromptRenderer } from "./PromptRenderer.js";
-import { logger } from "./logger.js";
-import { ClipboardService, ImportExportService, SearchService, ToastService } from "./services.js";
+import { Prompt, PromptRepository } from "../lib/storage";
+
+import { MenuController } from "./MenuController";
+import { ModalController } from "./ModalController";
+import { PromptRenderer } from "./PromptRenderer";
+import { logger } from "./logger";
+import { ClipboardService, ImportExportService, SearchService, ToastService } from "./services";
 
 interface UndoDeletePending {
   prompt: Prompt;
-  timerId: NodeJS.Timeout;
+  timerId: number;
 }
 
 interface PromptiveSidebarDependencies {
@@ -20,29 +22,6 @@ interface PromptiveSidebarDependencies {
   toasts?: ToastService;
   clipboard?: ClipboardService;
   importerExporter?: ImportExportService | null;
-}
-
-interface ModalFields {
-  title?: string;
-  content?: string;
-  tags?: string[];
-}
-
-interface ModalOptions {
-  title: string;
-  fields: ModalFields;
-}
-
-declare global {
-  interface Browser {
-    storage?: {
-      onChanged?: {
-        addListener(callback: (changes: Record<string, any>, area: string) => void): void;
-      };
-    };
-  }
-
-  const browser: Browser | undefined;
 }
 
 class UndoDeleteManager {
@@ -178,22 +157,28 @@ export class PromptiveSidebar {
     document.getElementById("importBtn")!.addEventListener("click", () => {
       (document.getElementById("importFile") as HTMLInputElement).click();
     });
-    (document.getElementById("importFile") as HTMLInputElement).addEventListener("change", async (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files && files[0]) {
-        await this.importExport.importFromFile(files[0]);
-        await this.loadAndRender();
+    (document.getElementById("importFile") as HTMLInputElement).addEventListener(
+      "change",
+      async (e) => {
+        const files = (e.target as HTMLInputElement).files;
+        if (files && files[0]) {
+          await this.importExport.importFromFile(files[0]);
+          await this.loadAndRender();
+        }
       }
-    });
+    );
 
     document.getElementById("exportBtn")!.addEventListener("click", async () => {
       await this.importExport.exportToDownload();
     });
 
-    (document.getElementById("promptForm") as HTMLFormElement).addEventListener("submit", async (e) => {
-      e.preventDefault();
-      await this.savePrompt();
-    });
+    (document.getElementById("promptForm") as HTMLFormElement).addEventListener(
+      "submit",
+      async (e) => {
+        e.preventDefault();
+        await this.savePrompt();
+      }
+    );
 
     this.modal.bind();
   }
@@ -256,8 +241,8 @@ export class PromptiveSidebar {
   async savePrompt(): Promise<void> {
     const title = (document.getElementById("promptTitle") as HTMLInputElement).value.trim();
     const content = (document.getElementById("promptContent") as HTMLTextAreaElement).value.trim();
-    const tags = (document.getElementById("promptTags") as HTMLInputElement)
-      .value.split(",")
+    const tags = (document.getElementById("promptTags") as HTMLInputElement).value
+      .split(",")
       .map((t) => t.trim())
       .filter((t) => t);
 

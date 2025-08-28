@@ -1,14 +1,6 @@
-import { HtmlEscaper } from "../lib/string.js";
-import * as icons from "../lib/ui/icons.js";
-
-interface Prompt {
-  id: string;
-  title: string;
-  content: string;
-  tags?: string[];
-  last_used_at?: string | null;
-  used_times?: number;
-}
+import { HtmlEscaper } from "../lib/string";
+import * as icons from "../lib/ui/icons";
+import { Prompt } from "../lib/typedefs";
 
 interface EscapeFunction {
   (text: string | null | undefined): string;

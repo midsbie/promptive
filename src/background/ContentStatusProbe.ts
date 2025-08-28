@@ -1,13 +1,9 @@
-import { MSG, createMessage } from "../lib/messaging.js";
-
-interface StatusResponse {
-  active?: boolean;
-}
+import { MSG, createMessage, send } from "../lib/messaging";
 
 export class ContentStatusProbe {
-  async isActive(tabId: number): Promise<boolean> {
+  async isActive(_tabId: number): Promise<boolean> {
     try {
-      const res = (await browser.tabs.sendMessage(tabId, createMessage(MSG.QUERY_STATUS))) as StatusResponse;
+      const res = await send(createMessage(MSG.QUERY_STATUS));
       return !!res?.active;
     } catch {
       // No receiver / restricted page / timeout → treat as not active
