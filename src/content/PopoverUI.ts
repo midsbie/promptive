@@ -188,11 +188,16 @@ export class PopoverUI {
     if (e.key === "Escape") this.close();
   };
 
+  // Outside-click detection to close the popover
   private _onDocClick = (e: MouseEvent): void => {
-    // Robust outside-click detection (supports shadow DOM)
     if (!this.root) return;
+
+    // this.root is the overlay; the actual popover is its first child
+    const popover = this.root.children[0];
+    if (!popover) return;
+
     const path = e.composedPath?.() ?? [];
-    if (!path.includes(this.root)) {
+    if (!path.includes(popover)) {
       this.close();
     }
   };
