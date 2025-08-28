@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Promptive is a privacy-focused prompt library for Firefox, offering quick access to reusable templates through a sidebar, keyboard shortcuts, and context menus.",
   "scripts": {
+    "build": "node scripts/build.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --check .",
