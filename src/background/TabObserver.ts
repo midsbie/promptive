@@ -12,11 +12,15 @@ export class TabObserver {
   }
 
   start(): void {
-    browser.tabs.onUpdated.addListener((tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-      if (info.status === "complete" && tab?.url) this.updateTabFn(tabId);
-    });
+    browser.tabs.onUpdated.addListener(
+      (tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
+        if (info.status === "complete" && tab?.url) this.updateTabFn(tabId);
+      }
+    );
 
-    browser.tabs.onActivated.addListener(({ tabId }: Tabs.OnActivatedActiveInfoType) => this.updateTabFn(tabId));
+    browser.tabs.onActivated.addListener(({ tabId }: Tabs.OnActivatedActiveInfoType) =>
+      this.updateTabFn(tabId)
+    );
 
     browser.windows.onFocusChanged.addListener(async (winId: number) => {
       if (winId === browser.windows.WINDOW_ID_NONE) return;
