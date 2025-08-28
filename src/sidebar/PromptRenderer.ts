@@ -1,6 +1,6 @@
+import { Prompt } from "../lib/storage";
 import { HtmlEscaper } from "../lib/string";
 import * as icons from "../lib/ui/icons";
-import { Prompt } from "../lib/typedefs";
 
 interface EscapeFunction {
   (text: string | null | undefined): string;

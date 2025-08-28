@@ -25,7 +25,8 @@ export class MessageRouter {
 
         switch (request?.action) {
           case MSG.GET_PROMPTS:
-            return { prompts: this.repo.getAllPrompts() };
+            const prompts = await this.repo.getAllPrompts();
+            return { prompts };
 
           case MSG.RECORD_PROMPT_USAGE:
             this.repo.recordUsage((request as Message & { promptId: string }).promptId);
