@@ -1,6 +1,7 @@
 import browser from "webextension-polyfill";
 
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
+import { FuzzySearch } from "../lib/search";
 import { Prompt } from "../lib/storage";
 
 import { CursorPositionManager } from "./CursorPositionManager";
@@ -14,17 +15,6 @@ import {
 import { logger } from "./logger";
 import { BackgroundAPI, ToastService } from "./services";
 import { CursorPosition } from "./typedefs";
-
-// Simple search function (can be replaced with more sophisticated search)
-function simpleSearch(query: string, items: Prompt[]): Prompt[] {
-  const q = query.toLowerCase();
-  return items.filter((item) => {
-    const title = (item.title || "").toLowerCase();
-    const content = (item.content || "").toLowerCase();
-    const tags = (item.tags || []).join(" ").toLowerCase();
-    return title.includes(q) || content.includes(q) || tags.includes(q);
-  });
-}
 
 export class ContentController {
   private api: BackgroundAPI;
@@ -88,7 +78,7 @@ export class ContentController {
 
     // Lazy init popover to wire handlers with dependencies
     this.popover = new PopoverUI({
-      searchFn: simpleSearch,
+      searchFn: new FuzzySearch().search,
       onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
         this._restoreTarget();
