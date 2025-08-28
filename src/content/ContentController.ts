@@ -1,7 +1,7 @@
 import browser from "webextension-polyfill";
 
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
-import { FuzzySearch } from "../lib/search";
+import { AdvancedSearch } from "../lib/search";
 import { Prompt } from "../lib/storage";
 
 import { CursorPositionManager } from "./CursorPositionManager";
@@ -78,7 +78,7 @@ export class ContentController {
 
     // Lazy init popover to wire handlers with dependencies
     this.popover = new PopoverUI({
-      searchFn: new FuzzySearch().search,
+      searchFn: new AdvancedSearch().search,
       onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
         this._restoreTarget();
