@@ -1,5 +1,3 @@
-import { Prompt } from "../lib/storage";
-
 // Cursor position types
 export interface InputCursorPosition {
   type: "input";
