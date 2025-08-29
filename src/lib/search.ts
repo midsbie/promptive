@@ -19,6 +19,10 @@ interface ParsedQuery {
   regularTerms: string[]; // Regular search terms
 }
 
+export interface ISearchStrategy {
+  search<T extends SearchableItem>(query: string, items: T[]): T[];
+}
+
 class AdvancedSearchScorer<T extends SearchableItem> {
   private readonly RECENCY_WEIGHT = 0.3;
   private readonly POPULARITY_WEIGHT = 0.2;
@@ -203,7 +207,7 @@ class AdvancedSearchScorer<T extends SearchableItem> {
   }
 }
 
-export class AdvancedSearch {
+export class AdvancedSearch implements ISearchStrategy {
   /**
    * Parse search query to extract operators
    */
@@ -262,7 +266,7 @@ export class AdvancedSearch {
   };
 }
 
-export class FuzzySearch {
+export class FuzzySearch implements ISearchStrategy {
   search<T extends SearchableItem>(query: string, items: T[]): T[] {
     const queryLower = query.toLowerCase();
     const queryTokens = queryLower.split(/\s+/);

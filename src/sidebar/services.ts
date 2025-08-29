@@ -1,5 +1,5 @@
 import type { Logger } from "../lib/logging";
-import { FuzzySearch } from "../lib/search";
+import { AdvancedSearch, ISearchStrategy } from "../lib/search";
 import { Prompt, PromptRepository } from "../lib/storage";
 import { ToastOptions } from "../lib/typedefs";
 
@@ -32,15 +32,15 @@ export class ClipboardService {
 }
 
 export class SearchService {
-  private fuzzy: FuzzySearch;
+  private strategy: ISearchStrategy;
 
-  constructor(fuzzy: FuzzySearch = new FuzzySearch()) {
-    this.fuzzy = fuzzy;
+  constructor(strategy: ISearchStrategy = new AdvancedSearch()) {
+    this.strategy = strategy;
   }
 
   search(query: string, prompts: Prompt[]): Prompt[] {
     if (!query || !query.trim()) return prompts;
-    return this.fuzzy.search(query, prompts);
+    return this.strategy.search(query, prompts);
   }
 }
 
