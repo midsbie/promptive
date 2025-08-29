@@ -1,6 +1,5 @@
 import type { Logger } from "../lib/logging";
-import { AdvancedSearch, ISearchStrategy } from "../lib/search";
-import { Prompt, PromptRepository } from "../lib/storage";
+import { PromptRepository } from "../lib/storage";
 import { ToastOptions } from "../lib/typedefs";
 
 export class ToastService {
@@ -28,19 +27,6 @@ export class ToastService {
 export class ClipboardService {
   async copy(text: string): Promise<void> {
     await navigator.clipboard.writeText(text);
-  }
-}
-
-export class SearchService {
-  private strategy: ISearchStrategy;
-
-  constructor(strategy: ISearchStrategy = new AdvancedSearch()) {
-    this.strategy = strategy;
-  }
-
-  search(query: string, prompts: Prompt[]): Prompt[] {
-    if (!query || !query.trim()) return prompts;
-    return this.strategy.search(query, prompts);
   }
 }
 

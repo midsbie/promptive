@@ -1,12 +1,13 @@
 import browser from "webextension-polyfill";
 
+import { SearchService } from "../lib/services";
 import { Prompt, PromptRepository } from "../lib/storage";
 
 import { MenuController } from "./MenuController";
 import { ModalController } from "./ModalController";
 import { PromptRenderer } from "./PromptRenderer";
 import { logger } from "./logger";
-import { ClipboardService, ImportExportService, SearchService, ToastService } from "./services";
+import { ClipboardService, ImportExportService, ToastService } from "./services";
 
 interface UndoDeletePending {
   prompt: Prompt;

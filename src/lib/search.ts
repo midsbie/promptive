@@ -249,7 +249,7 @@ export class AdvancedSearch implements ISearchStrategy {
   /**
    * Main search method
    */
-  search = <T extends SearchableItem>(query: string, items: T[]): T[] => {
+  search<T extends SearchableItem>(query: string, items: T[]): T[] {
     if (!query.trim()) return items;
 
     const parsed = this.parseQuery(query);
@@ -263,7 +263,7 @@ export class AdvancedSearch implements ISearchStrategy {
       .filter((si) => si.score > 0)
       .sort((a, b) => b.score - a.score)
       .map((s) => s.item);
-  };
+  }
 }
 
 export class FuzzySearch implements ISearchStrategy {
