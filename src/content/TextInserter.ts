@@ -1,5 +1,5 @@
-import { ToastService } from "./services";
 import { logger } from "./logger";
+import { ToastService } from "./services";
 
 const escapeHtml = (text: string = ""): string => {
   const div = document.createElement("div");
