@@ -19,64 +19,55 @@ export class Handlers {
     this.menus = menus;
   }
 
-  attachAll(): void {
-    browser.runtime.onInstalled.addListener(async () => {
-      logger.info("Extension installed");
-    });
+  onStorageChanged = async (changes: Record<string, Storage.StorageChange>, area: string) => {
+    const key = PromptRepository.getStorageKey();
+    if (area === "local" && (changes.prompts || changes[key])) {
+      await this.menus.rebuild();
+    }
+  };
 
-    browser.storage.onChanged.addListener(
-      async (changes: Record<string, Storage.StorageChange>, area: string) => {
-        const key = "promptlib:prompts"; // namespaced key written by adapters
-        if (area === "local" && (changes.prompts || changes[key])) {
-          await this.menus.rebuild();
-        }
-        // No need to rebuild on sync changes directly; local is the UI source of truth.
-      }
-    );
+  onActionClicked = async (tab: Tabs.Tab) => {
+    await sendToTab(tab.id!, createMessage(MSG.OPEN_POPOVER));
+  };
 
-    browser.contextMenus.onClicked.addListener(async (info: Menus.OnClickData, tab?: Tabs.Tab) => {
-      if (!tab?.id) {
-        logger.warn("Ignoring context menu click with no tab id");
+  onCommand = async (command: string) => {
+    if (command === commands.OPEN_PROMPT_SELECTOR) {
+      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
+    }
+  };
+
+  onContextMenuClick = async (info: Menus.OnClickData, tab?: Tabs.Tab) => {
+    if (!tab?.id) {
+      logger.warn("Ignoring context menu click with no tab id");
+      return;
+    }
+
+    const { menuItemId } = info;
+
+    switch (info.menuItemId) {
+      case "manage-prompts":
+        await browser.sidebarAction.open();
         return;
-      }
 
-      const { menuItemId } = info;
-
-      switch (info.menuItemId) {
-        case "manage-prompts":
-          await browser.sidebarAction.open();
-          return;
-
-        case "more-prompts":
-          await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
-          return;
-      }
-
-      if (typeof menuItemId !== "string" || !menuItemId.startsWith("prompt-")) {
-        logger.warn("Ignoring unknown context menu item:", menuItemId);
-        return;
-      }
-
-      const promptId = menuItemId.slice("prompt-".length);
-      const prompt = await this.repo.getPrompt(promptId);
-      if (!prompt) {
-        logger.warn("Prompt not found for id:", promptId);
-        return;
-      }
-
-      await this.repo.recordUsage(promptId);
-      await sendToTab(tab.id, createMessage(MSG.INSERT_PROMPT, { prompt }));
-    });
-
-    browser.action.onClicked.addListener(async (tab: Tabs.Tab) => {
-      await sendToTab(tab.id!, createMessage(MSG.OPEN_POPOVER));
-    });
-
-    browser.commands.onCommand.addListener(async (command: string) => {
-      if (command === commands.OPEN_PROMPT_SELECTOR) {
-        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      case "more-prompts":
         await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
-      }
-    });
-  }
+        return;
+    }
+
+    if (typeof menuItemId !== "string" || !menuItemId.startsWith("prompt-")) {
+      logger.warn("Ignoring unknown context menu item:", menuItemId);
+      return;
+    }
+
+    const promptId = menuItemId.slice("prompt-".length);
+    const prompt = await this.repo.getPrompt(promptId);
+    if (!prompt) {
+      logger.warn("Prompt not found for id:", promptId);
+      return;
+    }
+
+    await this.repo.recordUsage(promptId);
+    await sendToTab(tab.id, createMessage(MSG.INSERT_PROMPT, { prompt }));
+  };
 }

@@ -277,6 +277,10 @@ export class PromptRepository {
   private sync: SyncStorageAdapter | null = null;
   private initialized: boolean = false;
 
+  static getStorageKey(): string {
+    return `${this.NAMESPACE}:${this.STORAGE_KEY}`;
+  }
+
   constructor() {
     this.primary = new LocalStorageAdapter(PromptRepository.NAMESPACE); // always available in extensions
   }

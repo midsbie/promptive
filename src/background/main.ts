@@ -1,4 +1,4 @@
-import browser from "webextension-polyfill";
+import browser, { Menus, Storage, Tabs } from "webextension-polyfill";
 
 import { PromptRepository } from "../lib/storage";
 
@@ -24,8 +24,8 @@ export class BackgroundApp {
   private probe: ContentStatusProbe;
   private menus: ContextMenuService;
   private router: MessageRouter;
-  private handlers: Handlers;
-  private tabObserver: TabObserver;
+  handlers: Handlers;
+  tabObserver: TabObserver;
   private isInitialized: boolean = false;
 
   constructor({
@@ -61,11 +61,8 @@ export class BackgroundApp {
     await this.menus.rebuild();
 
     this.router.attach();
-    this.handlers.attachAll();
 
     try {
-      this.tabObserver.start();
-
       // Initialize for current active tab on startup
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) await this.updateTabIcon(tab.id);
@@ -78,4 +75,51 @@ export class BackgroundApp {
   }
 }
 
-new BackgroundApp().initialize().catch((e) => logger.error("Fatal init error:", e?.stack || e));
+const app = new BackgroundApp();
+app.initialize().catch((e) => logger.error("Fatal init error:", e?.stack || e));
+
+browser.runtime.onInstalled.addListener(() => {
+  logger.info("Extension installed");
+});
+
+browser.storage.onChanged.addListener(
+  (changes: Record<string, Storage.StorageChange>, area: string) => {
+    app.handlers.onStorageChanged(changes, area).catch((e) => {
+      logger.error("Error in onStorageChanged handler:", e?.stack || e);
+    });
+  }
+);
+
+browser.action.onClicked.addListener((tab: Tabs.Tab) => {
+  app.handlers.onActionClicked(tab).catch((e) => {
+    logger.error("Error in onActionClicked handler:", e?.stack || e);
+  });
+});
+
+browser.commands.onCommand.addListener((command: string) => {
+  app.handlers.onCommand(command).catch((e) => {
+    logger.error("Error in onCommand handler:", e?.stack || e);
+  });
+});
+
+browser.contextMenus.onClicked.addListener((info: Menus.OnClickData, tab?: Tabs.Tab) => {
+  app.handlers.onContextMenuClick(info, tab).catch((e) => {
+    logger.error("Error in onContextMenuClick handler:", e?.stack || e);
+  });
+});
+
+browser.tabs.onUpdated.addListener(
+  (tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
+    app.tabObserver.onTabUpdated(tabId, info, tab);
+  }
+);
+
+browser.tabs.onActivated.addListener((info: Tabs.OnActivatedActiveInfoType) => {
+  app.tabObserver.onTabActivated(info);
+});
+
+browser.windows.onFocusChanged.addListener((winId: number) => {
+  app.tabObserver.onWindowFocusChanged(winId).catch((e) => {
+    logger.error("Error in onWindowFocusChanged handler:", e?.stack || e);
+  });
+});
