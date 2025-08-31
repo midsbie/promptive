@@ -198,7 +198,7 @@ The JSON structure for import/export:
 
 1. Right-click the extension icon
 2. Select "Manage Extension"
-3. Click "Options" or go to extension preferences
+3. Click "Preferences"
 4. Click in the shortcut field
 5. Press your desired key combination
 6. The new shortcut is saved automatically
