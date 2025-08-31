@@ -24,9 +24,9 @@ export class BackgroundApp {
   private icons: ToolbarIconService;
   private probe: ContentStatusProbe;
   private menus: ContextMenuService;
-  router: MessageRouter;
-  handlers: Handlers;
-  tabObserver: TabObserver;
+  private router: MessageRouter;
+  private handlers: Handlers;
+  private tabObserver: TabObserver;
   private isInitialized: boolean = false;
 
   constructor({
@@ -48,7 +48,7 @@ export class BackgroundApp {
       const active = await this.probe.isActive(tabId);
       await this.icons.setSupported(tabId, active);
     } catch (e) {
-      logger.error("updateTabIcon failed:", e?.stack || e);
+      logger.error("updateTabIcon failed:", e);
     }
   }
 
@@ -66,92 +66,104 @@ export class BackgroundApp {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) await this.updateTabIcon(tab.id);
     } catch (e) {
-      logger.error("Failed to initialize icon service or tab observer:", e?.stack || e);
+      logger.error("Failed to initialize icon service or tab observer:", e);
     }
 
     this.isInitialized = true;
     logger.info("initialized");
   }
-}
 
-const app = new BackgroundApp();
-app.initialize().catch((e) => logger.error("Fatal init error:", e?.stack || e));
+  // Event handler methods
+  // These provide controlled access to private properties while maintaining MV3 compatibility
 
-// Top-level event handlers per Manivest V3
-// -------------------------------------------------------------------------------------------------
-// MV3 is so fucking brain-damaged.
-//
-// MV3 requires all extension event listeners to be registered synchronously at the script's top
-// level so the browser can detect which events should wake the service worker.  This forces us to
-// expose `handlers`, `tabObserver` and `router` as public properties.
-//
-// Potential improvements:
-// 1. Event bus pattern: Top-level listeners could dispatch to a module-scoped bus, allowing private
-//    handlers to subscribe internally. Still requires top-level access to the bus dispatcher
-//    though.
-// 2. Static registry: A static method on BackgroundApp that registers handlers, called at top
-//    level. Keeps instance private but splits initialization logic.
-// 3. Module pattern: Export only registration functions that close over private state.
-//    More functional, less OOP.
-//
-// For now, we accept the visibility tradeoff for simplicity.
-browser.runtime.onInstalled.addListener(() => {
-  logger.info("Extension installed");
-});
+  handleInstalled(): void {
+    logger.info("Extension installed");
+  }
 
-browser.runtime.onMessage.addListener(
-  (request: Message, sender: Runtime.MessageSender, reply: (response: unknown) => void): true => {
-    app.router
+  handleMessage(
+    request: Message,
+    _sender: Runtime.MessageSender,
+    reply: (response: unknown) => void
+  ): true {
+    this.router
       .onMessage(request)
-      .then((r) => {
-        reply(r);
-      })
+      .then(reply)
       .catch((e) => {
-        logger.error("Error in onMessage handler:", e?.stack || e);
+        logger.error("Error in onMessage handler:", e);
       });
 
     return true;
   }
-);
 
-browser.storage.onChanged.addListener(
-  (changes: Record<string, Storage.StorageChange>, area: string) => {
-    app.handlers.onStorageChanged(changes, area).catch((e) => {
-      logger.error("Error in onStorageChanged handler:", e?.stack || e);
+  handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
+    this.handlers.onStorageChanged(changes, area).catch((e) => {
+      logger.error("Error in onStorageChanged handler:", e);
     });
   }
-);
 
-browser.action.onClicked.addListener((tab: Tabs.Tab) => {
-  app.handlers.onActionClicked(tab).catch((e) => {
-    logger.error("Error in onActionClicked handler:", e?.stack || e);
-  });
-});
-
-browser.commands.onCommand.addListener((command: string) => {
-  app.handlers.onCommand(command).catch((e) => {
-    logger.error("Error in onCommand handler:", e?.stack || e);
-  });
-});
-
-browser.contextMenus.onClicked.addListener((info: Menus.OnClickData, tab?: Tabs.Tab) => {
-  app.handlers.onContextMenuClick(info, tab).catch((e) => {
-    logger.error("Error in onContextMenuClick handler:", e?.stack || e);
-  });
-});
-
-browser.tabs.onUpdated.addListener(
-  (tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
-    app.tabObserver.onTabUpdated(tabId, info, tab);
+  handleActionClicked(tab: Tabs.Tab): void {
+    this.handlers.onActionClicked(tab).catch((e) => {
+      logger.error("Error in onActionClicked handler:", e);
+    });
   }
+
+  handleCommand(command: string): void {
+    this.handlers.onCommand(command).catch((e) => {
+      logger.error("Error in onCommand handler:", e);
+    });
+  }
+
+  handleContextMenuClick(info: Menus.OnClickData, tab?: Tabs.Tab): void {
+    this.handlers.onContextMenuClick(info, tab).catch((e) => {
+      logger.error("Error in onContextMenuClick handler:", e);
+    });
+  }
+
+  handleTabUpdated(tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab): void {
+    this.tabObserver.onTabUpdated(tabId, info, tab).catch((e) => {
+      logger.error("Error in onTabUpdated handler:", e);
+    });
+  }
+
+  handleTabActivated(info: Tabs.OnActivatedActiveInfoType): void {
+    this.tabObserver.onTabActivated(info).catch((e) => {
+      logger.error("Error in onTabActivated handler:", e);
+    });
+  }
+
+  handleWindowFocusChanged(winId: number): void {
+    this.tabObserver.onWindowFocusChanged(winId).catch((e) => {
+      logger.error("Error in onWindowFocusChanged handler:", e);
+    });
+  }
+}
+
+const app = new BackgroundApp();
+app.initialize().catch((e) => logger.error("Fatal init error:", e));
+
+// Top-level event handlers for Manifest V3 compatibility
+// -------------------------------------------------------------------------------------------------
+// Manifest V3 requires all extension event listeners to be registered synchronously at the script's
+// top level. This allows the browser to detect which events should wake the service worker from its
+// dormant state.
+//
+// To balance this requirement with proper encapsulation, we use thin wrapper methods on the
+// BackgroundApp instance.  These `handleEvent` methods provide controlled access to the private
+// internal components (`router`, `handlers`, `tabObserver`) without exposing them directly.
+//
+// Alternative patterns considered:
+// - Event bus: the best design but would add complexity
+
+browser.runtime.onInstalled.addListener(() => app.handleInstalled());
+browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));
+browser.action.onClicked.addListener((tab) => app.handleActionClicked(tab));
+browser.commands.onCommand.addListener((command) => app.handleCommand(command));
+browser.contextMenus.onClicked.addListener((info, tab) => app.handleContextMenuClick(info, tab));
+browser.tabs.onUpdated.addListener((tabId, info, tab) => app.handleTabUpdated(tabId, info, tab));
+browser.tabs.onActivated.addListener((info) => app.handleTabActivated(info));
+browser.windows.onFocusChanged.addListener((winId) => app.handleWindowFocusChanged(winId));
+
+browser.runtime.onMessage.addListener(
+  (request: Message, sender: Runtime.MessageSender, reply: (response: unknown) => void): true =>
+    app.handleMessage(request, sender, reply)
 );
-
-browser.tabs.onActivated.addListener((info: Tabs.OnActivatedActiveInfoType) => {
-  app.tabObserver.onTabActivated(info);
-});
-
-browser.windows.onFocusChanged.addListener((winId: number) => {
-  app.tabObserver.onWindowFocusChanged(winId).catch((e) => {
-    logger.error("Error in onWindowFocusChanged handler:", e?.stack || e);
-  });
-});

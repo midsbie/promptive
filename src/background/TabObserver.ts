@@ -11,13 +11,13 @@ export class TabObserver {
     this.updateTabFn = updateTabFn;
   }
 
-  onTabUpdated = (tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
+  onTabUpdated = async (tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab) => {
     if (info.status === "complete" && tab?.url) {
       this.updateTabFn(tabId);
     }
   };
 
-  onTabActivated = ({ tabId }: Tabs.OnActivatedActiveInfoType) => {
+  onTabActivated = async ({ tabId }: Tabs.OnActivatedActiveInfoType) => {
     this.updateTabFn(tabId);
   };
 

@@ -1,5 +1,3 @@
-import browser from "webextension-polyfill";
-
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
 import { PromptRepository } from "../lib/storage";
 
