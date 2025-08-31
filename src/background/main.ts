@@ -1,5 +1,6 @@
-import browser, { Menus, Storage, Tabs } from "webextension-polyfill";
+import browser, { Menus, Runtime, Storage, Tabs } from "webextension-polyfill";
 
+import { Message } from "../lib/messaging";
 import { PromptRepository } from "../lib/storage";
 
 import { ContentStatusProbe } from "./ContentStatusProbe";
@@ -23,7 +24,7 @@ export class BackgroundApp {
   private icons: ToolbarIconService;
   private probe: ContentStatusProbe;
   private menus: ContextMenuService;
-  private router: MessageRouter;
+  router: MessageRouter;
   handlers: Handlers;
   tabObserver: TabObserver;
   private isInitialized: boolean = false;
@@ -60,8 +61,6 @@ export class BackgroundApp {
     await this.repo.initialize();
     await this.menus.rebuild();
 
-    this.router.attach();
-
     try {
       // Initialize for current active tab on startup
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -78,9 +77,42 @@ export class BackgroundApp {
 const app = new BackgroundApp();
 app.initialize().catch((e) => logger.error("Fatal init error:", e?.stack || e));
 
+// Top-level event handlers per Manivest V3
+// -------------------------------------------------------------------------------------------------
+// MV3 is so fucking brain-damaged.
+//
+// MV3 requires all extension event listeners to be registered synchronously at the script's top
+// level so the browser can detect which events should wake the service worker.  This forces us to
+// expose `handlers`, `tabObserver` and `router` as public properties.
+//
+// Potential improvements:
+// 1. Event bus pattern: Top-level listeners could dispatch to a module-scoped bus, allowing private
+//    handlers to subscribe internally. Still requires top-level access to the bus dispatcher
+//    though.
+// 2. Static registry: A static method on BackgroundApp that registers handlers, called at top
+//    level. Keeps instance private but splits initialization logic.
+// 3. Module pattern: Export only registration functions that close over private state.
+//    More functional, less OOP.
+//
+// For now, we accept the visibility tradeoff for simplicity.
 browser.runtime.onInstalled.addListener(() => {
   logger.info("Extension installed");
 });
+
+browser.runtime.onMessage.addListener(
+  (request: Message, sender: Runtime.MessageSender, reply: (response: unknown) => void): true => {
+    app.router
+      .onMessage(request)
+      .then((r) => {
+        reply(r);
+      })
+      .catch((e) => {
+        logger.error("Error in onMessage handler:", e?.stack || e);
+      });
+
+    return true;
+  }
+);
 
 browser.storage.onChanged.addListener(
   (changes: Record<string, Storage.StorageChange>, area: string) => {

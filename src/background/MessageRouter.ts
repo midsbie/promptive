@@ -15,27 +15,23 @@ export class MessageRouter {
     this.repo = repo;
   }
 
-  attach(): void {
-    browser.runtime.onMessage.addListener(
-      async (request: Message): Promise<MessageResponse | void> => {
-        if (!isMessage(request)) {
-          logger.warn("Ignoring invalid message:", request);
-          return;
-        }
+  onMessage = async (request: Message): Promise<MessageResponse | void> => {
+    if (!isMessage(request)) {
+      logger.warn("Ignoring invalid message:", request);
+      return;
+    }
 
-        switch (request?.action) {
-          case MSG.GET_PROMPTS:
-            return { prompts: await this.repo.getAllPrompts() };
+    switch (request?.action) {
+      case MSG.GET_PROMPTS:
+        return { prompts: await this.repo.getAllPrompts() };
 
-          case MSG.RECORD_PROMPT_USAGE:
-            this.repo.recordUsage((request as Message & { promptId: string }).promptId);
-            return;
+      case MSG.RECORD_PROMPT_USAGE:
+        this.repo.recordUsage((request as Message & { promptId: string }).promptId);
+        return;
 
-          default:
-            logger.error("Ignoring unhandled message action:", request.action);
-            return;
-        }
-      }
-    );
-  }
+      default:
+        logger.error("Ignoring unhandled message action:", request.action);
+        return;
+    }
+  };
 }
