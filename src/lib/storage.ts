@@ -187,7 +187,7 @@ function latestIso(a: string | null | undefined, b: string | null | undefined): 
 function normalizePrompt(p: PartialPrompt): Prompt {
   const now = TimeProvider.nowIso();
   return {
-    id: p.id || "",
+    id: p.id || IdGenerator.newId(),
     title: p.title || "",
     content: p.content || "",
     tags: Array.isArray(p.tags) ? p.tags : [],
@@ -360,29 +360,11 @@ export class PromptRepository {
             prompt.last_used_at !== undefined ? prompt.last_used_at : preserve.last_used_at,
         };
       } else {
-        // Unknown id -> treat as create
-        prompts.push({
-          id: prompt.id,
-          title: prompt.title || "",
-          content: prompt.content || "",
-          tags: Array.isArray(prompt.tags) ? prompt.tags : [],
-          created_at: now,
-          updated_at: now,
-          last_used_at: null,
-          used_times: 0,
-        });
+        // Treat as create since ID is unknown
+        prompts.push(normalizePrompt(prompt));
       }
     } else {
-      prompts.push({
-        id: IdGenerator.newId(),
-        title: prompt.title || "",
-        content: prompt.content || "",
-        tags: Array.isArray(prompt.tags) ? prompt.tags : [],
-        created_at: now,
-        updated_at: now,
-        last_used_at: null,
-        used_times: 0,
-      });
+      prompts.push(normalizePrompt(prompt));
     }
 
     await this._persistPrompts(prompts);
