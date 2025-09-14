@@ -149,7 +149,9 @@ export class PromptiveSidebar {
 
   // --- event binding ---
   bindDom(): void {
-    document.getElementById("addPromptBtn")!.addEventListener("click", () => this.navigateToEditor());
+    document
+      .getElementById("addPromptBtn")!
+      .addEventListener("click", () => this.navigateToEditor());
 
     (document.getElementById("searchInput") as HTMLInputElement).addEventListener("input", (e) => {
       const q = (e.target as HTMLInputElement).value;
@@ -202,7 +204,7 @@ export class PromptiveSidebar {
   }
 
   navigateToEditor(id?: string): void {
-    const path = id ? `/editor/${id}` : '/editor/new';
+    const path = id ? `/editor/${id}` : "/editor/new";
     (window as any).router?.navigate(path);
   }
 
