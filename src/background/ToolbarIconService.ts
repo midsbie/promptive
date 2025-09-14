@@ -19,9 +19,8 @@ const INACTIVE: IconPaths = {
 };
 
 export class ToolbarIconService {
+  // Currently not in use
   async setSupported(tabId: number, supported: boolean): Promise<void> {
     await browser.action.setIcon({ tabId, path: supported ? ACTIVE : INACTIVE });
-    if (supported) await browser.action.enable(tabId);
-    else await browser.action.disable(tabId);
   }
 }

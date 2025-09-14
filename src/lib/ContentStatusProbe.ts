@@ -1,4 +1,4 @@
-import { MSG, createMessage, sendToTab } from "../lib/messaging";
+import { MSG, createMessage, sendToTab } from "./messaging";
 
 export class ContentStatusProbe {
   async isActive(tabId: number): Promise<boolean> {

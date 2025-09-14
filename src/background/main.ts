@@ -4,7 +4,6 @@ import { Message } from "../lib/messaging";
 import { AppSettings, SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
-import { ContentStatusProbe } from "./ContentStatusProbe";
 import { ContextMenuService } from "./ContextMenuService";
 import { Handlers } from "./Handlers";
 import { MessageRouter } from "./MessageRouter";
@@ -16,7 +15,6 @@ interface BackgroundAppOptions {
   promptsRepo?: PromptRepository;
   settingsRepo?: SettingsRepository;
   icons?: ToolbarIconService;
-  probe?: ContentStatusProbe;
 }
 
 export class BackgroundApp {
@@ -24,7 +22,6 @@ export class BackgroundApp {
   private settingsRepo: SettingsRepository;
   private settings: AppSettings;
   private icons: ToolbarIconService;
-  private probe: ContentStatusProbe;
   private menus: ContextMenuService;
   private router: MessageRouter;
   private handlers: Handlers;
@@ -35,12 +32,10 @@ export class BackgroundApp {
     promptsRepo = new PromptRepository(),
     settingsRepo = new SettingsRepository(),
     icons = new ToolbarIconService(),
-    probe = new ContentStatusProbe(),
   }: BackgroundAppOptions = {}) {
     this.promptsRepo = promptsRepo;
     this.settingsRepo = settingsRepo;
     this.icons = icons;
-    this.probe = probe;
 
     // Services that depend on settings are initialized in `initialize()`
     this.settings = this.settingsRepo.get(); // Get defaults initially
@@ -50,16 +45,13 @@ export class BackgroundApp {
     );
     this.router = new MessageRouter(this.promptsRepo);
     this.handlers = new Handlers(this.promptsRepo, this.menus);
-    this.tabObserver = new TabObserver(this.updateTabIcon.bind(this));
+    this.tabObserver = new TabObserver(this.onTabUpdated.bind(this));
   }
 
-  async updateTabIcon(tabId: number): Promise<void> {
-    try {
-      const active = await this.probe.isActive(tabId);
-      await this.icons.setSupported(tabId, active);
-    } catch (e) {
-      logger.error("updateTabIcon failed:", e);
-    }
+  async onTabUpdated(_tabId: number): Promise<void> {
+    // We were previously enabling/disabling the icon based on whether the content script was
+    // present back when we did not have a popup to show. We do have a popup now, but still keeping
+    // this event handler as it may prove useful in the future.
   }
 
   async initialize(): Promise<void> {
@@ -79,14 +71,6 @@ export class BackgroundApp {
     );
     this.handlers = new Handlers(this.promptsRepo, this.menus);
     await this.menus.rebuild();
-
-    try {
-      // Initialize for current active tab on startup
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id) await this.updateTabIcon(tab.id);
-    } catch (e) {
-      logger.error("Failed to initialize icon service or tab observer:", e);
-    }
 
     this.isInitialized = true;
     logger.info("initialized");
