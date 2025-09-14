@@ -184,7 +184,23 @@ The JSON structure for import/export:
 }
 #+END_SRC
 
-* Keyboard Shortcuts
+* Configuration and Shortcuts
+
+You can customize Promptive's behavior by visiting the extension's preferences page.
+
+1. Right-click the extension icon in your browser's toolbar.
+2. Select "Manage Extension".
+3. On the page that opens, find and click on the "Preferences" tab or section.
+
+*** Available Settings
+
+- *Keyboard Shortcut*: Change the hotkey used to open the Quick Selector popup.
+- *Context Menu Limit*: Set the maximum number of prompts to display in the right-click context menu.
+- *Context Menu Sort Order*: Choose how prompts are sorted in the context menu, either by most recently used or alphabetically.
+
+*** Default Shortcuts
+
+The following shortcuts are available during general use:
 
 | Shortcut         | Action                    | Context                |
 |------------------+---------------------------+------------------------|
@@ -193,15 +209,6 @@ The JSON structure for import/export:
 | =Enter=          | Select highlighted prompt | Quick selector         |
 | =Escape=         | Close popup/modal         | Quick selector, modals |
 | =Tab/Shift+Tab=  | Navigate UI elements      | Sidebar, modals        |
-
-** Customizing the Keyboard Shortcut
-
-1. Right-click the extension icon
-2. Select "Manage Extension"
-3. Click "Preferences"
-4. Click in the shortcut field
-5. Press your desired key combination
-6. The new shortcut is saved automatically
 
 * Privacy and Data
 
