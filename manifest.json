@@ -43,8 +43,7 @@
         "*://character.ai/*",
         "*://claude.ai/*",
         "*://copilot.microsoft.com/*",
-        "*://deepseek.com/*",
-        "*://platform.deepseek.com/*",
+        "*://chat.deepseek.com/*",
         "*://huggingface.co/*",
         "*://poe.com/*"
       ],
