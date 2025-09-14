@@ -8,20 +8,17 @@ import { ContextMenuService } from "./ContextMenuService";
 import { Handlers } from "./Handlers";
 import { MessageRouter } from "./MessageRouter";
 import { TabObserver } from "./TabObserver";
-import { ToolbarIconService } from "./ToolbarIconService";
 import { logger } from "./logger";
 
 interface BackgroundAppOptions {
   promptsRepo?: PromptRepository;
   settingsRepo?: SettingsRepository;
-  icons?: ToolbarIconService;
 }
 
 export class BackgroundApp {
   private promptsRepo: PromptRepository;
   private settingsRepo: SettingsRepository;
   private settings: AppSettings;
-  private icons: ToolbarIconService;
   private menus: ContextMenuService;
   private router: MessageRouter;
   private handlers: Handlers;
@@ -31,11 +28,9 @@ export class BackgroundApp {
   constructor({
     promptsRepo = new PromptRepository(),
     settingsRepo = new SettingsRepository(),
-    icons = new ToolbarIconService(),
   }: BackgroundAppOptions = {}) {
     this.promptsRepo = promptsRepo;
     this.settingsRepo = settingsRepo;
-    this.icons = icons;
 
     // Services that depend on settings are initialized in `initialize()`
     this.settings = this.settingsRepo.get(); // Get defaults initially
