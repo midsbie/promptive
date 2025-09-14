@@ -1,3 +1,5 @@
+import { Prompt } from "../lib/storage";
+
 import { logger } from "./logger";
 import { ToastService } from "./services";
 
@@ -17,7 +19,7 @@ const toParagraphHtml = (text: string): string => {
 
 export abstract class InsertionStrategy {
   abstract canHandle(element: Element | null): boolean;
-  abstract insert(element: Element | null, text: string): boolean;
+  abstract insert(element: Element | null, prompt: Prompt): boolean;
 }
 
 export class InputTextareaStrategy extends InsertionStrategy {
@@ -25,14 +27,15 @@ export class InputTextareaStrategy extends InsertionStrategy {
     return el !== null && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
   }
 
-  insert(el: Element | null, text: string): boolean {
+  insert(el: Element | null, prompt: Prompt): boolean {
     if (!this.canHandle(el)) return false;
 
-    const start = el.selectionStart ?? 0;
-    const end = el.selectionEnd ?? 0;
+    const text = this._buildInsertText(prompt);
+    const insertPosition = this._getInsertPosition(el, prompt.insert_at || "cursor");
+
     const value = el.value ?? "";
-    el.value = value.slice(0, start) + text + value.slice(end);
-    const caret = start + text.length;
+    el.value = value.slice(0, insertPosition.start) + text + value.slice(insertPosition.end);
+    const caret = insertPosition.start + text.length;
     el.selectionStart = el.selectionEnd = caret;
     el.focus();
 
@@ -40,6 +43,34 @@ export class InputTextareaStrategy extends InsertionStrategy {
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
+  }
+
+  private _buildInsertText(prompt: Prompt): string {
+    let text = prompt.content;
+    if (prompt.separator) {
+      text = prompt.separator + text + prompt.separator;
+    }
+    return text;
+  }
+
+  private _getInsertPosition(
+    el: HTMLInputElement | HTMLTextAreaElement,
+    insertAt: "cursor" | "top" | "end"
+  ): { start: number; end: number } {
+    const value = el.value ?? "";
+
+    switch (insertAt) {
+      case "top":
+        return { start: 0, end: 0 };
+      case "end":
+        return { start: value.length, end: value.length };
+      case "cursor":
+      default: {
+        const start = el.selectionStart ?? 0;
+        const end = el.selectionEnd ?? 0;
+        return { start, end };
+      }
+    }
   }
 }
 
@@ -53,12 +84,20 @@ export class ContentEditableStrategy extends InsertionStrategy {
     );
   }
 
-  insert(el: Element | null, text: string): boolean {
+  insert(el: Element | null, prompt: Prompt): boolean {
     if (!this.canHandle(el)) return false;
 
     if (document.activeElement !== el) {
       logger.warn("Target element is not focused; insertion may be out of place");
       el.focus();
+    }
+
+    const text = this._buildInsertText(prompt);
+    const insertAt = prompt.insert_at || "cursor";
+
+    // Handle special positioning for top/end
+    if (insertAt !== "cursor") {
+      return this._insertAtPosition(el, text, insertAt);
     }
 
     // plaintext-only hosts MUST ignore HTML
@@ -84,6 +123,41 @@ export class ContentEditableStrategy extends InsertionStrategy {
     // Last resort: plain text
     logger.warn("Falling back to range-based plain text insertion");
     return this._insertPlainText(el, text);
+  }
+
+  private _buildInsertText(prompt: Prompt): string {
+    let text = prompt.content;
+    if (prompt.separator) {
+      text = prompt.separator + text + prompt.separator;
+    }
+    return text;
+  }
+
+  private _insertAtPosition(el: HTMLElement, text: string, insertAt: "top" | "end"): boolean {
+    try {
+      const selection = window.getSelection();
+      if (!selection) return false;
+
+      let range: Range;
+      if (insertAt === "top") {
+        range = document.createRange();
+        range.setStart(el, 0);
+        range.setEnd(el, 0);
+      } else {
+        // end
+        range = document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+      }
+
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      return this._insertPlainText(el, text);
+    } catch (e) {
+      logger.error("Failed to insert at position", e);
+      return false;
+    }
   }
 
   private _insertPlainText(el: HTMLElement, text: string): boolean {
@@ -168,13 +242,13 @@ export class TextInserter {
     return false;
   }
 
-  insert(target: Element | null, text: string): boolean {
+  insert(target: Element | null, prompt: Prompt): boolean {
     if (!target) return false;
 
     for (const s of this.strategies) {
       try {
         if (s.canHandle(target)) {
-          const ok = s.insert(target, text);
+          const ok = s.insert(target, prompt);
           if (ok) return true;
         }
       } catch (e) {

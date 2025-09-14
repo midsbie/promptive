@@ -140,14 +140,14 @@ export class PromptiveSidebar {
     });
     // kebab menus
     this.menu.bind(container, async (action, id) => {
-      if (action === "edit") await this.editPrompt(id);
+      if (action === "edit") this.navigateToEditor(id);
       if (action === "delete") await this.deletePrompt(id);
     });
   }
 
   // --- event binding ---
   bindDom(): void {
-    document.getElementById("addPromptBtn")!.addEventListener("click", () => this.openModal());
+    document.getElementById("addPromptBtn")!.addEventListener("click", () => this.navigateToEditor());
 
     (document.getElementById("searchInput") as HTMLInputElement).addEventListener("input", (e) => {
       const q = (e.target as HTMLInputElement).value;
@@ -199,11 +199,9 @@ export class PromptiveSidebar {
     }
   }
 
-  async editPrompt(id: string): Promise<void> {
-    const prompt = this.prompts.find((p) => p.id === id);
-    if (!prompt) return;
-    this.editingPrompt = prompt;
-    this.openModal(prompt);
+  navigateToEditor(id?: string): void {
+    const path = id ? `/editor/${id}` : '/editor/new';
+    (window as any).router?.navigate(path);
   }
 
   async deletePrompt(id: string): Promise<void> {

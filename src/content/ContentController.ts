@@ -55,7 +55,7 @@ export class ContentController {
       case MSG.INSERT_PROMPT:
         // Direct insertion path (bypassing popover)
         this._rememberTarget(document.activeElement);
-        this._insertAndNotify(message.prompt.content);
+        this._insertAndNotify(message.prompt);
         this._clearTarget();
         return;
 
@@ -82,7 +82,7 @@ export class ContentController {
       onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
         this._restoreTarget();
-        this._insertAndNotify(prompt.content);
+        this._insertAndNotify(prompt);
         this.popover?.close(); // will trigger onClose
       },
       onClose: () => {
@@ -95,15 +95,15 @@ export class ContentController {
     this.popover.open(prompts);
   }
 
-  private _insertAndNotify(text: string): void {
+  private _insertAndNotify(prompt: Prompt): void {
     const target = this.targetElement;
-    const ok = this.textInserter.insert(target, text);
+    const ok = this.textInserter.insert(target, prompt);
     if (ok) {
       ToastService.show("Prompt inserted");
       return;
     }
 
-    this.clipboardWriter.write(text);
+    this.clipboardWriter.write(prompt.content);
     ToastService.show("Copied to clipboard");
   }
 

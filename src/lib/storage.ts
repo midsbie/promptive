@@ -17,6 +17,8 @@ export interface Prompt {
   updated_at: string;
   last_used_at: string | null;
   used_times: number;
+  insert_at?: "cursor" | "top" | "end";
+  separator?: string | null;
 }
 
 export interface PartialPrompt {
@@ -28,6 +30,8 @@ export interface PartialPrompt {
   updated_at?: string;
   last_used_at?: string | null;
   used_times?: number;
+  insert_at?: "cursor" | "top" | "end";
+  separator?: string | null;
 }
 
 export interface ImportData {
@@ -189,6 +193,8 @@ function normalizePrompt(p: PartialPrompt): Prompt {
     updated_at: p.updated_at || now,
     last_used_at: p.last_used_at ?? null,
     used_times: Number.isFinite(p.used_times) ? p.used_times : 0,
+    insert_at: p.insert_at || "cursor",
+    separator: p.separator ?? null,
   };
 }
 

@@ -8,75 +8,83 @@
   </head>
   <body>
     <div class="container">
-      <header class="header">
-        <div class="header-actions">
-          <button id="addPromptBtn" class="btn btn-primary" aria-label="Add new prompt">
-            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
-            </svg>
-            Add
-          </button>
-          <button id="importBtn" class="btn btn-secondary" aria-label="Import prompts">
-            Import
-          </button>
-          <button id="exportBtn" class="btn btn-secondary" aria-label="Export prompts">
-            Export
-          </button>
-        </div>
-      </header>
+      <!-- List View -->
+      <div id="listView">
+        <header class="header">
+          <div class="header-actions">
+            <button id="addPromptBtn" class="btn btn-primary" aria-label="Add new prompt">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2z" />
+              </svg>
+              Add
+            </button>
+            <button id="importBtn" class="btn btn-secondary" aria-label="Import prompts">
+              Import
+            </button>
+            <button id="exportBtn" class="btn btn-secondary" aria-label="Export prompts">
+              Export
+            </button>
+          </div>
+        </header>
 
-      <div class="search-bar">
-        <input
-          type="text"
-          id="searchInput"
-          placeholder="Search prompts..."
-          aria-label="Search prompts"
-          class="search-input"
-        />
+        <div class="search-bar">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Search prompts..."
+            aria-label="Search prompts"
+            class="search-input"
+          />
+        </div>
+
+        <main class="prompt-list" id="promptList" role="list" aria-label="Prompts">
+          <!-- Prompts will be rendered here -->
+        </main>
+
+        <!-- Add/Edit Modal -->
+        <div
+          id="promptModal"
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalTitle"
+        >
+          <div class="modal-content">
+            <h2 id="modalTitle">Add Prompt</h2>
+            <form id="promptForm">
+              <div class="form-group">
+                <label for="promptTitle">Title</label>
+                <input type="text" id="promptTitle" required class="form-input" />
+              </div>
+              <div class="form-group">
+                <label for="promptContent">Content</label>
+                <textarea id="promptContent" required rows="6" class="form-input"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="promptTags">Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  id="promptTags"
+                  placeholder="email, template, work"
+                  class="form-input"
+                />
+              </div>
+              <div class="modal-actions">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Import file input (hidden) -->
+        <input type="file" id="importFile" accept=".json" style="display: none" />
       </div>
 
-      <main class="prompt-list" id="promptList" role="list" aria-label="Prompts">
-        <!-- Prompts will be rendered here -->
-      </main>
-
-      <!-- Add/Edit Modal -->
-      <div
-        id="promptModal"
-        class="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modalTitle"
-      >
-        <div class="modal-content">
-          <h2 id="modalTitle">Add Prompt</h2>
-          <form id="promptForm">
-            <div class="form-group">
-              <label for="promptTitle">Title</label>
-              <input type="text" id="promptTitle" required class="form-input" />
-            </div>
-            <div class="form-group">
-              <label for="promptContent">Content</label>
-              <textarea id="promptContent" required rows="6" class="form-input"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="promptTags">Tags (comma-separated)</label>
-              <input
-                type="text"
-                id="promptTags"
-                placeholder="email, template, work"
-                class="form-input"
-              />
-            </div>
-            <div class="modal-actions">
-              <button type="submit" class="btn btn-primary">Save</button>
-              <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
-            </div>
-          </form>
-        </div>
+      <!-- Editor View -->
+      <div id="editorView" style="display: none;">
+        <!-- Editor content will be rendered here by PromptEditor.ts -->
       </div>
-
-      <!-- Import file input (hidden) -->
-      <input type="file" id="importFile" accept=".json" style="display: none" />
 
       <!-- Toast notification -->
       <div id="toast" class="toast" role="alert" aria-live="polite"></div>
