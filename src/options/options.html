@@ -11,23 +11,28 @@
         margin: 2rem auto;
         padding: 0 1rem;
       }
+
       h1 {
         font-size: 1.5rem;
         margin-bottom: 1rem;
       }
+
       .setting {
         margin-bottom: 1.5rem;
       }
+
       label {
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
       }
+
       input {
         padding: 0.5rem;
         border: 1px solid #ddd;
         border-radius: 4px;
       }
+
       button {
         background: #4a90e2;
         color: white;
@@ -36,9 +41,11 @@
         border-radius: 4px;
         cursor: pointer;
       }
+
       button:hover {
         background: #357abd;
       }
+
       .status {
         margin-top: 0.5rem;
         color: #27ae60;
@@ -52,10 +59,34 @@
     <div class="setting">
       <label for="shortcut">Keyboard Shortcut</label>
       <input type="text" id="shortcut" placeholder="e.g., Alt+Shift+P" readonly />
+
       <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
         Click the input and press your desired key combination
       </p>
+
       <div id="status" class="status"></div>
+    </div>
+
+    <div class="setting">
+      <label for="contextMenuLimit">Context Menu Prompts</label>
+      <input type="number" id="contextMenuLimit" min="1" max="20" />
+
+      <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
+        Maximum number of prompts to show in the right-click context menu.
+      </p>
+    </div>
+
+    <div class="setting">
+      <label for="contextMenuSort">Context Menu Sort Order</label>
+
+      <select id="contextMenuSort">
+        <option value="last-used">Most Recently Used</option>
+        <option value="alphabetical">Alphabetical</option>
+      </select>
+
+      <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
+        How to sort the prompts in the context menu.
+      </p>
     </div>
 
     <script src="options.js"></script>

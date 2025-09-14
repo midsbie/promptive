@@ -1,6 +1,7 @@
 import browser, { Menus, Runtime, Storage, Tabs } from "webextension-polyfill";
 
 import { Message } from "../lib/messaging";
+import { AppSettings, SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
 import { ContentStatusProbe } from "./ContentStatusProbe";
@@ -11,16 +12,17 @@ import { TabObserver } from "./TabObserver";
 import { ToolbarIconService } from "./ToolbarIconService";
 import { logger } from "./logger";
 
-const CONTEXT_MENU_LIMIT = 10;
-
 interface BackgroundAppOptions {
-  repo?: PromptRepository;
+  promptsRepo?: PromptRepository;
+  settingsRepo?: SettingsRepository;
   icons?: ToolbarIconService;
   probe?: ContentStatusProbe;
 }
 
 export class BackgroundApp {
-  private repo: PromptRepository;
+  private promptsRepo: PromptRepository;
+  private settingsRepo: SettingsRepository;
+  private settings: AppSettings;
   private icons: ToolbarIconService;
   private probe: ContentStatusProbe;
   private menus: ContextMenuService;
@@ -30,16 +32,24 @@ export class BackgroundApp {
   private isInitialized: boolean = false;
 
   constructor({
-    repo = new PromptRepository(),
+    promptsRepo = new PromptRepository(),
+    settingsRepo = new SettingsRepository(),
     icons = new ToolbarIconService(),
     probe = new ContentStatusProbe(),
   }: BackgroundAppOptions = {}) {
-    this.repo = repo;
+    this.promptsRepo = promptsRepo;
+    this.settingsRepo = settingsRepo;
     this.icons = icons;
     this.probe = probe;
-    this.menus = new ContextMenuService(() => this.repo.getAllPrompts(), CONTEXT_MENU_LIMIT);
-    this.router = new MessageRouter(this.repo);
-    this.handlers = new Handlers(this.repo, this.menus);
+
+    // Services that depend on settings are initialized in `initialize()`
+    this.settings = this.settingsRepo.get(); // Get defaults initially
+    this.menus = new ContextMenuService(
+      () => this.promptsRepo.getAllPrompts(),
+      this.settings.contextMenu
+    );
+    this.router = new MessageRouter(this.promptsRepo);
+    this.handlers = new Handlers(this.promptsRepo, this.menus);
     this.tabObserver = new TabObserver(this.updateTabIcon.bind(this));
   }
 
@@ -58,7 +68,16 @@ export class BackgroundApp {
       return;
     }
 
-    await this.repo.initialize();
+    await this.promptsRepo.initialize();
+    await this.settingsRepo.initialize();
+    this.settings = this.settingsRepo.get();
+
+    // Now that settings are loaded, create services that depend on them
+    this.menus = new ContextMenuService(
+      () => this.promptsRepo.getAllPrompts(),
+      this.settings.contextMenu
+    );
+    this.handlers = new Handlers(this.promptsRepo, this.menus);
     await this.menus.rebuild();
 
     try {
@@ -72,9 +91,6 @@ export class BackgroundApp {
     this.isInitialized = true;
     logger.info("initialized");
   }
-
-  // Event handler methods
-  // These provide controlled access to private properties while maintaining MV3 compatibility
 
   handleInstalled(): void {
     logger.info("Extension installed");
@@ -96,9 +112,33 @@ export class BackgroundApp {
   }
 
   handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
-    this.handlers.onStorageChanged(changes, area).catch((e) => {
-      logger.error("Error in onStorageChanged handler:", e);
-    });
+    const promptKey = PromptRepository.getStorageKey();
+    if (area !== "local") return;
+
+    // If settings changed, we must re-initialize the services that depend on them.
+    if (changes[SettingsRepository.getStorageKey()]) {
+      logger.debug("Settings changed, re-initializing context menu");
+      this.settingsRepo
+        .initialize()
+        .then(() => {
+          this.settings = this.settingsRepo.get();
+          this.menus = new ContextMenuService(
+            () => this.promptsRepo.getAllPrompts(),
+            this.settings.contextMenu
+          );
+          this.handlers = new Handlers(this.promptsRepo, this.menus);
+          return this.menus.rebuild();
+        })
+        .catch((e) => {
+          logger.error("Failed to rebuild menus on settings change", e);
+        });
+    }
+
+    if (changes.prompts || changes[promptKey]) {
+      this.handlers.onStorageChanged(changes, area).catch((e) => {
+        logger.error("Error in onStorageChanged handler:", e);
+      });
+    }
   }
 
   handleActionClicked(tab: Tabs.Tab): void {
@@ -140,19 +180,6 @@ export class BackgroundApp {
 
 const app = new BackgroundApp();
 app.initialize().catch((e) => logger.error("Fatal init error:", e));
-
-// Top-level event handlers for Manifest V3 compatibility
-// -------------------------------------------------------------------------------------------------
-// Manifest V3 requires all extension event listeners to be registered synchronously at the script's
-// top level. This allows the browser to detect which events should wake the service worker from its
-// dormant state.
-//
-// To balance this requirement with proper encapsulation, we use thin wrapper methods on the
-// BackgroundApp instance.  These `handleEvent` methods provide controlled access to the private
-// internal components (`router`, `handlers`, `tabObserver`) without exposing them directly.
-//
-// Alternative patterns considered:
-// - Event bus: the best design but would add complexity
 
 browser.runtime.onInstalled.addListener(() => app.handleInstalled());
 browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));

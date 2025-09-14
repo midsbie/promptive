@@ -1,8 +1,27 @@
 import browser from "webextension-polyfill";
 
+import { AppSettings, ContextMenuSortOrder } from "../lib/settings";
 import { Prompt } from "../lib/storage";
 
 import { logger } from "./logger";
+
+const sortAlphabetical = (prompts: Prompt[]): Prompt[] => {
+  return [...prompts].sort((a, b) => a.title.localeCompare(b.title));
+};
+
+const sortLastUsed = (prompts: Prompt[]): Prompt[] => {
+  return [...prompts].sort((a: Prompt, b: Prompt) => {
+    if (!a.last_used_at && !b.last_used_at) return 0;
+    if (!a.last_used_at) return 1;
+    if (!b.last_used_at) return -1;
+    return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
+  });
+};
+
+const SORTERS: Record<ContextMenuSortOrder, (prompts: Prompt[]) => Prompt[]> = {
+  alphabetical: sortAlphabetical,
+  "last-used": sortLastUsed,
+};
 
 type GetPromptsFunction = () => Promise<Prompt[]>;
 
@@ -12,19 +31,16 @@ interface Manifest {
   }>;
 }
 
-/**
- * Minimal context-menu builder.
- */
 export class ContextMenuService {
   static readonly MENU_ID = "promptive";
 
   private getPrompts: GetPromptsFunction;
-  private limit: number;
+  private settings: AppSettings["contextMenu"];
   private documentUrlPatterns: string[];
 
-  constructor(getPrompts: GetPromptsFunction, limit: number = 10) {
+  constructor(getPrompts: GetPromptsFunction, settings: AppSettings["contextMenu"]) {
     this.getPrompts = getPrompts;
-    this.limit = limit;
+    this.settings = settings;
 
     // Derive the same URL patterns as the content script so menus only show there
     const manifest = browser.runtime.getManifest?.() as Manifest | undefined;
@@ -35,14 +51,8 @@ export class ContextMenuService {
     await browser.contextMenus.removeAll();
 
     const prompts = await this.getPrompts();
-    const sorted = [...prompts]
-      .sort((a: Prompt, b: Prompt) => {
-        if (!a.last_used_at && !b.last_used_at) return 0;
-        if (!a.last_used_at) return 1;
-        if (!b.last_used_at) return -1;
-        return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
-      })
-      .slice(0, this.limit);
+    const sorter = SORTERS[this.settings.sort] ?? SORTERS["last-used"];
+    const sorted = sorter(prompts).slice(0, this.settings.limit);
 
     // Parent
     browser.contextMenus.create({
@@ -73,7 +83,7 @@ export class ContextMenuService {
     }
 
     // "More..." when more exist
-    if (prompts.length > this.limit) {
+    if (prompts.length > this.settings.limit) {
       browser.contextMenus.create({
         id: "more-prompts",
         parentId: ContextMenuService.MENU_ID,
