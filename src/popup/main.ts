@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 
-import { MSG, createMessage } from "../lib/messaging";
+import { ContentStatusProbe } from "../lib/ContentStatusProbe";
 
 import { logger } from "./logger";
 
@@ -23,17 +23,18 @@ async function checkStatus(): Promise<void> {
       throw new Error("No active tab identified.");
     }
 
-    // A successful response means the content script is ready.
-    await browser.tabs.sendMessage(tab.id, createMessage(MSG.QUERY_STATUS));
-
-    statusTextEl.textContent = "Active on this page";
-    statusIndicatorEl.classList.add("active");
+    if (await new ContentStatusProbe().isActive(tab.id)) {
+      statusTextEl.textContent = "Active on this page";
+      statusIndicatorEl.classList.add("active");
+      return;
+    }
   } catch (e: any) {
     // An error means no content script replied, so the page is not supported.
-    statusTextEl.textContent = "Not supported on this page";
-    statusIndicatorEl.classList.add("inactive");
     logger.info(`Promptive not active on this tab: ${e.message}`);
   }
+
+  statusTextEl.textContent = "Not supported on this page";
+  statusIndicatorEl.classList.add("inactive");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
