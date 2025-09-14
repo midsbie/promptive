@@ -5,17 +5,45 @@ import { AppSettings, SettingsRepository } from "../lib/settings";
 
 import { logger } from "./logger";
 
+class StatusController {
+  private statusEl: HTMLElement;
+  private timeoutId: number | null = null;
+
+  constructor(element: HTMLElement) {
+    if (!element) {
+      throw new Error("Status element not found for StatusController");
+    }
+    this.statusEl = element;
+  }
+
+  show(message: string, { isError = false, duration = 3000 } = {}): void {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+    }
+
+    this.statusEl.textContent = message;
+    this.statusEl.className = "status" + (isError ? " error" : "");
+
+    this.timeoutId = window.setTimeout(() => {
+      this.statusEl.textContent = "";
+      this.timeoutId = null;
+    }, duration);
+  }
+}
+
 class OptionsPage {
   private repo = new SettingsRepository();
   private settings: AppSettings;
+  private statusController: StatusController;
 
   // Elements
   private shortcutInput = document.getElementById("shortcut") as HTMLInputElement;
-  private statusEl = document.getElementById("status") as HTMLElement;
   private contextMenuLimitInput = document.getElementById("contextMenuLimit") as HTMLInputElement;
   private contextMenuSortSelect = document.getElementById("contextMenuSort") as HTMLSelectElement;
 
   async initialize(): Promise<void> {
+    this.statusController = new StatusController(document.getElementById("status") as HTMLElement);
+
     await this.repo.initialize();
     this.settings = this.repo.get();
 
@@ -37,7 +65,7 @@ class OptionsPage {
     this.settings.contextMenu.sort = newSort;
 
     await this.repo.save(this.settings);
-    this.showStatus("Settings saved!");
+    this.statusController.show("Settings saved!");
   }
 
   private loadShortcut(): void {
@@ -81,19 +109,11 @@ class OptionsPage {
         name: commands.OPEN_PROMPT_SELECTOR,
         shortcut: shortcut,
       });
-      this.showStatus("Shortcut updated successfully!");
-    } catch (err: any) {
-      this.showStatus("Error: " + err.message, true);
+      this.statusController.show("Shortcut updated successfully!");
+    } catch {
+      // Silencing errors since several WILL be emitted as the user composes a key chord.
     }
   };
-
-  private showStatus(message: string, isError: boolean = false): void {
-    this.statusEl.textContent = message;
-    this.statusEl.style.color = isError ? "#e74c3c" : "#27ae60";
-    setTimeout(() => {
-      this.statusEl.textContent = "";
-    }, 3000);
-  }
 }
 
 // Initialize the page
