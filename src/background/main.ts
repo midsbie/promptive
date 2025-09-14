@@ -112,7 +112,6 @@ export class BackgroundApp {
   }
 
   handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
-    const promptKey = PromptRepository.getStorageKey();
     if (area !== "local") return;
 
     // If settings changed, we must re-initialize the services that depend on them.
@@ -134,7 +133,7 @@ export class BackgroundApp {
         });
     }
 
-    if (changes.prompts || changes[promptKey]) {
+    if (changes[PromptRepository.getStorageKey()]) {
       this.handlers.onStorageChanged(changes, area).catch((e) => {
         logger.error("Error in onStorageChanged handler:", e);
       });

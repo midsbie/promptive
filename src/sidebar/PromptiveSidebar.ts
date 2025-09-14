@@ -117,7 +117,9 @@ export class PromptiveSidebar {
 
     // Listen to storage changes (local or sync)
     browser?.storage?.onChanged?.addListener((changes, area) => {
-      if ((area === "local" || area === "sync") && changes.prompts) {
+      // Noting that here we are reacting to BOTH local and sync changes, unlike in background's
+      // `handleStorageChanged`.
+      if ((area === "local" || area === "sync") && changes[PromptRepository.getStorageKey()]) {
         this.loadAndRender();
       }
     });

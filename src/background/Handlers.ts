@@ -20,8 +20,7 @@ export class Handlers {
   }
 
   onStorageChanged = async (changes: Record<string, Storage.StorageChange>, area: string) => {
-    const key = PromptRepository.getStorageKey();
-    if (area === "local" && (changes.prompts || changes[key])) {
+    if (area === "local" && changes[PromptRepository.getStorageKey()]) {
       await this.menus.rebuild();
     }
   };
