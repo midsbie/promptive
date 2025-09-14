@@ -64,7 +64,7 @@ There are *four ways* to access your prompt library:
 *** 3. Context Menu (Right-Click)
 - Right-click anywhere on a supported webpage
 - Choose "Promptive" from the menu
-- Your 10 most recently used prompts are shown
+- Your most recently used prompts are shown (the number and sort order are configurable).
 - If more exist, select "More..." to open the quick selector
 - "Manage Prompts..." opens the sidebar
 - On selection:
