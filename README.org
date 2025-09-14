@@ -215,3 +215,8 @@ The following shortcuts are available during general use:
 All prompts are stored locally in your browser and also synced via Firefox Sync if you have it enabled. No third-party servers or telemetry are involved. Your data persists across sessions and is removed if the extension is uninstalled.
 
 To keep your library safe, you may still wish to export prompts as JSON, maintain backups in a secure location, and optionally use version control.
+
+
+* License
+
+Distributed under the MIT License. See LICENSE for more information.
