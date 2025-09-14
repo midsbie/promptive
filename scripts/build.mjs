@@ -45,6 +45,7 @@ function createConfig(rootDir) {
       content: resolve(rootDir, "src/content/main.ts"),
       sidebar: resolve(rootDir, "src/sidebar/main.ts"),
       options: resolve(rootDir, "src/options/main.ts"),
+      popup: resolve(rootDir, "src/popup/main.ts"),
     },
     outdir: "dist",
     bundle: true,

@@ -20,10 +20,10 @@ INSTALL ?= install
 # Paths
 DIST_DIR := dist
 ARTIFACTS_DIR := artifacts
-CSS_SRC := src/content/content.css src/sidebar/sidebar.css
-CSS_OUT := $(DIST_DIR)/content.css $(DIST_DIR)/sidebar.css
-HTML_SRC := src/options/options.html src/sidebar/sidebar.html
-HTML_OUT := $(DIST_DIR)/options.html $(DIST_DIR)/sidebar.html
+CSS_SRC := src/content/content.css src/popup/popup.css src/sidebar/sidebar.css
+CSS_OUT := $(DIST_DIR)/content.css $(DIST_DIR)/popup.css $(DIST_DIR)/sidebar.css
+HTML_SRC := src/options/options.html src/popup/popup.html src/sidebar/sidebar.html
+HTML_OUT := $(DIST_DIR)/options.html $(DIST_DIR)/popup.html $(DIST_DIR)/sidebar.html
 SOURCE_FILES := $(shell find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.mjs' \))
 
 # Package metadata; read from package.json

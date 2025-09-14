@@ -21,7 +21,8 @@
     "open_at_install": false
   },
   "action": {
-    "default_title": "Open Prompt Selector",
+    "default_popup": "dist/popup.html",
+    "default_title": "Promptive Status",
     "default_icon": {
       "16": "icons/icon-16.svg",
       "32": "icons/icon-32.svg",
