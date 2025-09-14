@@ -7,6 +7,8 @@ import { TimeProvider } from "./time";
 
 const logger = new Logger("storage");
 
+export type InsertPosition = "cursor" | "top" | "end";
+
 // Core interfaces for prompts and storage
 export interface Prompt {
   id: string;
@@ -17,7 +19,7 @@ export interface Prompt {
   updated_at: string;
   last_used_at: string | null;
   used_times: number;
-  insert_at?: "cursor" | "top" | "end";
+  insert_at?: InsertPosition;
   separator?: string | null;
 }
 
@@ -30,7 +32,7 @@ export interface PartialPrompt {
   updated_at?: string;
   last_used_at?: string | null;
   used_times?: number;
-  insert_at?: "cursor" | "top" | "end";
+  insert_at?: InsertPosition;
   separator?: string | null;
 }
 

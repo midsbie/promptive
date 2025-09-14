@@ -1,4 +1,4 @@
-import { Prompt } from "../lib/storage";
+import { InsertPosition, Prompt } from "../lib/storage";
 
 import { logger } from "./logger";
 import { ToastService } from "./services";
@@ -17,6 +17,24 @@ const toParagraphHtml = (text: string): string => {
     .join("");
 };
 
+// Assumes separator is not empty, not whitespace and not multiline.
+const wrapSeparator = (sep: string): string => "\n" + sep + "\n";
+
+const buildInsertText = (prompt: Prompt, insertAt: InsertPosition): string => {
+  let text = prompt.content.trim();
+  let sep = prompt.separator?.trim() || "";
+  if (!sep) return text;
+
+  sep = wrapSeparator(prompt.separator);
+  if (insertAt === "top") return text + sep;
+
+  // "end" or "cursor"
+  text = sep + text;
+
+  if (insertAt === "cursor") return text + sep;
+  return text;
+};
+
 export abstract class InsertionStrategy {
   abstract canHandle(element: Element | null): boolean;
   abstract insert(element: Element | null, prompt: Prompt): boolean;
@@ -30,8 +48,9 @@ export class InputTextareaStrategy extends InsertionStrategy {
   insert(el: Element | null, prompt: Prompt): boolean {
     if (!this.canHandle(el)) return false;
 
-    const text = this._buildInsertText(prompt);
-    const insertPosition = this._getInsertPosition(el, prompt.insert_at || "cursor");
+    const insertAt = prompt.insert_at || "cursor";
+    const text = buildInsertText(prompt, insertAt);
+    const insertPosition = this._getInsertPosition(el, insertAt);
 
     const value = el.value ?? "";
     el.value = value.slice(0, insertPosition.start) + text + value.slice(insertPosition.end);
@@ -43,14 +62,6 @@ export class InputTextareaStrategy extends InsertionStrategy {
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
-  }
-
-  private _buildInsertText(prompt: Prompt): string {
-    let text = prompt.content;
-    if (prompt.separator) {
-      text = prompt.separator + text + prompt.separator;
-    }
-    return text;
   }
 
   private _getInsertPosition(
@@ -92,8 +103,8 @@ export class ContentEditableStrategy extends InsertionStrategy {
       el.focus();
     }
 
-    const text = this._buildInsertText(prompt);
     const insertAt = prompt.insert_at || "cursor";
+    const text = buildInsertText(prompt, insertAt);
 
     // Handle special positioning for top/end
     if (insertAt !== "cursor") {
@@ -123,14 +134,6 @@ export class ContentEditableStrategy extends InsertionStrategy {
     // Last resort: plain text
     logger.warn("Falling back to range-based plain text insertion");
     return this._insertPlainText(el, text);
-  }
-
-  private _buildInsertText(prompt: Prompt): string {
-    let text = prompt.content;
-    if (prompt.separator) {
-      text = prompt.separator + text + prompt.separator;
-    }
-    return text;
   }
 
   private _insertAtPosition(el: HTMLElement, text: string, insertAt: "top" | "end"): boolean {
