@@ -106,9 +106,14 @@ export class ContentEditableStrategy extends InsertionStrategy {
     const insertAt = prompt.insert_at || "cursor";
     const text = buildInsertText(prompt, insertAt);
 
-    // Handle special positioning for top/end
-    if (insertAt !== "cursor") {
-      return this._insertAtPosition(el, text, insertAt);
+    try {
+      if (!this._positionForInsertion(el, insertAt)) {
+        logger.error("Failed to position cursor for insertion");
+        return false;
+      }
+    } catch (e) {
+      logger.error("Exception encountered while positioning cursor for insertion", e);
+      return false;
     }
 
     // plaintext-only hosts MUST ignore HTML
@@ -136,31 +141,40 @@ export class ContentEditableStrategy extends InsertionStrategy {
     return this._insertPlainText(el, text);
   }
 
-  private _insertAtPosition(el: HTMLElement, text: string, insertAt: "top" | "end"): boolean {
-    try {
-      const selection = window.getSelection();
-      if (!selection) return false;
+  private _positionForInsertion(el: HTMLElement, insertAt: InsertPosition): boolean {
+    if (insertAt === "cursor") return true;
 
-      let range: Range;
-      if (insertAt === "top") {
-        range = document.createRange();
+    const selection = window.getSelection();
+    if (!selection) return false;
+
+    let range: Range;
+    if (insertAt === "top") {
+      range = document.createRange();
+      // Find the first child element or text node to position inside it
+      const firstChild = el.firstElementChild || el.firstChild;
+      if (firstChild) {
+        range.setStart(firstChild, 0);
+        range.setEnd(firstChild, 0);
+      } else {
         range.setStart(el, 0);
         range.setEnd(el, 0);
+      }
+    } else {
+      // end - position inside the last child element
+      range = document.createRange();
+      const lastChild = el.lastElementChild || el.lastChild;
+      if (lastChild) {
+        range.selectNodeContents(lastChild);
+        range.collapse(false);
       } else {
-        // end
-        range = document.createRange();
         range.selectNodeContents(el);
         range.collapse(false);
       }
-
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      return this._insertPlainText(el, text);
-    } catch (e) {
-      logger.error("Failed to insert at position", e);
-      return false;
     }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
   }
 
   private _insertPlainText(el: HTMLElement, text: string): boolean {
