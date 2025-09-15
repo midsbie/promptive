@@ -4,95 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Promptive Settings</title>
-    <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        max-width: 600px;
-        margin: 2rem auto;
-        padding: 0 1rem;
-      }
-
-      h1 {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-      }
-
-      .setting {
-        margin-bottom: 1.5rem;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-      }
-
-      input {
-        padding: 0.5rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-      }
-
-      button {
-        background: #4a90e2;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      button:hover {
-        background: #357abd;
-      }
-
-      .status {
-        position: fixed;
-        right: 1em;
-        color: #27ae60;
-        font-size: 0.875rem;
-        max-width: 15em;
-      }
-
-      .status.error {
-        color: #e74c3c;
-      }
-    </style>
+    <link rel="stylesheet" href="options.css" />
   </head>
   <body>
-    <h1>Promptive Settings</h1>
+    <div class="container">
+      <div class="content">
+        <div id="status" class="status" style="display: none"></div>
 
-    <div id="status" class="status"></div>
+        <div class="setting-section">
+          <label class="setting-label" for="shortcut">Keyboard Shortcut</label>
 
-    <div class="setting">
-      <label for="shortcut">Keyboard Shortcut</label>
-      <input type="text" id="shortcut" placeholder="e.g., Alt+Shift+P" readonly />
+          <div class="input-group">
+            <input
+              type="text"
+              id="shortcut"
+              class="form-control shortcut-input"
+              placeholder="Click and press key combination"
+              readonly
+            />
+          </div>
 
-      <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
-        Click the input and press your desired key combination
-      </p>
-    </div>
+          <div class="setting-description">
+            Click the input field and press your desired key combination to set a global shortcut
+            for Promptive.
+          </div>
+        </div>
 
-    <div class="setting">
-      <label for="contextMenuLimit">Context Menu Prompts</label>
-      <input type="number" id="contextMenuLimit" min="1" max="20" />
+        <div class="setting-section">
+          <label class="setting-label" for="contextMenuLimit">Context Menu Prompts</label>
 
-      <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
-        Maximum number of prompts to show in the right-click context menu.
-      </p>
-    </div>
+          <div class="input-group">
+            <input
+              type="number"
+              id="contextMenuLimit"
+              class="form-control number-input"
+              min="1"
+              max="20"
+              value="10"
+            />
+          </div>
 
-    <div class="setting">
-      <label for="contextMenuSort">Context Menu Sort Order</label>
+          <div class="setting-description">
+            Maximum number of prompts to show in the right-click context menu (1-20).
+          </div>
+        </div>
 
-      <select id="contextMenuSort">
-        <option value="last-used">Most Recently Used</option>
-        <option value="alphabetical">Alphabetical</option>
-      </select>
+        <div class="setting-section">
+          <label class="setting-label" for="contextMenuSort">Context Menu Sort Order</label>
 
-      <p style="font-size: 0.875rem; color: #666; margin-top: 0.5rem">
-        How to sort the prompts in the context menu.
-      </p>
+          <div class="input-group">
+            <select id="contextMenuSort" class="form-control">
+              <option value="last-used">Most Recently Used</option>
+              <option value="alphabetical">Alphabetical</option>
+            </select>
+          </div>
+
+          <div class="setting-description">
+            Choose how to sort the prompts displayed in the right-click context menu.
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="options.js"></script>
