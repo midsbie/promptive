@@ -44,6 +44,12 @@ You can edit or delete these examples and add your own prompts.
 
 * Using the Extension
 
+** Supported Websites
+
+Promptive works on specific websites where text insertion is commonly needed. For the complete and current list of supported sites, see the =content_scripts.matches= field in [[file:src/manifest.json][src/manifest.json]].
+
+On unsupported sites, you can still copy prompts to your clipboard via the sidebar or context menu.
+
 ** Accessing Your Prompts
 
 There are *three ways* to access your prompt library:
