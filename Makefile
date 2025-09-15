@@ -26,7 +26,7 @@ MANIFEST_SRC := src/manifest.json
 MANIFEST_OUT := $(DIST_DIR)/manifest.json
 
 # Source files
-CSS_OUT := $(DIST_DIR)/content.css $(DIST_DIR)/options.css $(DIST_DIR)/popup.css $(DIST_DIR)/sidebar.css
+CSS_OUT := $(DIST_DIR)/base.css $(DIST_DIR)/content.css $(DIST_DIR)/options.css $(DIST_DIR)/popup.css $(DIST_DIR)/sidebar.css
 HTML_OUT := $(DIST_DIR)/options.html $(DIST_DIR)/popup.html $(DIST_DIR)/sidebar.html
 SOURCE_FILES := $(shell find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.mjs' \))
 
