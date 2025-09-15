@@ -18,6 +18,7 @@ MKDIR   ?= mkdir -p
 INSTALL ?= install
 
 LOCKFILE := package-lock.json
+CHANNEL  ?= listed
 
 # Paths
 DIST_DIR := dist
@@ -159,20 +160,17 @@ package-source: verify-version $(SRC_ZIP)
 # -----------------------------------------------------------------------------
 # PUBLISH FIREFOX (AMO)
 # -----------------------------------------------------------------------------
-# Uses web-ext to sign & submit. Requires:
-#   WEB_EXT_API_KEY, WEB_EXT_API_SECRET
-# Optional:
-#   WEB_EXT_CHANNEL=listed|unlisted (default: listed)
 .PHONY: publish
-publish: build | $(ARTIFACTS_DIR)
-	@if [ -z "$$WEB_EXT_API_KEY" ] || [ -z "$$WEB_EXT_API_SECRET" ]; then \
+publish: package | $(ARTIFACTS_DIR)
+	@if [ -z "$$AMO_JWT_ISSUER" ] || [ -z "$$AMO_JWT_SECRET" ]; then \
 	  echo "Missing WEB_EXT_API_KEY / WEB_EXT_API_SECRET"; exit 1; \
 	fi
-  # web-ext will bundle automatically; we call it from repo root
 	$(NPX) --yes web-ext sign \
-	  --source-dir . \
+	  --source-dir "$(DIST_DIR)" \
 	  --artifacts-dir "$(ARTIFACTS_DIR)" \
-	  $${WEB_EXT_CHANNEL:+--channel $$WEB_EXT_CHANNEL}
+    --api-key="$$AMO_JWT_ISSUER" \
+    --api-secret="$$AMO_JWT_SECRET" \
+	  --channel "$${CHANNEL:-listed}"
 	@echo "Submitted artifacts in $(ARTIFACTS_DIR) to AMO"
 
 # -----------------------------------------------------------------------------
