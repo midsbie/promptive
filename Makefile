@@ -9,12 +9,12 @@ SHELL := /usr/bin/bash
 .DEFAULT_GOAL := build
 
 # Tools
-NPM ?= npm
-NPX ?= npx
-NODE ?= node
-ZIP ?= zip
-RM  ?= rm -rf
-MKDIR ?= mkdir -p
+NPM     ?= npm
+NPX     ?= npx
+NODE    ?= node
+ZIP     ?= zip
+RM       = rm -rf
+MKDIR   ?= mkdir -p
 INSTALL ?= install
 
 # Paths
