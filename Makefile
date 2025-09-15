@@ -39,8 +39,10 @@ ICONS_OUT := $(patsubst icons/%,$(DIST_DIR)/icons/%,$(ICONS_SRC))
 # Package metadata; read from package.json
 PKG_NAME := $(shell $(NODE) -p "require('./package.json').name")
 PKG_VER  := $(shell $(NODE) -p "require('./package.json').version")
-PKG_ZIP  := $(ARTIFACTS_DIR)/$(PKG_NAME)-v$(PKG_VER).zip
 MAN_VER  := $(shell $(NODE) -p "require('./$(MANIFEST_SRC)').version")
+
+PKG_ZIP  := $(ARTIFACTS_DIR)/$(PKG_NAME)-v$(PKG_VER).zip
+SRC_ZIP := $(ARTIFACTS_DIR)/$(PKG_NAME)-v$(PKG_VER)-source.zip
 
 # A stamp file to avoid re-running the bundler unnecessarily.
 # Touches if build completes successfully.
@@ -144,6 +146,15 @@ $(PKG_ZIP): build | $(ARTIFACTS_DIR)
 
 .PHONY: package
 package: verify-version $(PKG_ZIP)
+
+$(SRC_ZIP): | $(ARTIFACTS_DIR)
+	git ls-files | zip -@ -9 -X "$(abspath $@)"
+	@echo "Source package created: $@"
+
+# Zips the repository contents for source-code submission while excluding
+# build artifacts. Keeps everything else (e.g., package-lock.json, configs).
+.PHONY: package-source
+package-source: verify-version $(SRC_ZIP)
 
 # -----------------------------------------------------------------------------
 # PUBLISH FIREFOX (AMO)
