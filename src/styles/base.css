@@ -105,6 +105,7 @@
   --fs-modal-title: var(--text-lg);
   --fs-label: var(--text-sm);
   --fs-toast: var(--text-sm);
+  --fs-help: var(--text-sm);
 
   /* additional shorthands used across files */
   --fs-xs: var(--text-xs);
@@ -135,6 +136,16 @@
 html,
 body {
   height: 100%;
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+.help-text {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--fs-help);
+  color: var(--color-text-muted);
 }
 
 body {

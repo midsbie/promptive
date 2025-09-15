@@ -65,9 +65,9 @@ select.form-control {
 }
 
 .setting-description {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-help);
   color: var(--color-text-muted);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .shortcut-input {

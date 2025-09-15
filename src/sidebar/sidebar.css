@@ -654,8 +654,8 @@ textarea.form-input {
 
 .form-help {
   display: block;
-  margin-top: 0.25rem;
-  font-size: var(--fs-xs);
+  margin-top: var(--space-1);
+  font-size: var(--fs-help);
   color: var(--color-text-muted);
 }
 
