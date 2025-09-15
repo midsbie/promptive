@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Promptive",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A powerful prompt library to make you more creative and productive with sidebar UI and quick access",
   "permissions": ["storage", "contextMenus", "clipboardWrite", "activeTab"],
   "background": {
