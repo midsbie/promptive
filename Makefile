@@ -17,6 +17,8 @@ RM       = rm -rf
 MKDIR   ?= mkdir -p
 INSTALL ?= install
 
+LOCKFILE := package-lock.json
+
 # Paths
 DIST_DIR := dist
 ARTIFACTS_DIR := artifacts
@@ -52,8 +54,11 @@ help:
 	@echo "Targets:"
 	@echo "  build              Bundle JS and copy CSS to dist/"
 	@echo "  package            Create distributable zip in artifacts/"
+	@echo "  package-source     Create source zip for AMO (excludes dist/ and artifacts/)"
+	@echo "  deps               Install Node.js dependencies via npm ci"
 	@echo "  publish            Sign & upload to AMO via web-ext (uses WEB_EXT_* env vars)"
 	@echo "  clean              Remove build outputs (dist/ artifacts/)"
+	@echo "  clean-deps         Remove node_modules and dependency stamp"
 	@echo "  lint, format       Run repo quality checks via npm"
 	@echo
 	@echo "Variables you may override: NPM, NPX, NODE, ZIP, RM, MKDIR, INSTALL"
@@ -108,8 +113,26 @@ $(DIST_DIR) $(DIST_DIR)/icons $(ARTIFACTS_DIR):
 	@$(MKDIR) $@
 
 # High-level build target
+.PHONY: deps
+deps: node_modules/.stamp
+
+# Deterministic install; requires a lockfile.
+# Re-runs only when lockfile changes or node_modules missing.
+node_modules/.stamp: $(LOCKFILE)
+	@if [ ! -f "$(LOCKFILE)" ]; then \
+	  echo "Missing $(LOCKFILE). Create it with: npm install" >&2; \
+	  exit 1; \
+	fi
+	$(NPM) ci
+	@$(MKDIR) node_modules
+	@touch $@
+
+.PHONY: clean-deps
+clean-deps:
+	$(RM) node_modules node_modules/.stamp
+
 .PHONY: build
-build: verify-version $(BUNDLE_STAMP) $(MANIFEST_OUT) $(CSS_OUT) $(HTML_OUT) $(ICONS_OUT)
+build: deps verify-version $(BUNDLE_STAMP) $(MANIFEST_OUT) $(CSS_OUT) $(HTML_OUT) $(ICONS_OUT)
 	@echo "Build completed in: $(DIST_DIR)"
 
 # -----------------------------------------------------------------------------
