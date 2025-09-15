@@ -1,18 +1,5 @@
 body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Inter,
-    Arial,
-    sans-serif;
-  font-size: var(--fs-body);
   width: 250px;
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
 }
 
 .container {

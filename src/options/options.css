@@ -9,28 +9,6 @@
   box-sizing: border-box;
 }
 
-html,
-body {
-  height: 100%;
-}
-
-body {
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Inter,
-    Arial,
-    sans-serif;
-  font-size: var(--fs-body);
-  line-height: 1.5;
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
 .container {
   padding: var(--space-4);
 }
@@ -70,7 +48,7 @@ body {
   background: var(--color-surface);
   color: var(--color-text);
 }
-.
+
 .form-control:focus-visible,
 .form-control:focus {
   outline: none;

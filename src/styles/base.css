@@ -125,6 +125,37 @@
   --space-6: 1.5rem;   /* 24px */
 }
 
+/* ==========================================================================
+   Base Defaults
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Inter,
+    Arial,
+    sans-serif;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 /* Dark mode: remap semantic tokens to dark palette */
 @media (prefers-color-scheme: dark) {
   :root {
