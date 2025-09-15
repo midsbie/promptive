@@ -16,16 +16,18 @@ class StatusController {
     this.statusEl = element;
   }
 
-  show(message: string, { isError = false, duration = 3000 } = {}): void {
+  show(message: string, { isError = false, duration = 2000 } = {}): void {
     if (this.timeoutId) {
       clearTimeout(this.timeoutId);
     }
 
     this.statusEl.textContent = message;
     this.statusEl.className = "status" + (isError ? " error" : "");
+    this.statusEl.style.display = "block";
 
     this.timeoutId = window.setTimeout(() => {
       this.statusEl.textContent = "";
+      this.statusEl.style.display = "none";
       this.timeoutId = null;
     }, duration);
   }
