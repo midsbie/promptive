@@ -37,9 +37,11 @@ class OptionsPage {
   private repo = new SettingsRepository();
   private settings: AppSettings;
   private statusController: StatusController;
+  private lastCommittedShortcut: string | null = null;
 
   // Elements
   private shortcutInput = document.getElementById("shortcut") as HTMLInputElement;
+  private shortcutHelp = document.getElementById("shortcutHelp") as HTMLElement;
   private contextMenuLimitInput = document.getElementById("contextMenuLimit") as HTMLInputElement;
   private contextMenuSortSelect = document.getElementById("contextMenuSort") as HTMLSelectElement;
 
@@ -75,18 +77,30 @@ class OptionsPage {
       const command = all.find((c) => c.name === commands.OPEN_PROMPT_SELECTOR);
       if (command && command.shortcut) {
         this.shortcutInput.value = command.shortcut;
+        this.lastCommittedShortcut = command.shortcut;
       }
     });
   }
 
   private bindEvents(): void {
     this.shortcutInput.addEventListener("keydown", this.handleShortcutKeydown);
+    this.shortcutInput.addEventListener("focus", () =>
+      this.setShortcutState("pending", "Press keys to set shortcut")
+    );
+    this.shortcutInput.addEventListener("blur", () => this.setShortcutState(null, ""));
     this.contextMenuLimitInput.addEventListener("input", () => this.saveSettings());
     this.contextMenuSortSelect.addEventListener("change", () => this.saveSettings());
   }
 
   private handleShortcutKeydown = async (e: KeyboardEvent): Promise<void> => {
     e.preventDefault();
+
+    // Cancel recording?
+    if (e.key === "Escape") {
+      this.shortcutInput.value = this.lastCommittedShortcut ?? "";
+      this.setShortcutState(null, "");
+      return;
+    }
 
     const keys: string[] = [];
     if (e.ctrlKey) keys.push("Ctrl");
@@ -98,8 +112,15 @@ class OptionsPage {
       keys.push(e.key.toUpperCase());
     }
 
+    // We are composing a chord if only modifiers were pressed
+    if (keys.length === 0) {
+      this.setShortcutState("pending", "Press a letter or number to complete");
+      return;
+    }
+
+    // Not enough keys for a valid chord
     if (keys.length < 2) {
-      logger.warn("Ignoring shortcut with less than 2 keys");
+      this.setShortcutState("invalid", "Use at least two keys (e.g., Alt+Shift+P)");
       return;
     }
 
@@ -111,11 +132,36 @@ class OptionsPage {
         name: commands.OPEN_PROMPT_SELECTOR,
         shortcut: shortcut,
       });
-      this.statusController.show("Shortcut updated successfully!");
+      this.lastCommittedShortcut = shortcut;
+      this.setShortcutState("valid", "Shortcut updated successfully!");
+      // Briefly show success then clear highlight
+      window.setTimeout(() => this.setShortcutState(null, ""), 1200);
     } catch {
-      // Silencing errors since several WILL be emitted as the user composes a key chord.
+      // Invalid or disallowed chord; inform the user inline
+      this.setShortcutState("invalid", "This key combination isn’t allowed by Firefox");
     }
   };
+
+  private setShortcutState(state: "valid" | "invalid" | "pending" | null, message: string): void {
+    const el = this.shortcutInput;
+    el.classList.remove("is-valid", "is-invalid", "is-pending");
+    this.shortcutHelp.classList.remove("success", "error");
+
+    if (state === "valid") {
+      el.classList.add("is-valid");
+      this.shortcutHelp.textContent = message;
+      this.shortcutHelp.classList.add("success");
+    } else if (state === "invalid") {
+      el.classList.add("is-invalid");
+      this.shortcutHelp.textContent = message;
+      this.shortcutHelp.classList.add("error");
+    } else if (state === "pending") {
+      el.classList.add("is-pending");
+      this.shortcutHelp.textContent = message;
+    } else {
+      this.shortcutHelp.textContent = message || "";
+    }
+  }
 }
 
 // Initialize the page

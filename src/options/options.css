@@ -56,6 +56,20 @@
   box-shadow: var(--ring), var(--shadow-sm);
 }
 
+/* Validation and composition states */
+.form-control.is-valid {
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent), var(--shadow-sm);
+}
+.form-control.is-invalid {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 25%, transparent), var(--shadow-sm);
+}
+.form-control.is-pending {
+  border-color: var(--color-border);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent), var(--shadow-sm);
+}
+
 select.form-control {
   padding-right: 1.5rem;
 }
@@ -73,6 +87,14 @@ select.form-control {
 .shortcut-input {
   background: var(--color-bg-soft);
   cursor: pointer;
+}
+
+/* Help text variants */
+.help-text.success {
+  color: var(--color-success);
+}
+.help-text.error {
+  color: var(--color-danger);
 }
 
 .status {
