@@ -74,7 +74,10 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "@promptive.softgeist"
+      "id": "@promptive.softgeist",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }
