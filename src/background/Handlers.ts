@@ -4,6 +4,7 @@ import { commands } from "../lib/commands";
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
 import { PromptRepository } from "../lib/storage";
 
+import { Commands } from "./Commands";
 import { ContextMenuService } from "./ContextMenuService";
 import { logger } from "./logger";
 
@@ -31,8 +32,7 @@ export class Handlers {
 
   onCommand = async (command: string) => {
     if (command === commands.OPEN_PROMPT_SELECTOR) {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
+      await Commands.openPromptSelector();
     }
   };
 
@@ -45,21 +45,24 @@ export class Handlers {
     const { menuItemId } = info;
 
     switch (info.menuItemId) {
-      case "manage-prompts":
-        await browser.sidebarAction.open();
+      case Commands.CMD_OPEN_PROMPT_SELECTOR:
+        await Commands.openPromptSelector(tab.id);
         return;
 
-      case "more-prompts":
-        await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
+      case Commands.CMD_MANAGE_PROMPTS:
+        await browser.sidebarAction.open();
         return;
     }
 
-    if (typeof menuItemId !== "string" || !menuItemId.startsWith("prompt-")) {
+    if (
+      typeof menuItemId !== "string" ||
+      !menuItemId.startsWith(Commands.CMD_SELECT_PROMPT_PREFIX)
+    ) {
       logger.warn("Ignoring unknown context menu item:", menuItemId);
       return;
     }
 
-    const promptId = menuItemId.slice("prompt-".length);
+    const promptId = menuItemId.slice(Commands.CMD_SELECT_PROMPT_PREFIX.length);
     const prompt = await this.repo.getPrompt(promptId);
     if (!prompt) {
       logger.warn("Prompt not found for id:", promptId);

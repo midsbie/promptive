@@ -3,6 +3,7 @@ import browser from "webextension-polyfill";
 import { AppSettings, ContextMenuSortOrder } from "../lib/settings";
 import { Prompt } from "../lib/storage";
 
+import { Commands } from "./Commands";
 import { logger } from "./logger";
 
 const sortAlphabetical = (prompts: Prompt[]): Prompt[] => {
@@ -64,7 +65,7 @@ export class ContextMenuService {
     // Items
     for (const p of sorted) {
       browser.contextMenus.create({
-        id: `prompt-${p.id}`,
+        id: `${Commands.CMD_SELECT_PROMPT_PREFIX}${p.id}`,
         parentId: ContextMenuService.MENU_ID,
         title: p.title,
         contexts: ["editable", "page"],
@@ -82,20 +83,15 @@ export class ContextMenuService {
       });
     }
 
-    // "More..." when more exist
-    if (prompts.length > this.settings.limit) {
-      browser.contextMenus.create({
-        id: "more-prompts",
-        parentId: ContextMenuService.MENU_ID,
-        title: "More...",
-        contexts: ["editable", "page"],
-        documentUrlPatterns: this.documentUrlPatterns,
-      });
-    }
-
-    // Manage
     browser.contextMenus.create({
-      id: "manage-prompts",
+      id: Commands.CMD_OPEN_PROMPT_SELECTOR,
+      parentId: ContextMenuService.MENU_ID,
+      title: "Open Prompt Selector...",
+      contexts: ["editable", "page"],
+    });
+
+    browser.contextMenus.create({
+      id: Commands.CMD_MANAGE_PROMPTS,
       parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
       contexts: ["editable", "page"],
