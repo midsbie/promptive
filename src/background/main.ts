@@ -159,6 +159,7 @@ export class BackgroundApp {
 const app = new BackgroundApp();
 app.initialize().catch((e) => logger.error("Fatal init error:", e));
 
+// This pattern should make it easy to migrate to a service worker in the future if needed.
 browser.runtime.onInstalled.addListener(() => app.handleInstalled());
 browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));
 browser.action.onClicked.addListener((tab) => app.handleActionClicked(tab));
