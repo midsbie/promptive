@@ -37,7 +37,12 @@ export class Handlers extends EventTarget {
   };
 
   onActionClicked = async (tab: Tabs.Tab) => {
-    await sendToTab(tab.id!, createMessage(MSG.OPEN_POPOVER));
+    if (!tab.id) {
+      logger.warn("Ignoring action click with no tab id");
+      return;
+    }
+
+    await sendToTab(tab.id, createMessage(MSG.OPEN_POPOVER));
   };
 
   onCommand = async (command: string) => {
