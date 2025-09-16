@@ -66,7 +66,7 @@ There are *three ways* to access your prompt library:
 - A centered popup appears with a search box
 - Start typing to filter prompts
 - Use arrow keys to navigate, Enter to select
-- Selected prompt is inserted directly at your cursor position, with fallback to clipboard if insertion isn’t possible)
+- Selected prompt is inserted, with fallback to clipboard if insertion isn’t possible)
 
 *** 3. Context Menu (Right-Click)
 - Right-click anywhere on a supported webpage
@@ -101,7 +101,7 @@ The toolbar button displays the extension's status on the current page:
 1. Click in any text field on a webpage
 2. Press =Alt+Shift+P= or right-click -> "Promptive"
 3. Select your prompt
-4. Text is automatically inserted at your cursor (if supported); otherwise copied to clipboard
+4. Text is automatically inserted (if supported); otherwise copied to clipboard
 
 *** Method 2: Copy to Clipboard
 1. Open the sidebar
