@@ -1,6 +1,6 @@
 import browser, { Menus, Runtime, Storage, Tabs } from "webextension-polyfill";
 
-import { Message } from "../lib/messaging";
+import { ErrorReply, Message } from "../lib/messaging";
 import { AppSettings, SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
@@ -90,6 +90,7 @@ export class BackgroundApp {
       .then(reply)
       .catch((e) => {
         logger.error("Error in onMessage handler:", e);
+        reply({ error: e instanceof Error ? e.message : String(e) } as ErrorReply);
       });
 
     return true;

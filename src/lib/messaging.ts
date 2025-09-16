@@ -37,6 +37,8 @@ export type Message = {
 
 export type MessageResponse = ResponseMap[Action];
 
+export type ErrorReply = { error: string };
+
 // Helper to create messages with type-checked payloads
 type PayloadOf<A extends Action> = MessageMap[A];
 type NeedsPayload<A extends Action> = keyof PayloadOf<A> extends never ? false : true;
