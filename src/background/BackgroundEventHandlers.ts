@@ -9,7 +9,7 @@ import { Commands } from "./Commands";
 import { ContextMenuService } from "./ContextMenuService";
 import { logger } from "./logger";
 
-export class Handlers extends EventTarget {
+export class BackgroundEventHandlers extends EventTarget {
   static readonly EVENT_SETTINGS_CHANGE = "settings-change";
 
   private repo: PromptRepository;
@@ -28,7 +28,7 @@ export class Handlers extends EventTarget {
     // If settings changed, publish event
     if (changes[SettingsRepository.getStorageKey()]) {
       logger.debug("Settings changed, re-initializing context menu");
-      this.dispatchEvent(new Event(Handlers.EVENT_SETTINGS_CHANGE));
+      this.dispatchEvent(new Event(BackgroundEventHandlers.EVENT_SETTINGS_CHANGE));
     }
 
     if (changes[PromptRepository.getStorageKey()]) {

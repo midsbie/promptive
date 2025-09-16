@@ -4,8 +4,8 @@ import { ErrorReply, Message } from "../lib/messaging";
 import { AppSettings, SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
+import { BackgroundEventHandlers } from "./BackgroundEventHandlers";
 import { ContextMenuService } from "./ContextMenuService";
-import { Handlers } from "./Handlers";
 import { MessageRouter } from "./MessageRouter";
 import { TabObserver } from "./TabObserver";
 import { logger } from "./logger";
@@ -21,7 +21,7 @@ export class BackgroundApp {
   private settings: AppSettings;
   private menus: ContextMenuService;
   private router: MessageRouter;
-  private handlers: Handlers;
+  private handlers: BackgroundEventHandlers;
   private tabObserver: TabObserver;
   private isInitialized: boolean = false;
 
@@ -51,7 +51,10 @@ export class BackgroundApp {
   }
 
   async applySettings(): Promise<void> {
-    this.handlers?.removeEventListener(Handlers.EVENT_SETTINGS_CHANGE, this.onSettingsChange);
+    this.handlers?.removeEventListener(
+      BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
+      this.onSettingsChange
+    );
 
     await this.settingsRepo.initialize();
     this.settings = this.settingsRepo.get();
@@ -62,8 +65,11 @@ export class BackgroundApp {
       this.settings.contextMenu
     );
 
-    this.handlers = new Handlers(this.promptsRepo, this.menus);
-    this.handlers.addEventListener(Handlers.EVENT_SETTINGS_CHANGE, this.onSettingsChange);
+    this.handlers = new BackgroundEventHandlers(this.promptsRepo, this.menus);
+    this.handlers.addEventListener(
+      BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
+      this.onSettingsChange
+    );
     this.tabObserver = new TabObserver(this.handlers.onTabUpdated);
 
     await this.menus.rebuild();
