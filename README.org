@@ -1,5 +1,5 @@
-#+TITLE: Promptive
-#+AUTHOR:
+#+TITLE: promptive
+#+AUTHOR: Miguel Guedes <miguel@softgeist.com>
 #+DATE: 24/08/2025
 #+OPTIONS: toc:2 num:nil ^:nil
 
