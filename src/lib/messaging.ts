@@ -1,6 +1,7 @@
 import browser from "webextension-polyfill";
 
-import { Prompt } from "./storage";
+import { Provider, SessionPolicy } from "./promptivd";
+import { InsertPosition, Prompt } from "./storage";
 
 export const MSG = {
   GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
@@ -8,6 +9,8 @@ export const MSG = {
   QUERY_STATUS: "PROMPTIVE/QUERY_STATUS",
   OPEN_POPOVER: "PROMPTIVE/OPEN_POPOVER",
   INSERT_PROMPT: "PROMPTIVE/INSERT_PROMPT",
+  INSERT_TEXT: "PROMPTIVE/INSERT_TEXT",
+  FOCUS_PROVIDER_INPUT: "PROMPTIVE/FOCUS_PROVIDER_INPUT",
 } as const;
 
 export type Action = (typeof MSG)[keyof typeof MSG];
@@ -18,6 +21,13 @@ type MessageMap = {
   [MSG.QUERY_STATUS]: {}; // no payload
   [MSG.OPEN_POPOVER]: {};
   [MSG.INSERT_PROMPT]: { prompt: Prompt };
+  [MSG.INSERT_TEXT]: {
+    text: string;
+    insertAt?: InsertPosition;
+    provider?: Provider;
+    session_policy?: SessionPolicy;
+  };
+  [MSG.FOCUS_PROVIDER_INPUT]: { provider: Provider };
 };
 
 type ResponseMap = {
@@ -26,6 +36,8 @@ type ResponseMap = {
   [MSG.QUERY_STATUS]: { active: boolean };
   [MSG.OPEN_POPOVER]: void;
   [MSG.INSERT_PROMPT]: void;
+  [MSG.INSERT_TEXT]: { error: string | null };
+  [MSG.FOCUS_PROVIDER_INPUT]: { error: string | null };
 };
 
 export type Message = {

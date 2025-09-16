@@ -7,6 +7,7 @@ import { PromptRepository } from "../lib/storage";
 import { BackgroundEventHandlers } from "./BackgroundEventHandlers";
 import { ContextMenuService } from "./ContextMenuService";
 import { MessageRouter } from "./MessageRouter";
+import { PromptivdSinkController } from "./PromptivdSinkController";
 import { TabObserver } from "./TabObserver";
 import { logger } from "./logger";
 
@@ -23,6 +24,7 @@ export class BackgroundApp {
   private router: MessageRouter;
   private handlers: BackgroundEventHandlers | null = null;
   private tabObserver: TabObserver;
+  private promptivdSinkCtl: PromptivdSinkController;
   private isInitialized: boolean = false;
 
   // Services that depend on settings are initialized in `initialize()`. Calling handlers before
@@ -45,6 +47,9 @@ export class BackgroundApp {
 
     await this.promptsRepo.initialize();
     await this.applySettings();
+
+    this.promptivdSinkCtl = new PromptivdSinkController();
+    this.promptivdSinkCtl.initialize();
 
     this.isInitialized = true;
     logger.info("initialized");

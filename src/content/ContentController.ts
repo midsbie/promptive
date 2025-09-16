@@ -1,9 +1,9 @@
 import browser from "webextension-polyfill";
 
-import { resolveErrorMessage } from "../lib/error";
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
+import { Provider, SessionPolicy, getProviderConfig } from "../lib/promptivd";
 import { SearchService } from "../lib/services";
-import { Prompt } from "../lib/storage";
+import { InsertPosition, Prompt } from "../lib/storage";
 
 import { CursorPositionManager } from "./CursorPositionManager";
 import { PopoverUI } from "./PopoverUI";
@@ -110,6 +110,23 @@ export class ContentController {
         this.target.clear();
         return;
 
+      case MSG.INSERT_TEXT: {
+        this.popover?.close();
+        this.target.remember(document.activeElement);
+        const ok = this._handleInsertText(
+          message.text,
+          message.insertAt,
+          message.provider,
+          message.session_policy
+        );
+        this.target.clear();
+        return ok;
+      }
+
+      case MSG.FOCUS_PROVIDER_INPUT: {
+        return this._handleFocusProviderInput(message.provider);
+      }
+
       default:
         logger.warn("Unknown message:", message);
         return;
@@ -177,8 +194,67 @@ export class ContentController {
     }
   }
 
-  private _clearTarget(): void {
-    this.targetElement = null;
-    this.targetCursorPosition = null;
+  private async _handleInsertText(
+    text: string,
+    insertAt?: InsertPosition,
+    provider?: Provider,
+    sessionPolicy?: SessionPolicy
+  ): Promise<{ error: string | null }> {
+    try {
+      const target = this.target.element || document.activeElement;
+      if (!this.textInserter.canHandle(target)) {
+        return { error: "No suitable text insertion target found" };
+      }
+
+      const opts: InsertTextOptions = {
+        target,
+        content: text,
+        insertAt: insertAt || "cursor",
+      };
+      if (!this.textInserter.insert(opts)) {
+        return { error: "Failed to insert text into target element" };
+      }
+
+      logger.info("Text insertion successful");
+
+      return { error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error in _handleInsertText:", error);
+      return { error: errorMessage };
+    }
+  }
+
+  private async _handleFocusProviderInput(provider: Provider): Promise<{ error: string | null }> {
+    try {
+      const config = getProviderConfig(provider);
+      const inputElement = document.querySelector(config.inputSelector) as HTMLElement;
+
+      if (!inputElement) {
+        return { error: `Provider input element not found for ${provider}` };
+      }
+
+      // Focus the input element
+      inputElement.focus();
+
+      // If it's a contenteditable element, also set cursor position
+      if (inputElement.isContentEditable) {
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(inputElement);
+          range.collapse(false); // Place cursor at end
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+
+      logger.info("Successfully focused provider input", { provider });
+      return { error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error focusing provider input:", { provider, error });
+      return { error: errorMessage };
+    }
   }
 }
