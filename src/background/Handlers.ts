@@ -59,7 +59,7 @@ export class Handlers extends EventTarget {
 
     const { menuItemId } = info;
 
-    switch (info.menuItemId) {
+    switch (menuItemId) {
       case Commands.CMD_OPEN_PROMPT_SELECTOR:
         await Commands.openPromptSelector(tab.id);
         return;
