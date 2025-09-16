@@ -21,7 +21,7 @@ export class BackgroundApp {
   private settings: AppSettings;
   private menus: ContextMenuService;
   private router: MessageRouter;
-  private handlers: BackgroundEventHandlers;
+  private handlers: BackgroundEventHandlers | null = null;
   private tabObserver: TabObserver;
   private isInitialized: boolean = false;
 
@@ -103,7 +103,10 @@ export class BackgroundApp {
   }
 
   handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
-    this.handlers.onStorageChanged(changes, area).catch((e) => {
+    // The handlers object is null until applySettings is called, however PromptRepository causes
+    // two storage change events in quick succession during this time, causing two errors, which we
+    // must guard against.
+    this.handlers?.onStorageChanged(changes, area).catch((e) => {
       logger.error("Error in onStorageChanged handler:", e);
     });
   }
@@ -149,13 +152,13 @@ const app = new BackgroundApp();
 app.initialize().catch((e) => logger.error("Fatal init error:", e));
 
 // This pattern should make it easy to migrate to a service worker in the future if needed.
-browser.runtime.onInstalled.addListener(() => app.handleInstalled());
-browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));
 browser.action.onClicked.addListener((tab) => app.handleActionClicked(tab));
 browser.commands.onCommand.addListener((command) => app.handleCommand(command));
 browser.contextMenus.onClicked.addListener((info, tab) => app.handleContextMenuClick(info, tab));
-browser.tabs.onUpdated.addListener((tabId, info, tab) => app.handleTabUpdated(tabId, info, tab));
+browser.runtime.onInstalled.addListener(() => app.handleInstalled());
+browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));
 browser.tabs.onActivated.addListener((info) => app.handleTabActivated(info));
+browser.tabs.onUpdated.addListener((tabId, info, tab) => app.handleTabUpdated(tabId, info, tab));
 browser.windows.onFocusChanged.addListener((winId) => app.handleWindowFocusChanged(winId));
 
 browser.runtime.onMessage.addListener(
