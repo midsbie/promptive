@@ -59,15 +59,21 @@
 /* Validation and composition states */
 .form-control.is-valid {
   border-color: var(--color-success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent), var(--shadow-sm);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-success) 25%, transparent),
+    var(--shadow-sm);
 }
 .form-control.is-invalid {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-danger) 25%, transparent), var(--shadow-sm);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-danger) 25%, transparent),
+    var(--shadow-sm);
 }
 .form-control.is-pending {
   border-color: var(--color-border);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent), var(--shadow-sm);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-primary) 20%, transparent),
+    var(--shadow-sm);
 }
 
 select.form-control {
