@@ -25,6 +25,8 @@ export class BackgroundApp {
   private tabObserver: TabObserver;
   private isInitialized: boolean = false;
 
+  // Services that depend on settings are initialized in `initialize()`. Calling handlers before
+  // `initialize` results in unspecified behavior.
   constructor({
     promptsRepo = new PromptRepository(),
     settingsRepo = new SettingsRepository(),
@@ -32,21 +34,7 @@ export class BackgroundApp {
     this.promptsRepo = promptsRepo;
     this.settingsRepo = settingsRepo;
 
-    // Services that depend on settings are initialized in `initialize()`
-    this.settings = this.settingsRepo.get(); // Get defaults initially
-    this.menus = new ContextMenuService(
-      () => this.promptsRepo.getAllPrompts(),
-      this.settings.contextMenu
-    );
     this.router = new MessageRouter(this.promptsRepo);
-    this.handlers = new Handlers(this.promptsRepo, this.menus);
-    this.tabObserver = new TabObserver(this.onTabUpdated.bind(this));
-  }
-
-  async onTabUpdated(_tabId: number): Promise<void> {
-    // We were previously enabling/disabling the icon based on whether the content script was
-    // present back when we did not have a popup to show. We do have a popup now, but still keeping
-    // this event handler as it may prove useful in the future.
   }
 
   async initialize(): Promise<void> {
@@ -56,6 +44,15 @@ export class BackgroundApp {
     }
 
     await this.promptsRepo.initialize();
+    await this.applySettings();
+
+    this.isInitialized = true;
+    logger.info("initialized");
+  }
+
+  async applySettings(): Promise<void> {
+    this.handlers?.removeEventListener(Handlers.EVENT_SETTINGS_CHANGE, this.onSettingsChange);
+
     await this.settingsRepo.initialize();
     this.settings = this.settingsRepo.get();
 
@@ -64,12 +61,20 @@ export class BackgroundApp {
       () => this.promptsRepo.getAllPrompts(),
       this.settings.contextMenu
     );
-    this.handlers = new Handlers(this.promptsRepo, this.menus);
-    await this.menus.rebuild();
 
-    this.isInitialized = true;
-    logger.info("initialized");
+    this.handlers = new Handlers(this.promptsRepo, this.menus);
+    this.handlers.addEventListener(Handlers.EVENT_SETTINGS_CHANGE, this.onSettingsChange);
+    this.tabObserver = new TabObserver(this.handlers.onTabUpdated);
+
+    await this.menus.rebuild();
+    logger.info("Settings applied");
   }
+
+  onSettingsChange = (): void => {
+    this.applySettings().catch((e) => {
+      logger.error("Failed to re-initialize on settings change", e);
+    });
+  };
 
   handleInstalled(): void {
     logger.info("Extension installed");
@@ -91,32 +96,9 @@ export class BackgroundApp {
   }
 
   handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
-    if (area !== "local") return;
-
-    // If settings changed, we must re-initialize the services that depend on them.
-    if (changes[SettingsRepository.getStorageKey()]) {
-      logger.debug("Settings changed, re-initializing context menu");
-      this.settingsRepo
-        .initialize()
-        .then(() => {
-          this.settings = this.settingsRepo.get();
-          this.menus = new ContextMenuService(
-            () => this.promptsRepo.getAllPrompts(),
-            this.settings.contextMenu
-          );
-          this.handlers = new Handlers(this.promptsRepo, this.menus);
-          return this.menus.rebuild();
-        })
-        .catch((e) => {
-          logger.error("Failed to rebuild menus on settings change", e);
-        });
-    }
-
-    if (changes[PromptRepository.getStorageKey()]) {
-      this.handlers.onStorageChanged(changes, area).catch((e) => {
-        logger.error("Error in onStorageChanged handler:", e);
-      });
-    }
+    this.handlers.onStorageChanged(changes, area).catch((e) => {
+      logger.error("Error in onStorageChanged handler:", e);
+    });
   }
 
   handleActionClicked(tab: Tabs.Tab): void {

@@ -2,26 +2,36 @@ import browser, { Menus, Storage, Tabs } from "webextension-polyfill";
 
 import { commands } from "../lib/commands";
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
+import { SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
 import { Commands } from "./Commands";
 import { ContextMenuService } from "./ContextMenuService";
 import { logger } from "./logger";
 
-/**
- * Centralized event handlers to keep background bootstrap tidy.
- */
-export class Handlers {
+export class Handlers extends EventTarget {
+  static readonly EVENT_SETTINGS_CHANGE = "settings-change";
+
   private repo: PromptRepository;
   private menus: ContextMenuService;
 
   constructor(repo: PromptRepository, menus: ContextMenuService) {
+    super();
+
     this.repo = repo;
     this.menus = menus;
   }
 
   onStorageChanged = async (changes: Record<string, Storage.StorageChange>, area: string) => {
-    if (area === "local" && changes[PromptRepository.getStorageKey()]) {
+    if (area !== "local") return;
+
+    // If settings changed, publish event
+    if (changes[SettingsRepository.getStorageKey()]) {
+      logger.debug("Settings changed, re-initializing context menu");
+      this.dispatchEvent(new Event(Handlers.EVENT_SETTINGS_CHANGE));
+    }
+
+    if (changes[PromptRepository.getStorageKey()]) {
       await this.menus.rebuild();
     }
   };
@@ -72,4 +82,10 @@ export class Handlers {
     await this.repo.recordUsage(promptId);
     await sendToTab(tab.id, createMessage(MSG.INSERT_PROMPT, { prompt }));
   };
+
+  async onTabUpdated(_tabId: number): Promise<void> {
+    // We were previously enabling/disabling the icon based on whether the content script was
+    // present back when we did not have a popup to show. We do have a popup now, but still keeping
+    // this event handler as it may prove useful in the future.
+  }
 }
