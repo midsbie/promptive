@@ -1,6 +1,7 @@
 import browser from "webextension-polyfill";
 
 const SETTINGS_KEY = "settings";
+export const DEFAULT_DAEMON_ADDRESS = "ws://127.0.0.1:8787";
 
 export type ContextMenuSortOrder = "last-used" | "alphabetical";
 
@@ -9,12 +10,18 @@ export interface AppSettings {
     limit: number;
     sort: ContextMenuSortOrder;
   };
+  promptivd: {
+    daemonAddress: string;
+  };
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   contextMenu: {
     limit: 10,
     sort: "last-used",
+  },
+  promptivd: {
+    daemonAddress: DEFAULT_DAEMON_ADDRESS,
   },
 };
 
@@ -47,6 +54,10 @@ export class SettingsRepository {
       contextMenu: {
         ...DEFAULT_SETTINGS.contextMenu,
         ...(stored.contextMenu || {}),
+      },
+      promptivd: {
+        ...DEFAULT_SETTINGS.promptivd,
+        ...(stored.promptivd || {}),
       },
     };
   }

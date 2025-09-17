@@ -79,6 +79,7 @@ export class PromptivdSinkClient extends EventTarget {
   static readonly EVENT_STATE_CHANGE = "statechange" as const;
   static readonly EVENT_CONNECTION_ERROR = "connectionerror" as const;
   static readonly EVENT_REGISTERED = "registered" as const;
+  readonly endpoint: string;
   private readonly extensionVersion: string;
   private readonly providers: string[];
   private readonly connectionManager: ConnectionManager;
@@ -88,14 +89,12 @@ export class PromptivdSinkClient extends EventTarget {
 
   constructor(options: PromptivdSinkOptions) {
     super();
+
+    this.endpoint = options.endpoint;
     this.extensionVersion = options.extensionVersion;
     this.providers = options.providers ?? [];
 
-    this.connectionManager = new ConnectionManager(
-      options.endpoint,
-      options.reconnectDelayMs ?? 3000
-    );
-
+    this.connectionManager = new ConnectionManager(this.endpoint, options.reconnectDelayMs ?? 3000);
     this.jobManager = new JobManager(options.jobTimeoutMs ?? 30000, this.handleJobTimeout);
     this.policyManager = new PolicyManager();
     this.stateMachine = new ClientStateMachine(this.handleStateChange);

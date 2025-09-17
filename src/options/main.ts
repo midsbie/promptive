@@ -1,7 +1,7 @@
 import browser, { Commands } from "webextension-polyfill";
 
 import { commands } from "../lib/commands";
-import { AppSettings, SettingsRepository } from "../lib/settings";
+import { AppSettings, DEFAULT_DAEMON_ADDRESS, SettingsRepository } from "../lib/settings";
 
 import { logger } from "./logger";
 
@@ -44,6 +44,9 @@ class OptionsPage {
   private shortcutHelp = document.getElementById("shortcutHelp") as HTMLElement;
   private contextMenuLimitInput = document.getElementById("contextMenuLimit") as HTMLInputElement;
   private contextMenuSortSelect = document.getElementById("contextMenuSort") as HTMLSelectElement;
+  private promptivdDaemonAddressInput = document.getElementById(
+    "promptivdDaemonAddress"
+  ) as HTMLInputElement;
 
   async initialize(): Promise<void> {
     this.statusController = new StatusController(document.getElementById("status") as HTMLElement);
@@ -59,14 +62,17 @@ class OptionsPage {
   private renderSettings(): void {
     this.contextMenuLimitInput.value = String(this.settings.contextMenu.limit);
     this.contextMenuSortSelect.value = this.settings.contextMenu.sort;
+    this.promptivdDaemonAddressInput.value = this.settings.promptivd.daemonAddress;
   }
 
   private async saveSettings(): Promise<void> {
     const newLimit = parseInt(this.contextMenuLimitInput.value, 10);
     const newSort = this.contextMenuSortSelect.value as AppSettings["contextMenu"]["sort"];
+    const newDaemonAddress = this.promptivdDaemonAddressInput.value.trim();
 
     this.settings.contextMenu.limit = isNaN(newLimit) ? 10 : newLimit;
     this.settings.contextMenu.sort = newSort;
+    this.settings.promptivd.daemonAddress = newDaemonAddress || DEFAULT_DAEMON_ADDRESS;
 
     await this.repo.save(this.settings);
     this.statusController.show("Settings saved!");
@@ -90,6 +96,7 @@ class OptionsPage {
     this.shortcutInput.addEventListener("blur", () => this.setShortcutState(null, ""));
     this.contextMenuLimitInput.addEventListener("input", () => this.saveSettings());
     this.contextMenuSortSelect.addEventListener("change", () => this.saveSettings());
+    this.promptivdDaemonAddressInput.addEventListener("input", () => this.saveSettings());
   }
 
   private handleShortcutKeydown = async (e: KeyboardEvent): Promise<void> => {

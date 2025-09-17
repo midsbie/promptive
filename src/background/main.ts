@@ -1,6 +1,7 @@
 import browser, { Menus, Runtime, Storage, Tabs } from "webextension-polyfill";
 
-import { ErrorReply, Message } from "../lib/messaging";
+import { resolveErrorMessage } from "../lib/error";
+import { Message } from "../lib/messaging";
 import { AppSettings, SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
@@ -19,7 +20,6 @@ interface BackgroundAppOptions {
 export class BackgroundApp {
   private promptsRepo: PromptRepository;
   private settingsRepo: SettingsRepository;
-  private settings: AppSettings;
   private menus: ContextMenuService;
   private router: MessageRouter;
   private handlers: BackgroundEventHandlers | null = null;
@@ -48,26 +48,22 @@ export class BackgroundApp {
     await this.promptsRepo.initialize();
     await this.applySettings();
 
-    this.promptivdSinkCtl = new PromptivdSinkController();
-    this.promptivdSinkCtl.initialize();
-
     this.isInitialized = true;
     logger.info("initialized");
   }
 
-  async applySettings(): Promise<void> {
+  async applySettings(): Promise<AppSettings> {
     this.handlers?.removeEventListener(
       BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
       this.onSettingsChange
     );
 
     await this.settingsRepo.initialize();
-    this.settings = this.settingsRepo.get();
+    const settings = Object.freeze({ ...this.settingsRepo.get() });
 
-    // Now that settings are loaded, create services that depend on them
     this.menus = new ContextMenuService(
       () => this.promptsRepo.getAllPrompts(),
-      this.settings.contextMenu
+      settings.contextMenu
     );
 
     this.handlers = new BackgroundEventHandlers(this.promptsRepo, this.menus);
@@ -75,10 +71,27 @@ export class BackgroundApp {
       BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
       this.onSettingsChange
     );
+
     this.tabObserver = new TabObserver(this.handlers.onTabUpdated);
 
+    try {
+      if (this.promptivdSinkCtl?.shouldReinitialize(settings)) {
+        this.promptivdSinkCtl.destroy();
+        this.promptivdSinkCtl = null;
+      }
+
+      if (this.promptivdSinkCtl == null) {
+        this.promptivdSinkCtl = new PromptivdSinkController();
+        this.promptivdSinkCtl.initialize(settings);
+      }
+    } catch (e) {
+      logger.error("Failed to initialize PromptivdSinkController:", e);
+    }
+
     await this.menus.rebuild();
+
     logger.info("Settings applied");
+    return settings;
   }
 
   onSettingsChange = (): void => {
@@ -101,7 +114,7 @@ export class BackgroundApp {
       .then(reply)
       .catch((e) => {
         logger.error("Error in onMessage handler:", e);
-        reply({ error: e instanceof Error ? e.message : String(e) } as ErrorReply);
+        reply({ error: resolveErrorMessage(e) });
       });
 
     return true;

@@ -88,9 +88,9 @@ export class BackgroundEventHandlers extends EventTarget {
     await sendToTab(tab.id, createMessage(MSG.INSERT_PROMPT, { prompt }));
   };
 
-  async onTabUpdated(_tabId: number): Promise<void> {
+  onTabUpdated = async (_tabId: number): Promise<void> => {
     // We were previously enabling/disabling the icon based on whether the content script was
     // present back when we did not have a popup to show. We do have a popup now, but still keeping
     // this event handler as it may prove useful in the future.
-  }
+  };
 }

@@ -10,6 +10,7 @@ import {
   mapPlacementToInsertPosition,
   providers,
 } from "../lib/promptivd";
+import { AppSettings } from "../lib/settings";
 
 import { InsertTextFrame, PromptivdSinkClient } from "./promptivd-sink/PromptivdSinkClient";
 
@@ -17,26 +18,36 @@ import { TabManager } from "./TabManager";
 import { logger } from "./logger";
 
 export class PromptivdSinkController {
-  private client: PromptivdSinkClient;
+  private static readonly DEFAULT_PROVIDER: Provider = "chatgpt";
+  private static readonly DEFAULT_SESSION_POLICY: SessionPolicy = "reuse_or_create";
+
+  private client: PromptivdSinkClient | null = null;
   private tabManager: TabManager;
 
   constructor() {
-    const version = browser.runtime.getManifest()?.version ?? "0.0.0";
+    this.tabManager = new TabManager();
+  }
+
+  initialize(settings: AppSettings): void {
+    if (this.client) throw new Error("Client already initialized");
+
+    let endpoint: string;
+    try {
+      endpoint = new URL("/v1/sink/ws", settings.promptivd.daemonAddress).toString();
+    } catch (e) {
+      logger.error("Invalid daemonAddress", {
+        daemonAddress: settings.promptivd.daemonAddress,
+        error: e,
+      });
+      throw e;
+    }
+
     this.client = new PromptivdSinkClient({
-      endpoint: "ws://127.0.0.1:8787/v1/sink/ws",
-      extensionVersion: version,
+      endpoint,
+      extensionVersion: browser.runtime.getManifest()?.version ?? "0.0.0",
       providers,
     });
 
-    this.tabManager = new TabManager();
-    this.setupEventListeners();
-  }
-
-  initialize(): void {
-    this.client.start();
-  }
-
-  private setupEventListeners(): void {
     this.client.addEventListener(PromptivdSinkClient.EVENT_INSERT_TEXT, this.onInsertText);
     this.client.addEventListener(PromptivdSinkClient.EVENT_STATE_CHANGE, this.onStateChange);
     this.client.addEventListener(
@@ -44,12 +55,57 @@ export class PromptivdSinkController {
       this.onConnectionError
     );
     this.client.addEventListener(PromptivdSinkClient.EVENT_REGISTERED, this.onRegistered);
+
+    try {
+      this.client.start();
+    } catch (e) {
+      logger.error("PromptivdSinkClient start failed", e);
+      this.destroy();
+      throw e;
+    }
+  }
+
+  destroy(): void {
+    if (!this.client) return;
+
+    try {
+      this.client.stop?.();
+    } catch (e) {
+      logger.warn("Client stop failed", e);
+    }
+
+    this.client.removeEventListener(PromptivdSinkClient.EVENT_INSERT_TEXT, this.onInsertText);
+    this.client.removeEventListener(PromptivdSinkClient.EVENT_STATE_CHANGE, this.onStateChange);
+    this.client.removeEventListener(
+      PromptivdSinkClient.EVENT_CONNECTION_ERROR,
+      this.onConnectionError
+    );
+    this.client.removeEventListener(PromptivdSinkClient.EVENT_REGISTERED, this.onRegistered);
+
+    this.client = null;
+  }
+
+  shouldReinitialize(newSettings: AppSettings): boolean {
+    if (this.client == null) return true;
+
+    try {
+      const next = new URL("/v1/sink/ws", newSettings.promptivd.daemonAddress).toString();
+      return this.client.endpoint !== next;
+    } catch {
+      return true;
+    }
   }
 
   private onInsertText = async (event: CustomEvent<{ frame: InsertTextFrame }>): Promise<void> => {
+    if (!this.client) return;
+
     const { frame } = event.detail;
     const { id, payload } = frame;
-    const client = this.client;
+
+    const text = payload?.text;
+    if (typeof text !== "string" || text.length === 0) {
+      return this.client.failJob(id, "Missing or invalid text");
+    }
 
     logger.info("Received INSERT_TEXT job", {
       id,
@@ -57,60 +113,46 @@ export class PromptivdSinkController {
       source: payload.source,
       target: payload.target,
       metadata: payload.metadata ?? null,
-      textPreview: payload.text.slice(0, 120),
-      textLength: payload.text.length,
+      textPreview: text.slice(0, 120),
+      textLength: text.length,
     });
-
-    if (!client) {
-      logger.error("Promptivd sink client not initialized", { id });
-      return;
-    }
 
     const insertAt = mapPlacementToInsertPosition(payload.placement);
     if (!insertAt) {
-      return client.failJob(id, "Invalid placement");
+      return this.client?.failJob(id, "Invalid placement");
     }
 
     const p = payload.target?.provider;
     let provider: Provider;
-    if (!p) {
-      provider = "chatgpt";
-    } else if (!isProvider(p)) {
-      return client.failJob(id, "Invalid provider");
-    } else {
-      provider = p;
-    }
+    if (!p) provider = PromptivdSinkController.DEFAULT_PROVIDER;
+    else if (!isProvider(p)) return this.client?.failJob(id, "Invalid provider");
+    else provider = p;
 
     const sp = payload.target?.session_policy;
     let sessionPolicy: SessionPolicy;
-    if (!sp) {
-      sessionPolicy = "reuse_or_create";
-    } else if (!isSessionPolicy(sp)) {
-      return client.failJob(id, "Invalid session policy");
-    } else {
-      sessionPolicy = sp;
-    }
+    if (!sp) sessionPolicy = PromptivdSinkController.DEFAULT_SESSION_POLICY;
+    else if (!isSessionPolicy(sp)) return this.client?.failJob(id, "Invalid session policy");
+    else sessionPolicy = sp;
 
     try {
-      const { tabId, isNewTab } = await this.tabManager.findOrCreateProviderTab(
+      const { tabId /*, isNewTab */ } = await this.tabManager.findOrCreateProviderTab(
         provider,
         sessionPolicy
       );
-      logger.error(tabId, isNewTab);
 
-      if (isNewTab) await this.tabManager.waitForContentScript(tabId);
+      await this.tabManager.waitForContentScript(tabId);
       await this.tabManager.focusProviderInput(tabId, provider);
 
-      const message = createMessage(MSG.INSERT_TEXT, { text: payload.text, insertAt });
+      const message = createMessage(MSG.INSERT_TEXT, { text, insertAt });
       const response = await sendToTab(tabId, message);
       if (response.error) throw new Error(response.error);
 
       logger.info("Text insertion successful", { id, tabId, provider, sessionPolicy });
-      client.completeJob(id);
+      return this.client?.completeJob(id);
     } catch (e) {
       const error = resolveErrorMessage(e);
       logger.error("Failed to insert text", { id, error, provider, sessionPolicy });
-      client.failJob(id, error);
+      return this.client?.failJob(id, error);
     }
   };
 
