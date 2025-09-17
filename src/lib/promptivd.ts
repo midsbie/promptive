@@ -17,6 +17,11 @@ export const providerConfigs = {
     newChatPath: "/app",
     inputSelector: 'div.ql-editor[contenteditable="true"]',
   },
+  aistudio: {
+    baseUrl: "https://aistudio.google.com",
+    newChatPath: "/prompts/new_chat",
+    inputSelector: "textarea.textarea",
+  },
 } as const;
 
 export type Provider = keyof typeof providerConfigs;
