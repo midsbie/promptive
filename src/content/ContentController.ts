@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 
+import { resolveErrorMessage } from "../lib/error";
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
 import { SearchService } from "../lib/services";
 import { Prompt } from "../lib/storage";
@@ -10,22 +11,72 @@ import {
   ClipboardWriter,
   ContentEditableStrategy,
   InputTextareaStrategy,
+  InsertTextOptions,
   TextInserter,
 } from "./TextInserter";
 import { logger } from "./logger";
 import { BackgroundAPI, ToastService } from "./services";
 import { CursorPosition } from "./typedefs";
 
+class Target {
+  isAcceptable: (el: Element | null) => boolean;
+  element: Element | null = null;
+  cursorPosition: CursorPosition | null = null;
+
+  constructor(isAcceptable: (el: unknown) => boolean) {
+    this.isAcceptable = isAcceptable;
+  }
+
+  remember(el: Element | null): void {
+    if (!this.isAcceptable(el)) {
+      this.element = null;
+      this.cursorPosition = null;
+      return;
+    }
+
+    this.element = el;
+    this.cursorPosition = CursorPositionManager.getPosition(el);
+  }
+
+  // Warning: do not clear the target element in this function.
+  restore(): boolean {
+    if (!this.element?.isConnected) return false;
+
+    try {
+      // Focus the element
+      const focusableElement = this.element as HTMLElement;
+      if (typeof focusableElement.focus === "function") {
+        focusableElement.focus();
+      }
+
+      // Restore cursor position
+      if (this.cursorPosition) {
+        CursorPositionManager.setPosition(this.element, this.cursorPosition);
+      }
+
+      return true;
+    } catch (e) {
+      logger.warn("Failed to restore target", e);
+      return false;
+    }
+  }
+
+  clear(): void {
+    this.element = null;
+    this.cursorPosition = null;
+  }
+}
+
 export class ContentController {
   private api: BackgroundAPI;
+  private target: Target;
   private textInserter: TextInserter;
   private clipboardWriter: ClipboardWriter;
   private popover: PopoverUI | null = null;
-  private targetElement: Element | null = null;
-  private targetCursorPosition: CursorPosition = null;
 
   constructor() {
     this.api = new BackgroundAPI();
+    this.target = new Target((el: Element | null) => this.textInserter.canHandle(el));
 
     this.textInserter = new TextInserter([
       new InputTextareaStrategy(),
@@ -54,9 +105,9 @@ export class ContentController {
 
       case MSG.INSERT_PROMPT:
         // Direct insertion path (bypassing popover)
-        this._rememberTarget(document.activeElement);
-        this._insertAndNotify(message.prompt);
-        this._clearTarget();
+        this.target.remember(document.activeElement);
+        await this._insertPrompt(message.prompt);
+        this.target.clear();
         return;
 
       default:
@@ -72,7 +123,7 @@ export class ContentController {
     }
 
     // Remember where to insert *before* opening UI
-    this._rememberTarget(document.activeElement);
+    this.target.remember(document.activeElement);
 
     const prompts = await this.api.getPrompts();
 
@@ -81,13 +132,13 @@ export class ContentController {
       searchFn: new SearchService().search,
       onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
-        this._restoreTarget();
-        this._insertAndNotify(prompt);
+        this.target.restore();
+        await this._insertPrompt(prompt);
         this.popover?.close(); // will trigger onClose
       },
       onClose: () => {
-        this._restoreTarget();
-        this._clearTarget();
+        this.target.restore();
+        this.target.clear();
         this.popover = null;
       },
     });
@@ -95,51 +146,34 @@ export class ContentController {
     this.popover.open(prompts);
   }
 
-  private _insertAndNotify(prompt: Prompt): void {
-    const target = this.targetElement;
-    const ok = this.textInserter.insert(target, prompt);
-    if (ok) {
+  private async _insertPrompt(prompt: Prompt): Promise<void> {
+    const opts: InsertTextOptions = {
+      target: this.target.element,
+      content: prompt.content,
+      insertAt: prompt.insert_at || "cursor",
+      separator: prompt.separator || null,
+    };
+    await this._insert(opts);
+  }
+
+  private async _insert(opts: InsertTextOptions) {
+    if (this.textInserter.insert(opts)) {
       ToastService.show("Prompt inserted");
       return;
     }
 
-    this.clipboardWriter.write(prompt.content);
-    ToastService.show("Copied to clipboard");
+    logger.warn(`Failed to insert prompt: copying to clipboard instead`);
+    await this._copyToClipboard(opts.content);
   }
 
-  private _rememberTarget(el: Element | null): void {
-    const acceptable = this.textInserter.canHandle(el);
-    if (!acceptable) {
-      this.targetElement = null;
-      this.targetCursorPosition = null;
-      return;
-    }
-
-    this.targetElement = el;
-    this.targetCursorPosition = CursorPositionManager.getPosition(el);
-  }
-
-  private _restoreTarget(): boolean {
-    if (!this.targetElement?.isConnected) {
-      return false;
-    }
+  private async _copyToClipboard(text: string) {
+    await this.clipboardWriter.write(text);
 
     try {
-      // Focus the element
-      const focusableElement = this.targetElement as HTMLElement;
-      if (typeof focusableElement.focus === "function") {
-        focusableElement.focus();
-      }
-
-      // Restore cursor position
-      if (this.targetCursorPosition) {
-        CursorPositionManager.setPosition(this.targetElement, this.targetCursorPosition);
-      }
-
-      return true;
+      ToastService.show("Copied to clipboard");
     } catch (e) {
-      logger.warn("Failed to restore target", e);
-      return false;
+      logger.error("Error during copy to clipboard:", e);
+      ToastService.show("Failed to copy to clipboard");
     }
   }
 

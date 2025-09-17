@@ -1,7 +1,13 @@
-import { InsertPosition, Prompt } from "../lib/storage";
+import { InsertPosition } from "../lib/storage";
 
 import { logger } from "./logger";
-import { ToastService } from "./services";
+
+export type InsertTextOptions = {
+  target: Element | null;
+  content: string;
+  insertAt: InsertPosition;
+  separator?: string;
+};
 
 const escapeHtml = (text: string = ""): string => {
   const div = document.createElement("div");
@@ -20,12 +26,14 @@ const toParagraphHtml = (text: string): string => {
 // Assumes separator is not empty, not whitespace and not multiline.
 const wrapSeparator = (sep: string): string => "\n" + sep + "\n";
 
-const buildInsertText = (prompt: Prompt, insertAt: InsertPosition): string => {
-  let text = prompt.content.trim();
-  let sep = prompt.separator?.trim() || "";
+const buildInsertText = (opts: InsertTextOptions): string => {
+  let text = opts.content.trim();
+  let sep = opts.separator?.trim() || "";
   if (!sep) return text;
 
-  sep = wrapSeparator(prompt.separator);
+  sep = wrapSeparator(sep);
+
+  const { insertAt } = opts;
   if (insertAt === "top") return text + sep;
 
   // "end" or "cursor"
@@ -37,7 +45,7 @@ const buildInsertText = (prompt: Prompt, insertAt: InsertPosition): string => {
 
 export abstract class InsertionStrategy {
   abstract canHandle(element: Element | null): boolean;
-  abstract insert(element: Element | null, prompt: Prompt): boolean;
+  abstract insert(opts: InsertTextOptions): boolean;
 }
 
 export class InputTextareaStrategy extends InsertionStrategy {
@@ -45,12 +53,12 @@ export class InputTextareaStrategy extends InsertionStrategy {
     return el !== null && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
   }
 
-  insert(el: Element | null, prompt: Prompt): boolean {
+  insert(opts: InsertTextOptions): boolean {
+    const { target: el } = opts;
     if (!this.canHandle(el)) return false;
 
-    const insertAt = prompt.insert_at || "cursor";
-    const text = buildInsertText(prompt, insertAt);
-    const insertPosition = this._getInsertPosition(el, insertAt);
+    const text = buildInsertText(opts);
+    const insertPosition = this._getInsertPosition(el, opts.insertAt);
 
     const value = el.value ?? "";
     el.value = value.slice(0, insertPosition.start) + text + value.slice(insertPosition.end);
@@ -66,7 +74,7 @@ export class InputTextareaStrategy extends InsertionStrategy {
 
   private _getInsertPosition(
     el: HTMLInputElement | HTMLTextAreaElement,
-    insertAt: "cursor" | "top" | "end"
+    insertAt: InsertPosition
   ): { start: number; end: number } {
     const value = el.value ?? "";
 
@@ -95,7 +103,8 @@ export class ContentEditableStrategy extends InsertionStrategy {
     );
   }
 
-  insert(el: Element | null, prompt: Prompt): boolean {
+  insert(opts: InsertTextOptions): boolean {
+    const { target: el } = opts;
     if (!this.canHandle(el)) return false;
 
     if (document.activeElement !== el) {
@@ -103,11 +112,10 @@ export class ContentEditableStrategy extends InsertionStrategy {
       el.focus();
     }
 
-    const insertAt = prompt.insert_at || "cursor";
-    const text = buildInsertText(prompt, insertAt);
+    const text = buildInsertText(opts);
 
     try {
-      if (!this._positionForInsertion(el, insertAt)) {
+      if (!this._positionForInsertion(el, opts.insertAt)) {
         logger.error("Failed to position cursor for insertion");
         return false;
       }
@@ -231,12 +239,8 @@ export class ContentEditableStrategy extends InsertionStrategy {
 }
 
 export class ClipboardWriter {
-  write(text: string): boolean {
-    // Never throws; failures are acceptable as last resort.
-    navigator.clipboard.writeText(text).then(
-      () => ToastService.show("Prompt copied to clipboard"),
-      () => ToastService.show("Failed to copy to clipboard")
-    );
+  async write(text: string): Promise<boolean> {
+    await navigator.clipboard.writeText(text);
     return true;
   }
 }
@@ -259,14 +263,14 @@ export class TextInserter {
     return false;
   }
 
-  insert(target: Element | null, prompt: Prompt): boolean {
+  insert(opts: InsertTextOptions): boolean {
+    const { target } = opts;
     if (!target) return false;
 
     for (const s of this.strategies) {
       try {
-        if (s.canHandle(target)) {
-          const ok = s.insert(target, prompt);
-          if (ok) return true;
+        if (s.canHandle(target) && s.insert(opts)) {
+          return true;
         }
       } catch (e) {
         logger.error("Insertion strategy error", e);
