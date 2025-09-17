@@ -9,7 +9,7 @@ export const providerConfigs = {
   },
   claude: {
     baseUrl: "https://claude.ai",
-    newChatPath: "/chat",
+    newChatPath: "/new",
     inputSelector: 'div.ProseMirror[contenteditable="true"]',
   },
   gemini: {
