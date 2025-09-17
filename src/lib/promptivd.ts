@@ -6,19 +6,16 @@ export const providerConfigs = {
     baseUrl: "https://chatgpt.com",
     newChatPath: "",
     inputSelector: "#prompt-textarea",
-    hostPatterns: ["chatgpt.com"],
   },
   claude: {
     baseUrl: "https://claude.ai",
     newChatPath: "/chat",
     inputSelector: 'div.ProseMirror[contenteditable="true"]',
-    hostPatterns: ["claude.ai"],
   },
   gemini: {
     baseUrl: "https://gemini.google.com",
     newChatPath: "/app",
     inputSelector: 'div.ql-editor[contenteditable="true"]',
-    hostPatterns: ["gemini.google.com"],
   },
 } as const;
 
@@ -53,5 +50,13 @@ export function getProviderConfig(provider: Provider) {
 
 export function isProviderTab(tabUrl: string, provider: Provider): boolean {
   const config = getProviderConfig(provider);
-  return config.hostPatterns.some((pattern: string) => tabUrl.includes(pattern));
+  if (!config) return false; // not supposed to happen
+
+  try {
+    const purl = new URL(config.baseUrl);
+    const turl = new URL(tabUrl);
+    return purl.host === turl.host;
+  } catch {
+    return false;
+  }
 }
