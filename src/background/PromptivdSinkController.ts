@@ -12,7 +12,12 @@ import {
 } from "../lib/promptivd";
 import { AppSettings } from "../lib/settings";
 
-import { InsertTextFrame, PromptivdSinkClient } from "./promptivd-sink/PromptivdSinkClient";
+import {
+  ConnectionErrorEvent,
+  InsertTextEvent,
+  PromptivdSinkClient,
+  StateChangeEvent,
+} from "./promptivd-sink/PromptivdSinkClient";
 
 import { TabManager } from "./TabManager";
 import { logger } from "./logger";
@@ -96,7 +101,7 @@ export class PromptivdSinkController {
     }
   }
 
-  private onInsertText = async (event: CustomEvent<{ frame: InsertTextFrame }>): Promise<void> => {
+  private onInsertText = async (event: CustomEvent<InsertTextEvent>): Promise<void> => {
     if (!this.client) return;
 
     const { frame } = event.detail;
@@ -156,12 +161,12 @@ export class PromptivdSinkController {
     }
   };
 
-  private onStateChange = (event: CustomEvent): void => {
+  private onStateChange = (event: CustomEvent<StateChangeEvent>): void => {
     const { oldState, newState } = event.detail;
     logger.debug("Client state changed", { oldState, newState });
   };
 
-  private onConnectionError = (event: CustomEvent): void => {
+  private onConnectionError = (event: CustomEvent<ConnectionErrorEvent>): void => {
     const { error } = event.detail;
     logger.error("Connection error", error);
   };

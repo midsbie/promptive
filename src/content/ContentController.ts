@@ -1,7 +1,7 @@
 import browser from "webextension-polyfill";
 
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
-import { Provider, SessionPolicy, getProviderConfig } from "../lib/promptivd";
+import { Provider, getProviderConfig } from "../lib/promptivd";
 import { SearchService } from "../lib/services";
 import { InsertPosition, Prompt } from "../lib/storage";
 

@@ -62,6 +62,15 @@ interface AckFrame {
   error: string | null;
 }
 
+export type InsertTextEvent = { frame: InsertTextFrame };
+export type StateChangeEvent = {
+  oldState: ClientState;
+  newState: ClientState;
+  event: ClientEvent;
+};
+export type ConnectionErrorEvent = { error: string };
+export type RegisteredEvent = void;
+
 interface PromptivdSinkOptions {
   endpoint: string;
   extensionVersion: string;
@@ -128,7 +137,7 @@ export class PromptivdSinkClient extends EventTarget {
     event: ClientEvent
   ): void => {
     this.dispatchEvent(
-      new CustomEvent(PromptivdSinkClient.EVENT_STATE_CHANGE, {
+      new CustomEvent<StateChangeEvent>(PromptivdSinkClient.EVENT_STATE_CHANGE, {
         detail: { oldState, newState, event },
       })
     );
@@ -142,7 +151,7 @@ export class PromptivdSinkClient extends EventTarget {
         break;
       case ClientState.Registered:
         logger.info("Client registered and ready");
-        this.dispatchEvent(new CustomEvent(PromptivdSinkClient.EVENT_REGISTERED));
+        this.dispatchEvent(new CustomEvent<RegisteredEvent>(PromptivdSinkClient.EVENT_REGISTERED));
         break;
       case ClientState.Reconnecting:
         this.connectionManager.scheduleReconnect();
@@ -161,10 +170,10 @@ export class PromptivdSinkClient extends EventTarget {
         this.stateMachine.transition(ClientEvent.ConnectionOpened);
       },
       onMessage: this.handleMessage,
-      onError: (event: Event) => {
+      onError: (_event: Event) => {
         this.dispatchEvent(
-          new CustomEvent(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
-            detail: { event },
+          new CustomEvent<ConnectionErrorEvent>(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
+            detail: { error: "WebSocket connection error" },
           })
         );
         this.stateMachine.transition(ClientEvent.ConnectionError);
@@ -210,7 +219,7 @@ export class PromptivdSinkClient extends EventTarget {
     if (!this.jobManager.startJob(frame.id)) return;
 
     this.dispatchEvent(
-      new CustomEvent(PromptivdSinkClient.EVENT_INSERT_TEXT, {
+      new CustomEvent<InsertTextEvent>(PromptivdSinkClient.EVENT_INSERT_TEXT, {
         detail: { frame },
       })
     );
