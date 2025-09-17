@@ -225,6 +225,19 @@ All prompts are stored locally in your browser and also synced via Firefox Sync 
 
 To keep your library safe, you may still wish to export prompts as JSON, maintain backups in a secure location, and optionally use version control.
 
+* Sister Project: promptivd
+
+The promptive extension uses promptivd, a [[https://github.com/midsbie/promptivd][separate project available on Github]], as its backend relay service. promptivd is a Rust-based daemon that forwards text-insertion requests from local clients to WebSocket sinks. A sink implements the actual insertion logic; for example, the promptive browser extension can function as a sink.
+
+** Why this is handy
+
+- Lets you easily push arbitrary text snippets—such as code, templates, or prompts—directly into a running web interface on the browser or any other configured sink.
+
+- Eliminates repetitive copy–paste cycles, improving the experience of using web-based LLM interfaces.
+
+** Client requirement
+
+To send requests to promptivd, you’ll need a client. At present, the only client available is [[https://github.com/midsbie/promptivel][promptivel]], a client for Emacs.
 
 * License
 
