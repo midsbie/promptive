@@ -57,16 +57,11 @@ export class TabManager {
 
   private async createNewProviderTab(provider: Provider): Promise<browser.Tabs.Tab> {
     const config = getProviderConfig(provider);
-    const tab = await browser.tabs.create({
-      url: config.newChatUrl,
-      active: true,
-    });
+    const url = new URL(config.newChatPath, config.baseUrl).toString();
+    const tab = await browser.tabs.create({ url, active: true });
+    if (!tab.id) throw new Error("Failed to create new tab");
 
-    if (!tab.id) {
-      throw new Error("Failed to create new tab");
-    }
-
-    logger.info(`Created new ${provider} tab`, { tabId: tab.id, url: config.newChatUrl });
+    logger.info(`Created new ${provider} tab`, { tabId: tab.id, url });
     return tab;
   }
 

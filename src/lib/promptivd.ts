@@ -1,21 +1,22 @@
 import type { InsertPosition } from "../lib/storage";
 
+// Ensure baseUrls do not have trailing slashes and newChatPaths start with a slash (if not empty)
 export const providerConfigs = {
   chatgpt: {
     baseUrl: "https://chatgpt.com",
-    newChatUrl: "https://chatgpt.com",
+    newChatPath: "",
     inputSelector: "#prompt-textarea",
     hostPatterns: ["chatgpt.com"],
   },
   claude: {
     baseUrl: "https://claude.ai",
-    newChatUrl: "https://claude.ai/chat",
+    newChatPath: "/chat",
     inputSelector: 'div.ProseMirror[contenteditable="true"]',
     hostPatterns: ["claude.ai"],
   },
   gemini: {
     baseUrl: "https://gemini.google.com",
-    newChatUrl: "https://gemini.google.com/app",
+    newChatPath: "/app",
     inputSelector: 'div.ql-editor[contenteditable="true"]',
     hostPatterns: ["gemini.google.com"],
   },
