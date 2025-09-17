@@ -89,7 +89,7 @@ export class PromptEditor {
                       <span>At top of text</span>
                     </label>
                     <label class="radio-label">
-                      <input type="radio" name="insertAt" value="end" ${this.prompt?.insert_at === "end" ? "checked" : ""} />
+                      <input type="radio" name="insertAt" value="bottom" ${this.prompt?.insert_at === "bottom" ? "checked" : ""} />
                       <span>At end of text</span>
                     </label>
                   </div>
@@ -161,7 +161,7 @@ export class PromptEditor {
       .map((t) => t.trim())
       .filter((t) => t);
     const insertAt = (document.querySelector('input[name="insertAt"]:checked') as HTMLInputElement)
-      ?.value as "cursor" | "top" | "end";
+      ?.value as InsertPosition;
     const separator =
       (document.getElementById("editorSeparator") as HTMLInputElement).value.trim() || null;
 

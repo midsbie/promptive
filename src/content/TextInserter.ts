@@ -81,7 +81,7 @@ export class InputTextareaStrategy extends InsertionStrategy {
     switch (insertAt) {
       case "top":
         return { start: 0, end: 0 };
-      case "end":
+      case "bottom":
         return { start: value.length, end: value.length };
       case "cursor":
       default: {

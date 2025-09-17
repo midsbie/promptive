@@ -7,7 +7,7 @@ import { TimeProvider } from "./time";
 
 const logger = new Logger("storage");
 
-export type InsertPosition = "cursor" | "top" | "end";
+export type InsertPosition = "cursor" | "top" | "bottom";
 
 // Core interfaces for prompts and storage
 export interface Prompt {
