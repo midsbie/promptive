@@ -113,12 +113,7 @@ export class ContentController {
       case MSG.INSERT_TEXT: {
         this.popover?.close();
         this.target.remember(document.activeElement);
-        const ok = this._handleInsertText(
-          message.text,
-          message.insertAt,
-          message.provider,
-          message.session_policy
-        );
+        const ok = this._handleInsertText(message.text, message.insertAt);
         this.target.clear();
         return ok;
       }
@@ -196,9 +191,7 @@ export class ContentController {
 
   private async _handleInsertText(
     text: string,
-    insertAt?: InsertPosition,
-    provider?: Provider,
-    sessionPolicy?: SessionPolicy
+    insertAt?: InsertPosition
   ): Promise<{ error: string | null }> {
     try {
       const target = this.target.element || document.activeElement;

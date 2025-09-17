@@ -92,29 +92,16 @@ export class PromptivdSinkController {
     }
 
     try {
-      // Find or create the appropriate provider tab based on session policy
       const { tabId, isNewTab } = await this.tabManager.findOrCreateProviderTab(
         provider,
         sessionPolicy
       );
       logger.error(tabId, isNewTab);
 
-      // If we created a new tab, wait for content script to be available
-      if (isNewTab) {
-        await this.tabManager.waitForContentScript(tabId);
-      }
-
-      // Focus the provider's input field
+      if (isNewTab) await this.tabManager.waitForContentScript(tabId);
       await this.tabManager.focusProviderInput(tabId, provider);
 
-      // Send the insert text message
-      const message = createMessage(MSG.INSERT_TEXT, {
-        text: payload.text,
-        insertAt,
-        provider,
-        session_policy: sessionPolicy,
-      });
-
+      const message = createMessage(MSG.INSERT_TEXT, { text: payload.text, insertAt });
       const response = await sendToTab(tabId, message);
       if (response.error) throw new Error(response.error);
 

@@ -21,12 +21,7 @@ type MessageMap = {
   [MSG.QUERY_STATUS]: {}; // no payload
   [MSG.OPEN_POPOVER]: {};
   [MSG.INSERT_PROMPT]: { prompt: Prompt };
-  [MSG.INSERT_TEXT]: {
-    text: string;
-    insertAt?: InsertPosition;
-    provider?: Provider;
-    session_policy?: SessionPolicy;
-  };
+  [MSG.INSERT_TEXT]: { text: string; insertAt?: InsertPosition };
   [MSG.FOCUS_PROVIDER_INPUT]: { provider: Provider };
 };
 
