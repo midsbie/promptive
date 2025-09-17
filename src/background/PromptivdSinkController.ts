@@ -8,6 +8,7 @@ import {
   isProvider,
   isSessionPolicy,
   mapPlacementToInsertPosition,
+  providers,
 } from "../lib/promptivd";
 
 import { InsertTextFrame, PromptivdSinkClient } from "./promptivd-sink/PromptivdSinkClient";
@@ -24,7 +25,7 @@ export class PromptivdSinkController {
     this.client = new PromptivdSinkClient({
       endpoint: "ws://127.0.0.1:8787/v1/sink/ws",
       extensionVersion: version,
-      providers: ["chatgpt", "claude", "gemini"],
+      providers,
     });
 
     this.tabManager = new TabManager();
