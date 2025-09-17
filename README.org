@@ -4,10 +4,9 @@
 #+OPTIONS: toc:2 num:nil ^:nil
 
 * Overview
-
 The promptive extension is a powerful Firefox add-on that helps you manage and quickly access frequently used text snippets, templates, and prompts. Whether you're writing emails, coding, taking notes, or filling out forms, this extension puts your most-used text at your fingertips.
 
-** Key Benefits
+** Features
 - No more losing track of your best ideas, your prompts stay in one place
 - Stop retyping the same things, summon your prompt with a shortcut
 - Search your library easily with tags
@@ -34,7 +33,6 @@ The promptive extension is a powerful Firefox add-on that helps you manage and q
 4. The promptive icon will appear in your toolbar
 
 ** First Run
-
 When you first install the extension, it comes with three example prompts to help you understand how it works:
 - Polite Follow-Up Email
 - Code Review Request
@@ -45,13 +43,11 @@ You can edit or delete these examples and add your own prompts.
 * Using the Extension
 
 ** Supported Websites
-
 The extension works on specific websites where text insertion is commonly needed. For the complete and current list of supported sites, see the =content_scripts.matches= field in [[file:src/manifest.json][src/manifest.json]].
 
 On unsupported sites, you can still copy prompts to your clipboard via the sidebar or context menu.
 
 ** Accessing Your Prompts
-
 There are *three ways* to access your prompt library:
 
 *** 1. Sidebar Panel
@@ -80,13 +76,11 @@ There are *three ways* to access your prompt library:
   - In either case, a toast notification is shown
 
 ** Extension Status
-
 The toolbar button displays the extension's status on the current page:
 - Click the extension icon in the Firefox toolbar
 - Shows whether promptive is active and supported on the current page
 
 ** Creating a New Prompt
-
 1. Open the sidebar
 2. Click the *"+ Add"* button
 3. Fill in the prompt details:
@@ -111,7 +105,6 @@ The toolbar button displays the extension's status on the current page:
 5. Paste (Ctrl+V) wherever needed
 
 ** Searching for Prompts
-
 The extension includes *fuzzy search* that matches against:
 - Prompt titles
 - Prompt content
@@ -148,7 +141,6 @@ Each prompt displays:
 * Import and Export
 
 ** Exporting Your Prompts
-
 1. Open the sidebar
 2. Click the *"Export"* button
 3. Your prompts are downloaded as a JSON file
@@ -160,7 +152,6 @@ Use this feature to:
 - Transfer prompts to another computer
 
 ** Importing Prompts
-
 1. Open the sidebar
 2. Click the *"Import"* button
 3. Select a JSON file to import
@@ -173,7 +164,6 @@ Use this feature to:
 - *Tags merged*: Combines tags from both versions
 
 ** Import/Export Format
-
 The JSON structure for import/export:
 #+BEGIN_SRC json
 {
@@ -194,7 +184,6 @@ The JSON structure for import/export:
 #+END_SRC
 
 * Configuration and Shortcuts
-
 You can customize promptive's behavior by visiting the extension's preferences page.
 
 1. Right-click the extension icon in your browser's toolbar.
@@ -202,13 +191,11 @@ You can customize promptive's behavior by visiting the extension's preferences p
 3. On the page that opens, find and click on the "Preferences" tab or section.
 
 *** Available Settings
-
 - *Keyboard Shortcut*: Change the hotkey used to open the Quick Selector popup.
 - *Context Menu Limit*: Set the maximum number of prompts to display in the right-click context menu.
 - *Context Menu Sort Order*: Choose how prompts are sorted in the context menu, either by most recently used or alphabetically.
 
 *** Default Shortcuts
-
 The following shortcuts are available during general use:
 
 | Shortcut         | Action                    | Context                |
@@ -220,25 +207,22 @@ The following shortcuts are available during general use:
 | =Tab/Shift+Tab=  | Navigate UI elements      | Sidebar, modals        |
 
 * Privacy and Data
-
 All prompts are stored locally in your browser and also synced via Firefox Sync if you have it enabled. No third-party servers or telemetry are involved. Your data persists across sessions and is removed if the extension is uninstalled.
 
 To keep your library safe, you may still wish to export prompts as JSON, maintain backups in a secure location, and optionally use version control.
 
-* Sister Project: promptivd
+* Sister Projects
 
+** promptivd
 The promptive extension uses promptivd, a [[https://github.com/midsbie/promptivd][separate project available on Github]], as its backend relay service. promptivd is a Rust-based daemon that forwards text-insertion requests from local clients to WebSocket sinks. A sink implements the actual insertion logic; for example, the promptive browser extension can function as a sink.
 
-** Why this is handy
-
-- Lets you easily push arbitrary text snippets—such as code, templates, or prompts—directly into a running web interface on the browser or any other configured sink.
+*** Why
+- Lets you easily push arbitrary text snippets, such as code, templates, or prompts, directly into a running web interface on the browser or any other configured sink.
 
 - Eliminates repetitive copy–paste cycles, improving the experience of using web-based LLM interfaces.
 
 ** Client requirement
-
 To send requests to promptivd, you’ll need a client. At present, the only client available is [[https://github.com/midsbie/promptivel][promptivel]], a client for Emacs.
 
 * License
-
 Distributed under the MIT License. See LICENSE for more information.
