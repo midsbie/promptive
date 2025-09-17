@@ -2,7 +2,6 @@ import browser from "webextension-polyfill";
 
 import { Prompt } from "./storage";
 
-// Actions as a const object -> string literal union
 export const MSG = {
   GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
   RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",
@@ -13,7 +12,6 @@ export const MSG = {
 
 export type Action = (typeof MSG)[keyof typeof MSG];
 
-// Single source of truth: Action -> Payload & Response maps
 type MessageMap = {
   [MSG.GET_PROMPTS]: {}; // no payload
   [MSG.RECORD_PROMPT_USAGE]: { promptId: string };
@@ -30,7 +28,6 @@ type ResponseMap = {
   [MSG.INSERT_PROMPT]: void;
 };
 
-// 3) Discriminated union is derived (no duplication)
 export type Message = {
   [K in Action]: { action: K } & MessageMap[K];
 }[Action];
