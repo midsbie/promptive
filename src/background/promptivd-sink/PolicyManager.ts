@@ -12,6 +12,7 @@ export interface PolicyState {
   maxJobBytes: number | null;
 }
 
+// TBD. Unused for now.
 export class PolicyManager {
   private policies: PolicyState;
 
