@@ -29,7 +29,7 @@ export interface StateTransitionTable {
   };
 }
 
-export type StateChangeEvent = {
+export type StateChangeDetail = {
   oldState: ClientState;
   newState: ClientState;
   event: ClientEvent;
@@ -97,7 +97,7 @@ export class ClientStateMachine extends EventTarget {
     });
 
     this.dispatchEvent(
-      new CustomEvent<StateChangeEvent>(ClientStateMachine.EVENT_STATE_CHANGE, {
+      new CustomEvent<StateChangeDetail>(ClientStateMachine.EVENT_STATE_CHANGE, {
         detail: { oldState, newState, event },
       })
     );

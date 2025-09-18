@@ -6,11 +6,11 @@ import { SessionPolicy, isSessionPolicy, mapPlacementToInsertPosition } from "..
 import { Provider, isProvider, providers } from "../lib/providers";
 import { AppSettings } from "../lib/settings";
 
+import { StateChangeDetail } from "./promptivd-sink/ClientStateMachine";
 import {
-  ConnectionErrorEvent,
-  InsertTextEvent,
+  ConnectionErrorDetail,
+  InsertTextDetail,
   PromptivdSinkClient,
-  StateChangeEvent,
 } from "./promptivd-sink/PromptivdSinkClient";
 
 import { TabManager } from "./TabManager";
@@ -95,7 +95,7 @@ export class PromptivdSinkController {
     }
   }
 
-  private onInsertText = async (event: CustomEvent<InsertTextEvent>): Promise<void> => {
+  private onInsertText = async (event: CustomEvent<InsertTextDetail>): Promise<void> => {
     if (!this.client) return;
 
     const { frame } = event.detail;
@@ -155,12 +155,12 @@ export class PromptivdSinkController {
     }
   };
 
-  private onStateChange = (event: CustomEvent<StateChangeEvent>): void => {
+  private onStateChange = (event: CustomEvent<StateChangeDetail>): void => {
     const { oldState, newState } = event.detail;
     logger.debug("Client state changed", { oldState, newState });
   };
 
-  private onConnectionError = (event: CustomEvent<ConnectionErrorEvent>): void => {
+  private onConnectionError = (event: CustomEvent<ConnectionErrorDetail>): void => {
     const { error } = event.detail;
     logger.error("Connection error", error);
   };

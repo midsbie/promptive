@@ -1,4 +1,9 @@
-import { ClientEvent, ClientState, ClientStateMachine } from "./ClientStateMachine";
+import {
+  ClientEvent,
+  ClientState,
+  ClientStateMachine,
+  StateChangeDetail,
+} from "./ClientStateMachine";
 import { ConnectionEventHandlers, ConnectionManager } from "./ConnectionManager";
 import { AckStatus, JobManager, JobTimeoutEvent } from "./JobManager";
 import { PolicyFrame, PolicyManager } from "./PolicyManager";
@@ -62,14 +67,9 @@ interface AckFrame {
   error: string | null;
 }
 
-export type InsertTextEvent = { frame: InsertTextFrame };
-export type StateChangeEvent = {
-  oldState: ClientState;
-  newState: ClientState;
-  event: ClientEvent;
-};
-export type ConnectionErrorEvent = { error: string };
-export type RegisteredEvent = void;
+export type InsertTextDetail = { frame: InsertTextFrame };
+export type ConnectionErrorDetail = { error: string };
+export type RegisteredDetail = void;
 
 interface PromptivdSinkOptions {
   endpoint: string;
@@ -139,11 +139,11 @@ export class PromptivdSinkClient extends EventTarget {
     return this.stateMachine.getCurrentState();
   }
 
-  private onStateChange = (event: CustomEvent<StateChangeEvent>): void => {
+  private onStateChange = (event: CustomEvent<StateChangeDetail>): void => {
     const { oldState, newState, event: stateEvent } = event.detail;
 
     this.dispatchEvent(
-      new CustomEvent<StateChangeEvent>(PromptivdSinkClient.EVENT_STATE_CHANGE, {
+      new CustomEvent<StateChangeDetail>(PromptivdSinkClient.EVENT_STATE_CHANGE, {
         detail: { oldState, newState, event: stateEvent },
       })
     );
@@ -157,7 +157,7 @@ export class PromptivdSinkClient extends EventTarget {
         break;
       case ClientState.Registered:
         logger.info("Client registered and ready");
-        this.dispatchEvent(new CustomEvent<RegisteredEvent>(PromptivdSinkClient.EVENT_REGISTERED));
+        this.dispatchEvent(new CustomEvent<RegisteredDetail>(PromptivdSinkClient.EVENT_REGISTERED));
         break;
       case ClientState.Reconnecting:
         this.connectionManager.scheduleReconnect();
@@ -214,7 +214,7 @@ export class PromptivdSinkClient extends EventTarget {
       onMessage: this.onMessage,
       onError: (_event: Event) => {
         this.dispatchEvent(
-          new CustomEvent<ConnectionErrorEvent>(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
+          new CustomEvent<ConnectionErrorDetail>(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
             detail: { error: "WebSocket connection error" },
           })
         );
@@ -233,7 +233,7 @@ export class PromptivdSinkClient extends EventTarget {
     if (!this.jobManager.startJob(frame.id)) return;
 
     this.dispatchEvent(
-      new CustomEvent<InsertTextEvent>(PromptivdSinkClient.EVENT_INSERT_TEXT, {
+      new CustomEvent<InsertTextDetail>(PromptivdSinkClient.EVENT_INSERT_TEXT, {
         detail: { frame },
       })
     );
