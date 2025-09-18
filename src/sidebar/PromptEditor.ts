@@ -33,7 +33,32 @@ export class PromptEditor {
     }
 
     this.render();
-    this.bindEvents();
+
+    document.getElementById("backBtn")!.addEventListener("click", this.onBackClick);
+    document.getElementById("saveBtn")!.addEventListener("click", this.onSaveClick);
+    document.getElementById("editorForm")!.addEventListener("submit", this.onFormSubmit);
+
+    const inputs = document.querySelectorAll("#editorForm input, #editorForm textarea");
+    inputs.forEach((input) => {
+      input.addEventListener("input", this.onInput);
+    });
+
+    document.addEventListener("keydown", this.onKeyDown);
+    logger.info("PromptEditor initialized");
+  }
+
+  public destroy(): void {
+    document.getElementById("backBtn")?.removeEventListener("click", this.onBackClick);
+    document.getElementById("saveBtn")?.removeEventListener("click", this.onSaveClick);
+    document.getElementById("editorForm")?.removeEventListener("submit", this.onFormSubmit);
+
+    const inputs = document.querySelectorAll("#editorForm input, #editorForm textarea");
+    inputs.forEach((input) => {
+      input.removeEventListener("input", this.onInput);
+    });
+
+    document.removeEventListener("keydown", this.onKeyDown);
+    logger.info("PromptEditor destroyed");
   }
 
   private render(): void {
@@ -104,38 +129,39 @@ export class PromptEditor {
     `;
   }
 
-  private bindEvents(): void {
-    document.getElementById("backBtn")!.addEventListener("click", () => {
-      this.confirmNavigateBack();
-    });
+  private onBackClick = () => {
+    this.confirmNavigateBack();
+  };
 
-    document.getElementById("saveBtn")!.addEventListener("click", (e) => {
-      e.preventDefault();
-      this.save();
-    });
+  private onSaveClick = (e: Event) => {
+    e.preventDefault();
+    this.save();
+  };
 
-    document.getElementById("editorForm")!.addEventListener("submit", (e) => {
-      e.preventDefault();
-      this.save();
-    });
+  private onFormSubmit = (e: Event) => {
+    e.preventDefault();
+    this.save();
+  };
 
-    const inputs = document.querySelectorAll("#editorForm input, #editorForm textarea");
-    inputs.forEach((input) => {
-      input.addEventListener("input", () => {
-        this.isDirty = true;
-      });
-    });
+  private onInput = () => {
+    this.isDirty = true;
+  };
 
-    document.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        this.save();
-      } else if (e.key === "Escape") {
+  private onKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case "s":
+        if (e.metaKey || e.ctrlKey) {
+          e.preventDefault();
+          this.save();
+        }
+        return;
+
+      case "Escape":
         e.preventDefault();
         this.confirmNavigateBack();
-      }
-    });
-  }
+        return;
+    }
+  };
 
   private confirmNavigateBack(): void {
     if (this.isDirty) {

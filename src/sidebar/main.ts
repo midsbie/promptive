@@ -10,7 +10,12 @@ const toasts = new ToastService();
 let sidebarInstance: PromptiveSidebar | null = null;
 let editorInstance: PromptEditor | null = null;
 
-function createEditorView(id?: string | null) {
+function showEditor(id?: string | null) {
+  editorInstance?.destroy();
+
+  document.getElementById("listView")!.style.display = "none";
+  document.getElementById("editorView")!.style.display = "block";
+
   editorInstance = new PromptEditor(id);
   editorInstance.initialize().catch((e) => {
     logger.error("PromptEditor initialization failed", e);
@@ -23,6 +28,11 @@ function createEditorView(id?: string | null) {
 
 // Routes
 router.addRoute("/", () => {
+  if (editorInstance) {
+    editorInstance.destroy();
+    editorInstance = null;
+  }
+
   document.getElementById("listView")!.style.display = "block";
   document.getElementById("editorView")!.style.display = "none";
 
@@ -31,18 +41,12 @@ router.addRoute("/", () => {
 });
 
 router.addRoute("/editor/new", () => {
-  document.getElementById("listView")!.style.display = "none";
-  document.getElementById("editorView")!.style.display = "block";
-
-  createEditorView();
+  showEditor();
 });
 
 router.addRoute("/editor/:id", () => {
-  document.getElementById("listView")!.style.display = "none";
-  document.getElementById("editorView")!.style.display = "block";
-
   const id = router.getParam(window.location.hash.slice(1), "id");
-  createEditorView(id);
+  showEditor(id);
 });
 
 // Export for global access
