@@ -145,7 +145,7 @@ export class PromptivdSinkController {
         sessionPolicy
       );
 
-      await this.tabManager.waitForContentScript(tabId);
+      await this.tabManager.waitForContentScript(tabId, { waitForReady: true });
       await this.tabManager.focusProviderInput(tabId, provider);
 
       const message = createMessage(MSG.INSERT_TEXT, { text, insertAt });

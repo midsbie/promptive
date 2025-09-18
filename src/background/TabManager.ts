@@ -67,7 +67,7 @@ export class TabManager {
 
   async waitForContentScript(
     tabId: number,
-    opts: { timeoutMs: number; waitForReady: boolean } | null
+    opts?: Partial<{ timeoutMs: number; waitForReady: boolean }> | null
   ): Promise<void> {
     const { timeoutMs = 10000, waitForReady = false } = opts ?? {};
     const startTime = Date.now();
