@@ -111,6 +111,38 @@ export class ContentController {
     logger.info("initialized");
   }
 
+  async openPopover(): Promise<void> {
+    if (this.popover) {
+      logger.warn("Refusing to open popover: already open");
+      return;
+    }
+
+    this.target.remember(document.activeElement);
+    const prompts = await this.api.getPrompts();
+
+    // Lazy init popover to wire handlers with dependencies
+    this.popover = new PopoverUI({
+      searchFn: new SearchService().search,
+      onSelect: async (prompt: Prompt) => {
+        await this.api.recordUsage(prompt.id);
+        this.target.restore();
+        await this._insertPrompt(prompt);
+        this.popover?.close(); // will trigger onClose
+      },
+      onClose: () => {
+        this.target.restore();
+        this.target.clear();
+        this.popover = null;
+      },
+    });
+
+    this.popover.open(prompts);
+  }
+
+  private async handlePageReady(): Promise<void> {
+    // nop
+  }
+
   private _onRuntimeMessage = async (message: Message): Promise<MessageResponse | void> => {
     if (!isMessage(message)) {
       logger.warn("Ignoring non-message:", message);
@@ -148,36 +180,6 @@ export class ContentController {
         return;
     }
   };
-
-  async openPopover(): Promise<void> {
-    if (this.popover) {
-      logger.warn("Refusing to open popover: already open");
-      return;
-    }
-
-    // Remember where to insert *before* opening UI
-    this.target.remember(document.activeElement);
-
-    const prompts = await this.api.getPrompts();
-
-    // Lazy init popover to wire handlers with dependencies
-    this.popover = new PopoverUI({
-      searchFn: new SearchService().search,
-      onSelect: async (prompt: Prompt) => {
-        await this.api.recordUsage(prompt.id);
-        this.target.restore();
-        await this._insertPrompt(prompt);
-        this.popover?.close(); // will trigger onClose
-      },
-      onClose: () => {
-        this.target.restore();
-        this.target.clear();
-        this.popover = null;
-      },
-    });
-
-    this.popover.open(prompts);
-  }
 
   private async _insertPrompt(prompt: Prompt): Promise<void> {
     const opts: InsertTextOptions = {
