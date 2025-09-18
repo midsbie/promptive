@@ -1,11 +1,12 @@
 import browser from "webextension-polyfill";
 
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
-import { Provider, getProviderConfig } from "../lib/promptivd";
+import { Provider } from "../lib/providers";
 import { SearchService } from "../lib/services";
 import { InsertPosition, Prompt } from "../lib/storage";
 
 import { CursorPositionManager } from "./CursorPositionManager";
+import { InputFocusManager } from "./InputFocusManager";
 import { PageReadinessTracker } from "./PageReadinessTracker";
 import { PopoverUI } from "./PopoverUI";
 import {
@@ -86,6 +87,7 @@ export class ContentController {
   private clipboardWriter: ClipboardWriter;
   private popover: PopoverUI | null = null;
   private readinessTracker: PageReadinessTracker;
+  private inputFocusManager: InputFocusManager;
 
   constructor() {
     this.api = new BackgroundAPI();
@@ -98,6 +100,7 @@ export class ContentController {
 
     this.clipboardWriter = new ClipboardWriter();
     this.readinessTracker = new PageReadinessTracker();
+    this.inputFocusManager = new InputFocusManager();
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
 
     logger.info("initialized");
@@ -233,26 +236,9 @@ export class ContentController {
 
   private async _handleFocusProviderInput(provider: Provider): Promise<{ error: string | null }> {
     try {
-      const config = getProviderConfig(provider);
-      const inputElement = document.querySelector(config.inputSelector) as HTMLElement;
-
-      if (!inputElement) {
+      const success = this.inputFocusManager.focusProviderInput(provider);
+      if (!success) {
         return { error: `Provider input element not found for ${provider}` };
-      }
-
-      // Focus the input element
-      inputElement.focus();
-
-      // If it's a contenteditable element, also set cursor position
-      if (inputElement.isContentEditable) {
-        const selection = window.getSelection();
-        if (selection) {
-          const range = document.createRange();
-          range.selectNodeContents(inputElement);
-          range.collapse(false); // Place cursor at end
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
       }
 
       logger.info("Successfully focused provider input", { provider });
