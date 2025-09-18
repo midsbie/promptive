@@ -6,6 +6,7 @@ import { SearchService } from "../lib/services";
 import { InsertPosition, Prompt } from "../lib/storage";
 
 import { CursorPositionManager } from "./CursorPositionManager";
+import { PageReadinessTracker } from "./PageReadinessTracker";
 import { PopoverUI } from "./PopoverUI";
 import {
   ClipboardWriter,
@@ -17,31 +18,6 @@ import {
 import { logger } from "./logger";
 import { BackgroundAPI, ToastService } from "./services";
 import { CursorPosition } from "./typedefs";
-
-class PageReadinessTracker {
-  private isReady = false;
-
-  constructor() {
-    this.initialize();
-  }
-
-  private initialize(): void {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
-    } else {
-      this.isReady = true;
-    }
-  }
-
-  private handleDOMContentLoaded = (): void => {
-    this.isReady = true;
-    document.removeEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
-  };
-
-  getReadiness(): boolean {
-    return this.isReady;
-  }
-}
 
 class Target {
   isAcceptable: (el: Element | null) => boolean;
