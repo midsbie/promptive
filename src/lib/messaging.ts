@@ -28,7 +28,7 @@ type MessageMap = {
 type ResponseMap = {
   [MSG.GET_PROMPTS]: { prompts: Prompt[] };
   [MSG.RECORD_PROMPT_USAGE]: void;
-  [MSG.QUERY_STATUS]: { active: boolean };
+  [MSG.QUERY_STATUS]: { active: boolean; ready: boolean };
   [MSG.OPEN_POPOVER]: void;
   [MSG.INSERT_PROMPT]: void;
   [MSG.INSERT_TEXT]: { error: string | null };

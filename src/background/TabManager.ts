@@ -65,14 +65,18 @@ export class TabManager {
     return tab;
   }
 
-  async waitForContentScript(tabId: number, timeoutMs: number = 10000): Promise<void> {
+  async waitForContentScript(
+    tabId: number,
+    opts: { timeoutMs: number; waitForReady: boolean } | null
+  ): Promise<void> {
+    const { timeoutMs = 10000, waitForReady = false } = opts ?? {};
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
       try {
         const response = await sendToTab(tabId, createMessage(MSG.QUERY_STATUS));
-        if (response.active) {
-          logger.info("Content script is ready", { tabId });
+        if (response.active && (!waitForReady || response.ready)) {
+          logger.info("Content script is ready", { tabId, ready: response.ready });
           return;
         }
       } catch {

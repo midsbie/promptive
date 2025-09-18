@@ -18,6 +18,31 @@ import { logger } from "./logger";
 import { BackgroundAPI, ToastService } from "./services";
 import { CursorPosition } from "./typedefs";
 
+class PageReadinessTracker {
+  private isReady = false;
+
+  constructor() {
+    this.initialize();
+  }
+
+  private initialize(): void {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
+    } else {
+      this.isReady = true;
+    }
+  }
+
+  private handleDOMContentLoaded = (): void => {
+    this.isReady = true;
+    document.removeEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
+  };
+
+  getReadiness(): boolean {
+    return this.isReady;
+  }
+}
+
 class Target {
   isAcceptable: (el: Element | null) => boolean;
   element: Element | null = null;
@@ -73,6 +98,7 @@ export class ContentController {
   private textInserter: TextInserter;
   private clipboardWriter: ClipboardWriter;
   private popover: PopoverUI | null = null;
+  private readinessTracker: PageReadinessTracker;
 
   constructor() {
     this.api = new BackgroundAPI();
@@ -84,6 +110,7 @@ export class ContentController {
     ]);
 
     this.clipboardWriter = new ClipboardWriter();
+    this.readinessTracker = new PageReadinessTracker();
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
 
     logger.info("initialized");
@@ -97,7 +124,7 @@ export class ContentController {
 
     switch (message.action) {
       case MSG.QUERY_STATUS:
-        return Promise.resolve({ active: true });
+        return Promise.resolve({ active: true, ready: this.readinessTracker.getReadiness() });
 
       case MSG.OPEN_POPOVER:
         await this.openPopover();
