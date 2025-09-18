@@ -39,6 +39,17 @@ class Target {
     this.cursorPosition = CursorPositionManager.getPosition(el);
   }
 
+  async withRemembered<T>(el: Element | null, fn: () => Promise<T>): Promise<T> {
+    this.remember(el);
+
+    try {
+      return await fn();
+    } finally {
+      this.restore();
+      this.clear();
+    }
+  }
+
   // Warning: do not clear the target element in this function.
   restore(): boolean {
     if (!this.element?.isConnected) return false;
@@ -107,18 +118,17 @@ export class ContentController {
         return;
 
       case MSG.INSERT_PROMPT:
-        // Direct insertion path (bypassing popover)
-        this.target.remember(document.activeElement);
-        await this._insertPrompt(message.prompt);
-        this.target.clear();
+        await this.target.withRemembered(document.activeElement, () =>
+          this._insertPrompt(message.prompt)
+        );
         return;
 
       case MSG.INSERT_TEXT: {
         this.popover?.close();
-        this.target.remember(document.activeElement);
-        const ok = this._handleInsertText(message.text, message.insertAt);
-        this.target.clear();
-        return ok;
+        this.inputFocusManager.focusProviderInput();
+        return await this.target.withRemembered(document.activeElement, () =>
+          this._handleInsertText(message.text, message.insertAt)
+        );
       }
 
       case MSG.FOCUS_PROVIDER_INPUT: {
