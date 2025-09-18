@@ -7,6 +7,16 @@ import { Provider, getProviderConfig, isTabFromProvider } from "../lib/providers
 import { logger } from "./logger";
 
 export class TabManager {
+  static async getActiveTab(): Promise<browser.Tabs.Tab | undefined> {
+    try {
+      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+      return tabs[0];
+    } catch {
+      logger.warn("Failed to get active tab");
+      return null;
+    }
+  }
+
   async findOrCreateProviderTab(
     provider: Provider,
     sessionPolicy: SessionPolicy
