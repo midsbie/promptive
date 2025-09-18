@@ -14,7 +14,8 @@ export class ConnectionManager {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private handlers: ConnectionEventHandlers | null = null;
 
-  constructor(endpoint: string, reconnectDelayMs: number = 3000) {
+  constructor(opts: { endpoint: string; reconnectDelayMs?: number }) {
+    const { endpoint, reconnectDelayMs = 3000 } = opts;
     this.endpoint = endpoint;
     this.reconnectDelayMs = reconnectDelayMs;
   }
@@ -28,10 +29,10 @@ export class ConnectionManager {
 
     try {
       this.socket = new WebSocket(this.endpoint);
-      this.socket.addEventListener("open", this.handleOpen);
-      this.socket.addEventListener("message", this.handleMessage);
-      this.socket.addEventListener("error", this.handleError);
-      this.socket.addEventListener("close", this.handleClose);
+      this.socket.addEventListener("open", this.onOpen);
+      this.socket.addEventListener("message", this.onMessage);
+      this.socket.addEventListener("error", this.onError);
+      this.socket.addEventListener("close", this.onClose);
       logger.info("Connecting to endpoint", this.endpoint);
     } catch (error) {
       logger.error("Failed to create WebSocket", error);
@@ -43,10 +44,10 @@ export class ConnectionManager {
     this.clearReconnectTimer();
     if (!this.socket) return;
 
-    this.socket.removeEventListener("open", this.handleOpen);
-    this.socket.removeEventListener("message", this.handleMessage);
-    this.socket.removeEventListener("error", this.handleError);
-    this.socket.removeEventListener("close", this.handleClose);
+    this.socket.removeEventListener("open", this.onOpen);
+    this.socket.removeEventListener("message", this.onMessage);
+    this.socket.removeEventListener("error", this.onError);
+    this.socket.removeEventListener("close", this.onClose);
 
     try {
       if (
@@ -94,19 +95,12 @@ export class ConnectionManager {
     }, this.reconnectDelayMs);
   }
 
-  private clearReconnectTimer(): void {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-  }
-
-  private handleOpen = (): void => {
+  private onOpen = (): void => {
     logger.info("WebSocket connected");
     this.handlers?.onOpen();
   };
 
-  private handleMessage = (event: MessageEvent<string>): void => {
+  private onMessage = (event: MessageEvent<string>): void => {
     const data = typeof event.data === "string" ? event.data : null;
     if (data === null) {
       logger.warn("Received non-text frame", event.data);
@@ -115,14 +109,21 @@ export class ConnectionManager {
     this.handlers?.onMessage(data);
   };
 
-  private handleError = (event: Event): void => {
+  private onError = (event: Event): void => {
     logger.error("WebSocket error", event);
     this.handlers?.onError(event);
   };
 
-  private handleClose = (): void => {
+  private onClose = (): void => {
     logger.warn("WebSocket closed");
     this.socket = null;
     this.handlers?.onClose();
   };
+
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+  }
 }

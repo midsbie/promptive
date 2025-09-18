@@ -7,9 +7,13 @@ export class Router {
   private routes: Route[] = [];
   private currentView: any = null;
 
+  static back(): void {
+    (window as any).router?.navigate("/");
+  }
+
   constructor() {
-    window.addEventListener("hashchange", () => this.handleRoute());
-    window.addEventListener("load", () => this.handleRoute());
+    window.addEventListener("hashchange", this.onRouteChanged);
+    window.addEventListener("load", this.onRouteChanged);
   }
 
   addRoute(path: string, handler: () => void): void {
@@ -24,7 +28,7 @@ export class Router {
     this.currentView = view;
   }
 
-  private handleRoute(): void {
+  private onRouteChanged = (): void => {
     const hash = window.location.hash.slice(1) || "/";
 
     if (this.currentView?.destroy) {
@@ -39,7 +43,7 @@ export class Router {
     }
 
     this.navigate("/");
-  }
+  };
 
   private matchRoute(routePath: string, currentPath: string): boolean {
     if (routePath === currentPath) return true;

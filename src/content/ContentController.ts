@@ -103,9 +103,7 @@ export class ContentController {
     this.inputFocusManager = new InputFocusManager();
     browser.runtime.onMessage.addListener(this.onRuntimeMessage);
 
-    this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, () => {
-      this.handlePageReady();
-    });
+    this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, this.onPageReady);
     this.readinessTracker.initialize();
 
     logger.info("initialized");
@@ -139,54 +137,9 @@ export class ContentController {
     this.popover.open(prompts);
   }
 
-  private async handlePageReady(): Promise<void> {
+  onPageReady = async (): Promise<void> => {
     // nop
-  }
-
-  private async handleInsertText(
-    text: string,
-    insertAt?: InsertPosition
-  ): Promise<{ error: string | null }> {
-    try {
-      const target = this.target.element || document.activeElement;
-      if (!this.textInserter.canHandle(target)) {
-        return { error: "No suitable text insertion target found" };
-      }
-
-      const opts: InsertTextOptions = {
-        target,
-        content: text,
-        insertAt: insertAt || "cursor",
-      };
-      if (!this.textInserter.insert(opts)) {
-        return { error: "Failed to insert text into target element" };
-      }
-
-      logger.info("Text insertion successful");
-
-      return { error: null };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("Error in handleInsertText:", error);
-      return { error: errorMessage };
-    }
-  }
-
-  private async handleFocusProviderInput(provider: Provider): Promise<{ error: string | null }> {
-    try {
-      const success = this.inputFocusManager.focusProviderInput(provider);
-      if (!success) {
-        return { error: `Provider input element not found for ${provider}` };
-      }
-
-      logger.info("Successfully focused provider input", { provider });
-      return { error: null };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("Error focusing provider input:", { provider, error });
-      return { error: errorMessage };
-    }
-  }
+  };
 
   private onRuntimeMessage = async (message: Message): Promise<MessageResponse | void> => {
     if (!isMessage(message)) {
@@ -212,12 +165,12 @@ export class ContentController {
         this.popover?.close();
         this.inputFocusManager.focusProviderInput();
         return await this.target.withRemembered(document.activeElement, () =>
-          this.handleInsertText(message.text, message.insertAt)
+          this.insertText(message.text, message.insertAt)
         );
       }
 
       case MSG.FOCUS_PROVIDER_INPUT: {
-        return this.handleFocusProviderInput(message.provider);
+        return this.focusOnProviderInput(message.provider);
       }
 
       default:
@@ -225,6 +178,22 @@ export class ContentController {
         return;
     }
   };
+
+  private async focusOnProviderInput(provider: Provider): Promise<{ error: string | null }> {
+    try {
+      const success = this.inputFocusManager.focusProviderInput(provider);
+      if (!success) {
+        return { error: `Provider input element not found for ${provider}` };
+      }
+
+      logger.info("Successfully focused provider input", { provider });
+      return { error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error focusing provider input:", { provider, error });
+      return { error: errorMessage };
+    }
+  }
 
   private async insertPrompt(prompt: Prompt): Promise<void> {
     const opts: InsertTextOptions = {
@@ -240,6 +209,35 @@ export class ContentController {
 
     logger.warn(`Failed to insert prompt: copying to clipboard instead`);
     await this.copyToClipboard(opts.content);
+  }
+
+  private async insertText(
+    text: string,
+    insertAt?: InsertPosition
+  ): Promise<{ error: string | null }> {
+    try {
+      const target = this.target.element || document.activeElement;
+      if (!this.textInserter.canHandle(target)) {
+        return { error: "No suitable text insertion target found" };
+      }
+
+      const opts: InsertTextOptions = {
+        target,
+        content: text,
+        insertAt: insertAt || "cursor",
+      };
+      if (!this.textInserter.insert(opts)) {
+        return { error: "Failed to insert text into target element" };
+      }
+
+      logger.info("Text insertion successful");
+
+      return { error: null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error in insertText:", error);
+      return { error: errorMessage };
+    }
   }
 
   private async copyToClipboard(text: string) {

@@ -7,7 +7,7 @@ class PageReadinessTrackerBase {
 
   initialize(): void {
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
+      document.addEventListener("DOMContentLoaded", this.onDOMContentLoaded);
       return;
     }
 
@@ -15,9 +15,9 @@ class PageReadinessTrackerBase {
     this.notifyReady();
   }
 
-  private handleDOMContentLoaded = (): void => {
+  private onDOMContentLoaded = (): void => {
     this.isReady = true;
-    document.removeEventListener("DOMContentLoaded", this.handleDOMContentLoaded);
+    document.removeEventListener("DOMContentLoaded", this.onDOMContentLoaded);
     this.notifyReady();
   };
 

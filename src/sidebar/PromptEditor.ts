@@ -1,6 +1,7 @@
 import { Prompt, PromptRepository } from "../lib/storage";
 
 import { logger } from "./logger";
+import { Router } from "./Router";
 import { ToastService } from "./services";
 
 export class PromptEditor {
@@ -16,21 +17,17 @@ export class PromptEditor {
     this.promptId = promptId || null;
     this.isDirty = false;
     this.prompt = null;
-
-    this.init().catch((e) => {
-      logger.error("PromptEditor initialization failed", e);
-      this.toasts.show("Failed to initialize editor");
-    });
   }
 
-  async init(): Promise<void> {
+  async initialize(): Promise<void> {
     await this.repo.initialize();
 
     if (this.promptId) {
       this.prompt = await this.repo.getPrompt(this.promptId);
+
       if (!this.prompt) {
         logger.error(`Prompt not found: ${this.promptId}`);
-        this.navigateBack();
+        Router.back();
         return;
       }
     }
@@ -109,7 +106,7 @@ export class PromptEditor {
 
   private bindEvents(): void {
     document.getElementById("backBtn")!.addEventListener("click", () => {
-      this.handleBack();
+      this.confirmNavigateBack();
     });
 
     document.getElementById("saveBtn")!.addEventListener("click", (e) => {
@@ -135,22 +132,19 @@ export class PromptEditor {
         this.save();
       } else if (e.key === "Escape") {
         e.preventDefault();
-        this.handleBack();
+        this.confirmNavigateBack();
       }
     });
   }
 
-  private handleBack(): void {
+  private confirmNavigateBack(): void {
     if (this.isDirty) {
       if (!confirm("You have unsaved changes. Are you sure you want to go back?")) {
         return;
       }
     }
-    this.navigateBack();
-  }
 
-  private navigateBack(): void {
-    (window as any).router?.navigate("/");
+    Router.back();
   }
 
   private async save(): Promise<void> {
@@ -186,14 +180,10 @@ export class PromptEditor {
       await this.repo.savePrompt(payload);
       this.isDirty = false;
       this.toasts.show(this.promptId ? "Prompt updated" : "Prompt added");
-      this.navigateBack();
+      Router.back();
     } catch (e) {
       logger.error("Save failed", e);
       this.toasts.show("Failed to save prompt");
     }
-  }
-
-  destroy(): void {
-    document.removeEventListener("keydown", this.handleBack);
   }
 }

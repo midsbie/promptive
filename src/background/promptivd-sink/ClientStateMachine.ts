@@ -29,9 +29,17 @@ export interface StateTransitionTable {
   };
 }
 
-export class ClientStateMachine {
+export type StateChangeEvent = {
+  oldState: ClientState;
+  newState: ClientState;
+  event: ClientEvent;
+};
+
+export class ClientStateMachine extends EventTarget {
+  static readonly EVENT_STATE_CHANGE = "stateChange";
+
   private currentState: ClientState = ClientState.Disconnected;
-  private readonly onStateChange: StateChangeHandler;
+
   private readonly transitions: StateTransitionTable = {
     [ClientState.Disconnected]: {
       [ClientEvent.Start]: ClientState.Connecting,
@@ -62,10 +70,6 @@ export class ClientStateMachine {
     [ClientState.Stopped]: {},
   };
 
-  constructor(onStateChange: StateChangeHandler) {
-    this.onStateChange = onStateChange;
-  }
-
   getCurrentState(): ClientState {
     return this.currentState;
   }
@@ -92,7 +96,11 @@ export class ClientStateMachine {
       event,
     });
 
-    this.onStateChange(oldState, newState, event);
+    this.dispatchEvent(
+      new CustomEvent<StateChangeEvent>(ClientStateMachine.EVENT_STATE_CHANGE, {
+        detail: { oldState, newState, event },
+      })
+    );
     return true;
   }
 

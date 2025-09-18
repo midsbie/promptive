@@ -100,11 +100,11 @@ export class BackgroundApp {
     });
   };
 
-  handleInstalled(): void {
+  onInstalled(): void {
     logger.info("Extension installed");
   }
 
-  handleMessage(
+  onMessage(
     request: Message,
     _sender: Runtime.MessageSender,
     reply: (response: unknown) => void
@@ -120,7 +120,7 @@ export class BackgroundApp {
     return true;
   }
 
-  handleStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
+  onStorageChanged(changes: Record<string, Storage.StorageChange>, area: string): void {
     // The handlers object is null until applySettings is called, however PromptRepository causes
     // two storage change events in quick succession during this time, causing two errors, which we
     // must guard against.
@@ -129,37 +129,37 @@ export class BackgroundApp {
     });
   }
 
-  handleActionClicked(tab: Tabs.Tab): void {
+  onActionClicked(tab: Tabs.Tab): void {
     this.handlers.onActionClicked(tab).catch((e) => {
       logger.error("Error in onActionClicked handler:", e);
     });
   }
 
-  handleCommand(command: string): void {
+  onCommand(command: string): void {
     this.handlers.onCommand(command).catch((e) => {
       logger.error("Error in onCommand handler:", e);
     });
   }
 
-  handleContextMenuClick(info: Menus.OnClickData, tab?: Tabs.Tab): void {
+  onContextMenuClick(info: Menus.OnClickData, tab?: Tabs.Tab): void {
     this.handlers.onContextMenuClick(info, tab).catch((e) => {
       logger.error("Error in onContextMenuClick handler:", e);
     });
   }
 
-  handleTabUpdated(tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab): void {
+  onTabUpdated(tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab): void {
     this.tabObserver.onTabUpdated(tabId, info, tab).catch((e) => {
       logger.error("Error in onTabUpdated handler:", e);
     });
   }
 
-  handleTabActivated(info: Tabs.OnActivatedActiveInfoType): void {
+  onTabActivated(info: Tabs.OnActivatedActiveInfoType): void {
     this.tabObserver.onTabActivated(info).catch((e) => {
       logger.error("Error in onTabActivated handler:", e);
     });
   }
 
-  handleWindowFocusChanged(winId: number): void {
+  onWindowFocusChanged(winId: number): void {
     this.tabObserver.onWindowFocusChanged(winId).catch((e) => {
       logger.error("Error in onWindowFocusChanged handler:", e);
     });
@@ -170,16 +170,16 @@ const app = new BackgroundApp();
 app.initialize().catch((e) => logger.error("Fatal init error:", e));
 
 // This pattern should make it easy to migrate to a service worker in the future if needed.
-browser.action.onClicked.addListener((tab) => app.handleActionClicked(tab));
-browser.commands.onCommand.addListener((command) => app.handleCommand(command));
-browser.contextMenus.onClicked.addListener((info, tab) => app.handleContextMenuClick(info, tab));
-browser.runtime.onInstalled.addListener(() => app.handleInstalled());
-browser.storage.onChanged.addListener((changes, area) => app.handleStorageChanged(changes, area));
-browser.tabs.onActivated.addListener((info) => app.handleTabActivated(info));
-browser.tabs.onUpdated.addListener((tabId, info, tab) => app.handleTabUpdated(tabId, info, tab));
-browser.windows.onFocusChanged.addListener((winId) => app.handleWindowFocusChanged(winId));
+browser.action.onClicked.addListener((tab) => app.onActionClicked(tab));
+browser.commands.onCommand.addListener((command) => app.onCommand(command));
+browser.contextMenus.onClicked.addListener((info, tab) => app.onContextMenuClick(info, tab));
+browser.runtime.onInstalled.addListener(() => app.onInstalled());
+browser.storage.onChanged.addListener((changes, area) => app.onStorageChanged(changes, area));
+browser.tabs.onActivated.addListener((info) => app.onTabActivated(info));
+browser.tabs.onUpdated.addListener((tabId, info, tab) => app.onTabUpdated(tabId, info, tab));
+browser.windows.onFocusChanged.addListener((winId) => app.onWindowFocusChanged(winId));
 
 browser.runtime.onMessage.addListener(
   (request: Message, sender: Runtime.MessageSender, reply: (response: unknown) => void): true =>
-    app.handleMessage(request, sender, reply)
+    app.onMessage(request, sender, reply)
 );

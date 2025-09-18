@@ -1,6 +1,6 @@
 import { ClientEvent, ClientState, ClientStateMachine } from "./ClientStateMachine";
 import { ConnectionEventHandlers, ConnectionManager } from "./ConnectionManager";
-import { AckStatus, JobManager } from "./JobManager";
+import { AckStatus, JobManager, JobTimeoutEvent } from "./JobManager";
 import { PolicyFrame, PolicyManager } from "./PolicyManager";
 import { logger } from "./logger";
 
@@ -91,9 +91,9 @@ export class PromptivdSinkClient extends EventTarget {
   readonly endpoint: string;
   private readonly extensionVersion: string;
   private readonly providers: string[];
+  private readonly policyManager: PolicyManager;
   private readonly connectionManager: ConnectionManager;
   private readonly jobManager: JobManager;
-  private readonly policyManager: PolicyManager;
   private readonly stateMachine: ClientStateMachine;
 
   constructor(options: PromptivdSinkOptions) {
@@ -103,10 +103,18 @@ export class PromptivdSinkClient extends EventTarget {
     this.extensionVersion = options.extensionVersion;
     this.providers = options.providers ?? [];
 
-    this.connectionManager = new ConnectionManager(this.endpoint, options.reconnectDelayMs ?? 3000);
-    this.jobManager = new JobManager(options.jobTimeoutMs ?? 30000, this.handleJobTimeout);
     this.policyManager = new PolicyManager();
-    this.stateMachine = new ClientStateMachine(this.handleStateChange);
+
+    this.connectionManager = new ConnectionManager({
+      endpoint: this.endpoint,
+      reconnectDelayMs: options.reconnectDelayMs,
+    });
+
+    this.jobManager = new JobManager({ jobTimeoutMs: options.jobTimeoutMs ?? 30000 });
+    this.jobManager.addEventListener(JobManager.EVENT_JOB_TIMEOUT, this.onJobTimeout);
+
+    this.stateMachine = new ClientStateMachine();
+    this.stateMachine.addEventListener(ClientStateMachine.EVENT_STATE_CHANGE, this.onStateChange);
   }
 
   start(): void {
@@ -131,14 +139,12 @@ export class PromptivdSinkClient extends EventTarget {
     return this.stateMachine.getCurrentState();
   }
 
-  private handleStateChange = (
-    oldState: ClientState,
-    newState: ClientState,
-    event: ClientEvent
-  ): void => {
+  private onStateChange = (event: CustomEvent<StateChangeEvent>): void => {
+    const { oldState, newState, event: stateEvent } = event.detail;
+
     this.dispatchEvent(
       new CustomEvent<StateChangeEvent>(PromptivdSinkClient.EVENT_STATE_CHANGE, {
-        detail: { oldState, newState, event },
+        detail: { oldState, newState, event: stateEvent },
       })
     );
 
@@ -163,31 +169,7 @@ export class PromptivdSinkClient extends EventTarget {
     }
   };
 
-  private connectToRelay(): void {
-    const handlers: ConnectionEventHandlers = {
-      onOpen: () => {
-        this.policyManager.reset();
-        this.stateMachine.transition(ClientEvent.ConnectionOpened);
-      },
-      onMessage: this.handleMessage,
-      onError: (_event: Event) => {
-        this.dispatchEvent(
-          new CustomEvent<ConnectionErrorEvent>(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
-            detail: { error: "WebSocket connection error" },
-          })
-        );
-        this.stateMachine.transition(ClientEvent.ConnectionError);
-      },
-      onClose: () => {
-        this.jobManager.clearOutstanding();
-        this.stateMachine.transition(ClientEvent.ConnectionClosed);
-      },
-    };
-
-    this.connectionManager.connect(handlers);
-  }
-
-  private handleMessage = (data: string): void => {
+  private onMessage = (data: string): void => {
     let frame: RelayInboundFrame | PongFrame | null = null;
     try {
       frame = JSON.parse(data) as RelayInboundFrame | PongFrame;
@@ -206,7 +188,7 @@ export class PromptivdSinkClient extends EventTarget {
         this.sendFrame({ type: "pong", schema_version: SCHEMA_VERSION });
         return;
       case "insert_text":
-        this.handleInsertTextFrame(frame).catch((error) => {
+        this.insertTextFrame(frame).catch((error) => {
           logger.error("Unhandled insert handler error", error);
         });
         return;
@@ -215,7 +197,39 @@ export class PromptivdSinkClient extends EventTarget {
     }
   };
 
-  private handleInsertTextFrame = async (frame: InsertTextFrame): Promise<void> => {
+  private onJobTimeout = (event: CustomEvent<JobTimeoutEvent>): void => {
+    this.sendAck({
+      id: event.detail.jobId,
+      status: "failed",
+      error: "Job timed out before completion",
+    });
+  };
+
+  private connectToRelay(): void {
+    const handlers: ConnectionEventHandlers = {
+      onOpen: () => {
+        this.policyManager.reset();
+        this.stateMachine.transition(ClientEvent.ConnectionOpened);
+      },
+      onMessage: this.onMessage,
+      onError: (_event: Event) => {
+        this.dispatchEvent(
+          new CustomEvent<ConnectionErrorEvent>(PromptivdSinkClient.EVENT_CONNECTION_ERROR, {
+            detail: { error: "WebSocket connection error" },
+          })
+        );
+        this.stateMachine.transition(ClientEvent.ConnectionError);
+      },
+      onClose: () => {
+        this.jobManager.clearOutstanding();
+        this.stateMachine.transition(ClientEvent.ConnectionClosed);
+      },
+    };
+
+    this.connectionManager.connect(handlers);
+  }
+
+  private async insertTextFrame(frame: InsertTextFrame): Promise<void> {
     if (!this.jobManager.startJob(frame.id)) return;
 
     this.dispatchEvent(
@@ -225,15 +239,7 @@ export class PromptivdSinkClient extends EventTarget {
     );
 
     this.resolveJob(frame.id, "ok", null);
-  };
-
-  private handleJobTimeout = (jobId: string): void => {
-    this.sendAck({
-      id: jobId,
-      status: "failed",
-      error: "Job timed out before completion",
-    });
-  };
+  }
 
   completeJob(jobId: string): void {
     this.resolveJob(jobId, "ok", null);

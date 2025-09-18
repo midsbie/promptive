@@ -8,23 +8,24 @@ export interface JobResult {
   error: string | null;
 }
 
-export interface JobTimeoutHandler {
-  (jobId: string): void;
+export interface JobTimeoutEvent {
+  jobId: string;
 }
 
 interface JobTracker {
   timer: ReturnType<typeof setTimeout>;
 }
 
-export class JobManager {
+export class JobManager extends EventTarget {
+  static readonly EVENT_JOB_TIMEOUT = "jobtimeout";
+
   private readonly jobTimeoutMs: number;
-  private readonly onJobTimeout: JobTimeoutHandler;
   private readonly outstandingJobs = new Map<string, JobTracker>();
   private readonly completedJobs = new Set<string>();
 
-  constructor(jobTimeoutMs: number, onJobTimeout: JobTimeoutHandler) {
-    this.jobTimeoutMs = jobTimeoutMs;
-    this.onJobTimeout = onJobTimeout;
+  constructor(opts: { jobTimeoutMs: number }) {
+    super();
+    this.jobTimeoutMs = opts.jobTimeoutMs;
   }
 
   startJob(jobId: string): boolean {
@@ -41,7 +42,9 @@ export class JobManager {
       if (!this.completedJobs.has(jobId)) {
         this.completedJobs.add(jobId);
         logger.warn("Job timed out", jobId);
-        this.onJobTimeout(jobId);
+        this.dispatchEvent(
+          new CustomEvent<JobTimeoutEvent>(JobManager.EVENT_JOB_TIMEOUT, { detail: { jobId } })
+        );
       }
     }, this.jobTimeoutMs);
 
