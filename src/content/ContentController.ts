@@ -103,6 +103,11 @@ export class ContentController {
     this.inputFocusManager = new InputFocusManager();
     browser.runtime.onMessage.addListener(this._onRuntimeMessage);
 
+    this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, () => {
+      this.handlePageReady();
+    });
+    this.readinessTracker.initialize();
+
     logger.info("initialized");
   }
 
