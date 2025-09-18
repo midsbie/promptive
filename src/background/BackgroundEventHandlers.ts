@@ -33,8 +33,14 @@ export class BackgroundEventHandlers {
   };
 
   onCommand = async (command: string) => {
-    if (command === commands.OPEN_PROMPT_SELECTOR) {
-      await Commands.openPromptSelector();
+    switch (command) {
+      case commands.OPEN_PROMPT_SELECTOR:
+        await Commands.openPromptSelector();
+        return;
+
+      default:
+        logger.warn("Ignoring unknown command:", command);
+        return;
     }
   };
 
@@ -47,24 +53,21 @@ export class BackgroundEventHandlers {
     const { menuItemId } = info;
 
     switch (menuItemId) {
-      case Commands.CMD_OPEN_PROMPT_SELECTOR:
+      case commands.OPEN_PROMPT_SELECTOR:
         await Commands.openPromptSelector(tab.id);
         return;
 
-      case Commands.CMD_MANAGE_PROMPTS:
+      case commands.MANAGE_PROMPTS:
         await browser.sidebarAction.open();
         return;
     }
 
-    if (
-      typeof menuItemId !== "string" ||
-      !menuItemId.startsWith(Commands.CMD_SELECT_PROMPT_PREFIX)
-    ) {
+    if (typeof menuItemId !== "string" || !menuItemId.startsWith(commands.SELECT_PROMPT_PREFIX)) {
       logger.warn("Ignoring unknown context menu item:", menuItemId);
       return;
     }
 
-    const promptId = menuItemId.slice(Commands.CMD_SELECT_PROMPT_PREFIX.length);
+    const promptId = menuItemId.slice(commands.SELECT_PROMPT_PREFIX.length);
     const prompt = await this.repo.getPrompt(promptId);
     if (!prompt) {
       logger.warn("Prompt not found for id:", promptId);

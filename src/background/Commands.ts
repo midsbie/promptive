@@ -5,10 +5,6 @@ import { MSG, createMessage, sendToTab } from "../lib/messaging";
 import { logger } from "./logger";
 
 export class Commands {
-  static readonly CMD_SELECT_PROMPT_PREFIX = "select-prompt-";
-  static readonly CMD_OPEN_PROMPT_SELECTOR = "open-prompt-selector";
-  static readonly CMD_MANAGE_PROMPTS = "manage-prompts";
-
   static async getActiveTab(): Promise<browser.Tabs.Tab | undefined> {
     try {
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });

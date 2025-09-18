@@ -1,9 +1,9 @@
 import browser from "webextension-polyfill";
 
+import { commands } from "../lib/commands";
 import { AppSettings, ContextMenuSortOrder } from "../lib/settings";
 import { Prompt } from "../lib/storage";
 
-import { Commands } from "./Commands";
 import { logger } from "./logger";
 
 const sortAlphabetical = (prompts: Prompt[]): Prompt[] => {
@@ -65,7 +65,7 @@ export class ContextMenuService {
     // Items
     for (const p of sorted) {
       browser.contextMenus.create({
-        id: `${Commands.CMD_SELECT_PROMPT_PREFIX}${p.id}`,
+        id: `${commands.SELECT_PROMPT_PREFIX}${p.id}`,
         parentId: ContextMenuService.MENU_ID,
         title: p.title,
         contexts: ["editable", "page"],
@@ -84,14 +84,14 @@ export class ContextMenuService {
     }
 
     browser.contextMenus.create({
-      id: Commands.CMD_OPEN_PROMPT_SELECTOR,
+      id: commands.OPEN_PROMPT_SELECTOR,
       parentId: ContextMenuService.MENU_ID,
       title: "Open Prompt Selector...",
       contexts: ["editable", "page"],
     });
 
     browser.contextMenus.create({
-      id: Commands.CMD_MANAGE_PROMPTS,
+      id: commands.MANAGE_PROMPTS,
       parentId: ContextMenuService.MENU_ID,
       title: "Manage Prompts...",
       contexts: ["editable", "page"],
