@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 
-import { Provider } from "./promptivd";
+import { Provider } from "./providers";
 import { InsertPosition, Prompt } from "./storage";
 
 export const MSG = {

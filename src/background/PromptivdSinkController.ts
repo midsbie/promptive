@@ -2,14 +2,8 @@ import browser from "webextension-polyfill";
 
 import { resolveErrorMessage } from "../lib/error";
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
-import {
-  Provider,
-  SessionPolicy,
-  isProvider,
-  isSessionPolicy,
-  mapPlacementToInsertPosition,
-  providers,
-} from "../lib/promptivd";
+import { SessionPolicy, isSessionPolicy, mapPlacementToInsertPosition } from "../lib/promptivd";
+import { Provider, isProvider, providers } from "../lib/providers";
 import { AppSettings } from "../lib/settings";
 
 import {

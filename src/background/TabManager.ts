@@ -1,7 +1,8 @@
 import browser from "webextension-polyfill";
 
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
-import { Provider, SessionPolicy, getProviderConfig, isProviderTab } from "../lib/promptivd";
+import { SessionPolicy } from "../lib/promptivd";
+import { Provider, getProviderConfig, isTabFromProvider } from "../lib/providers";
 
 import { logger } from "./logger";
 
@@ -38,16 +39,14 @@ export class TabManager {
     if (!tab || !tab.id) throw new Error("No active tab found");
 
     logger.error("Active tab", tab.id, tab.url, provider);
-    if (tab.url && isProviderTab(tab.url, provider)) return tab;
-
-    return null;
+    return tab.url && isTabFromProvider(tab.url, provider) ? tab : null;
   }
 
   private async findProviderTab(provider: Provider): Promise<browser.Tabs.Tab | null> {
     const tabs = await browser.tabs.query({});
 
     for (const tab of tabs) {
-      if (tab.url && isProviderTab(tab.url, provider)) {
+      if (tab.url && isTabFromProvider(tab.url, provider)) {
         return tab;
       }
     }
