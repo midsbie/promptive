@@ -45,6 +45,11 @@ export class BackgroundApp {
       return;
     }
 
+    this.settingsRepo.addEventListener(
+      SettingsRepository.EVENT_SETTINGS_CHANGED,
+      this.onSettingsChange
+    );
+
     await this.promptsRepo.initialize();
     await this.applySettings();
 
@@ -53,11 +58,6 @@ export class BackgroundApp {
   }
 
   async applySettings(): Promise<AppSettings> {
-    this.handlers?.removeEventListener(
-      BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
-      this.onSettingsChange
-    );
-
     await this.settingsRepo.initialize();
     const settings = Object.freeze({ ...this.settingsRepo.get() });
 
@@ -67,11 +67,6 @@ export class BackgroundApp {
     );
 
     this.handlers = new BackgroundEventHandlers(this.promptsRepo, this.menus);
-    this.handlers.addEventListener(
-      BackgroundEventHandlers.EVENT_SETTINGS_CHANGE,
-      this.onSettingsChange
-    );
-
     this.tabObserver = new TabObserver(this.handlers.onTabUpdated);
 
     try {

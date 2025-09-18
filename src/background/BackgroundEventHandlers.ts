@@ -2,36 +2,23 @@ import browser, { Menus, Storage, Tabs } from "webextension-polyfill";
 
 import { commands } from "../lib/commands";
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
-import { SettingsRepository } from "../lib/settings";
 import { PromptRepository } from "../lib/storage";
 
 import { Commands } from "./Commands";
 import { ContextMenuService } from "./ContextMenuService";
 import { logger } from "./logger";
 
-export class BackgroundEventHandlers extends EventTarget {
-  static readonly EVENT_SETTINGS_CHANGE = "settings-change";
-
+export class BackgroundEventHandlers {
   private repo: PromptRepository;
   private menus: ContextMenuService;
 
   constructor(repo: PromptRepository, menus: ContextMenuService) {
-    super();
-
     this.repo = repo;
     this.menus = menus;
   }
 
   onStorageChanged = async (changes: Record<string, Storage.StorageChange>, area: string) => {
-    if (area !== "local") return;
-
-    // If settings changed, publish event
-    if (changes[SettingsRepository.getStorageKey()]) {
-      logger.debug("Settings changed, re-initializing context menu");
-      this.dispatchEvent(new Event(BackgroundEventHandlers.EVENT_SETTINGS_CHANGE));
-    }
-
-    if (changes[PromptRepository.getStorageKey()]) {
+    if (area === "local" && changes[PromptRepository.getStorageKey()]) {
       await this.menus.rebuild();
     }
   };
