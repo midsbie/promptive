@@ -8,26 +8,26 @@ export class Logger {
   }
 
   debug(...args: unknown[]): void {
-    this._log("debug", ...args);
+    this.output("debug", ...args);
   }
 
   log(...args: unknown[]): void {
-    this._log("log", ...args);
+    this.output("log", ...args);
   }
 
   info(...args: unknown[]): void {
-    this._log("info", ...args);
+    this.output("info", ...args);
   }
 
   warn(...args: unknown[]): void {
-    this._log("warn", ...args);
+    this.output("warn", ...args);
   }
 
   error(...args: unknown[]): void {
-    this._log("error", ...args);
+    this.output("error", ...args);
   }
 
-  private _log(fn: LogLevel, ...args: unknown[]): void {
+  private output(fn: LogLevel, ...args: unknown[]): void {
     // eslint-disable-next-line no-console
     console[fn](`[${this.namespace}]`, ...args);
   }

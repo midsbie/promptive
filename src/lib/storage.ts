@@ -77,33 +77,33 @@ class BaseStorageAdapter {
     }
   }
 
-  private _ns(key: string): string {
+  private qualifyKey(key: string): string {
     return this.namespace ? `${this.namespace}:${key}` : key;
   }
 
   async get(key: string): Promise<StorageKeys>;
   async get(key: string[]): Promise<StorageKeys>;
   async get(key: string | string[]): Promise<StorageKeys> {
-    const keys = Array.isArray(key) ? key.map((k) => this._ns(k)) : this._ns(key);
+    const keys = Array.isArray(key) ? key.map((k) => this.qualifyKey(k)) : this.qualifyKey(key);
     const out = await this.api.get(keys);
     // Strip namespace on return
     if (Array.isArray(key)) {
       return key.reduce((acc, k) => {
-        acc[k] = out[this._ns(k)];
+        acc[k] = out[this.qualifyKey(k)];
         return acc;
       }, {} as StorageKeys);
     }
-    return { [key]: out[this._ns(key)] };
+    return { [key]: out[this.qualifyKey(key)] };
   }
 
   async set(obj: StorageKeys): Promise<void> {
     const payload: StorageKeys = {};
-    for (const [k, v] of Object.entries(obj)) payload[this._ns(k)] = v;
+    for (const [k, v] of Object.entries(obj)) payload[this.qualifyKey(k)] = v;
     return this.api.set(payload);
   }
 
   async remove(key: string | string[]): Promise<void> {
-    const keys = Array.isArray(key) ? key.map((k) => this._ns(k)) : [this._ns(key)];
+    const keys = Array.isArray(key) ? key.map((k) => this.qualifyKey(k)) : [this.qualifyKey(key)];
     return this.api.remove(keys);
   }
 }
@@ -211,7 +211,7 @@ class PromptRepositoryLoader {
     const dataset: BackendState[] = [];
     for (const backend of this.backends) {
       try {
-        const state = await this._readFromBackend(backend);
+        const state = await this.readFromBackend(backend);
         if (state != null) dataset.push(state);
       } catch (e: any) {
         logger.warn(`Read failed from ${backend.area}:`, e?.message ?? e);
@@ -225,7 +225,7 @@ class PromptRepositoryLoader {
     return state.prompts;
   }
 
-  private async _readFromBackend(backend: BaseStorageAdapter): Promise<BackendState | null> {
+  private async readFromBackend(backend: BaseStorageAdapter): Promise<BackendState | null> {
     const state = await backend.get([
       PromptRepository.STORAGE_KEY,
       PromptRepository.VERSION_KEY,
@@ -318,7 +318,7 @@ export class PromptRepository {
       prompts = defaultSeed(); // fresh install
     }
 
-    await this._persistPrompts(prompts);
+    await this.persistPrompts(prompts);
     this.initialized = true;
   }
 
@@ -367,14 +367,14 @@ export class PromptRepository {
       prompts.push(normalizePrompt(prompt));
     }
 
-    await this._persistPrompts(prompts);
+    await this.persistPrompts(prompts);
     return prompts;
   }
 
   async deletePrompt(id: string): Promise<Prompt[]> {
     const prompts = await this.getAllPrompts();
     const filtered = prompts.filter((p) => p.id !== id);
-    await this._persistPrompts(filtered);
+    await this.persistPrompts(filtered);
     return filtered;
   }
 
@@ -388,7 +388,7 @@ export class PromptRepository {
 
     p.last_used_at = TimeProvider.nowIso();
     p.used_times = (p.used_times || 0) + 1;
-    await this._persistPrompts(prompts);
+    await this.persistPrompts(prompts);
   }
 
   async importPrompts(importData: ImportData): Promise<Prompt[]> {
@@ -407,7 +407,7 @@ export class PromptRepository {
       return p;
     });
 
-    await this._persistPrompts(merged);
+    await this.persistPrompts(merged);
     return merged;
   }
 
@@ -421,22 +421,22 @@ export class PromptRepository {
   }
 
   // --- internals ---
-  private async _persistPrompts(prompts: Prompt[]): Promise<void> {
+  private async persistPrompts(prompts: Prompt[]): Promise<void> {
     if (!Array.isArray(prompts)) {
-      logger.error("_persistPrompts expects array");
+      logger.error("persistPrompts expects array");
       return;
     }
 
     const normalizedPrompts = prompts.map(normalizePrompt);
 
-    await this._writeToBackends({
+    await this.writeToBackends({
       [PromptRepository.VERSION_KEY]: PromptRepository.VERSION,
       [PromptRepository.STORAGE_KEY]: normalizedPrompts,
       [PromptRepository.UPDATED_AT_KEY]: TimeProvider.nowIso(),
     });
   }
 
-  private async _writeToBackends(obj: StorageKeys): Promise<void> {
+  private async writeToBackends(obj: StorageKeys): Promise<void> {
     const results = await Promise.allSettled(this.backends.map((b) => b.set(obj)));
     results.forEach((r, i) => {
       if (r.status === "rejected") {

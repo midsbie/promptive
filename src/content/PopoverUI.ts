@@ -58,7 +58,7 @@ export class PopoverUI {
             <button class="plp-close" aria-label="Close">×</button>
           </div>
           <div class="plp-list" role="listbox" aria-label="Prompts">
-            ${this._renderList()}
+            ${this.renderList()}
           </div>
         </div>
       `;
@@ -71,17 +71,17 @@ export class PopoverUI {
 
     // Event wiring
     this.searchInput.addEventListener("input", (e) => {
-      this.filtered = this._filter((e.target as HTMLInputElement).value);
+      this.filtered = this.filter((e.target as HTMLInputElement).value);
       this.selectedIndex = 0;
-      this._rerenderList();
+      this.rerenderList();
     });
-    this.searchInput.addEventListener("keydown", this._onKeyDown);
+    this.searchInput.addEventListener("keydown", this.onKeyDown);
     wrapper.querySelector(".plp-close")!.addEventListener("click", () => this.close());
-    this.listEl.addEventListener("click", this._onListClick);
+    this.listEl.addEventListener("click", this.onListClick);
 
     // Global listeners
-    document.addEventListener("keydown", this._onDocKeyDown);
-    document.addEventListener("click", this._onDocClick, true); // capture to beat page handlers
+    document.addEventListener("keydown", this.onDocKeyDown);
+    document.addEventListener("click", this.onDocClick, true); // capture to beat page handlers
 
     // Focus the search box
     this.searchInput.focus();
@@ -90,8 +90,8 @@ export class PopoverUI {
   close(): void {
     if (!this.root) return;
 
-    document.removeEventListener("keydown", this._onDocKeyDown);
-    document.removeEventListener("click", this._onDocClick, true);
+    document.removeEventListener("keydown", this.onDocKeyDown);
+    document.removeEventListener("click", this.onDocClick, true);
 
     this.root.remove();
     this.root = null;
@@ -100,7 +100,7 @@ export class PopoverUI {
     this.onClose?.();
   }
 
-  private _filter(query: string): PromptListItem[] {
+  private filter(query: string): PromptListItem[] {
     const q = (query || "").trim();
     if (!q) return [...this.allPrompts];
 
@@ -118,7 +118,7 @@ export class PopoverUI {
     }
   }
 
-  private _renderList(): string {
+  private renderList(): string {
     if (!this.filtered.length) {
       return `<div class="plp-empty">No prompts found</div>`;
     }
@@ -146,16 +146,16 @@ export class PopoverUI {
       .join("");
   }
 
-  private _rerenderList(): void {
+  private rerenderList(): void {
     if (!this.listEl) return;
 
-    this.listEl.innerHTML = this._renderList();
+    this.listEl.innerHTML = this.renderList();
     // Ensure selected is visible
     const selected = this.listEl.querySelector(".plp-item.plp-selected");
     (selected as HTMLElement)?.scrollIntoView({ block: "nearest" });
   }
 
-  private _onListClick = (e: MouseEvent): void => {
+  private onListClick = (e: MouseEvent): void => {
     const target = e.target as HTMLElement;
     const item = target.closest(".plp-item") as HTMLElement;
     if (!item) return;
@@ -165,15 +165,15 @@ export class PopoverUI {
     if (prompt) this.onSelect?.(prompt);
   };
 
-  private _onKeyDown = (e: KeyboardEvent): void => {
+  private onKeyDown = (e: KeyboardEvent): void => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
       this.selectedIndex = Math.min(this.selectedIndex + 1, this.filtered.length - 1);
-      this._rerenderList();
+      this.rerenderList();
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-      this._rerenderList();
+      this.rerenderList();
     } else if (e.key === "Enter") {
       e.preventDefault();
       const p = this.filtered[this.selectedIndex];
@@ -184,12 +184,12 @@ export class PopoverUI {
     }
   };
 
-  private _onDocKeyDown = (e: KeyboardEvent): void => {
+  private onDocKeyDown = (e: KeyboardEvent): void => {
     if (e.key === "Escape") this.close();
   };
 
   // Outside-click detection to close the popover
-  private _onDocClick = (e: MouseEvent): void => {
+  private onDocClick = (e: MouseEvent): void => {
     if (!this.root) return;
 
     // this.root is the overlay; the actual popover is its first child

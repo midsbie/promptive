@@ -12,10 +12,10 @@ export interface ModalOptions {
 }
 
 export class ModalController {
-  private _release: (() => void) | null;
+  private release: (() => void) | null;
 
   constructor() {
-    this._release = null;
+    this.release = null;
   }
 
   open({ title, fields }: ModalOptions): void {
@@ -29,15 +29,15 @@ export class ModalController {
       fields?.tags?.join(", ") ?? "";
     modal.classList.add("active");
     (document.getElementById("promptTitle") as HTMLInputElement).focus();
-    this._release = FocusTrap.trap(modal);
+    this.release = FocusTrap.trap(modal);
   }
 
   close(): void {
     document.getElementById("promptModal")!.classList.remove("active");
-    if (this._release) {
-      this._release();
-      this._release = null;
-    }
+    if (!this.release) return;
+
+    this.release();
+    this.release = null;
   }
 
   isOpen(): boolean {

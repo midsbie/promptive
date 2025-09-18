@@ -58,7 +58,7 @@ export class InputTextareaStrategy extends InsertionStrategy {
     if (!this.canHandle(el)) return false;
 
     const text = buildInsertText(opts);
-    const insertPosition = this._getInsertPosition(el, opts.insertAt);
+    const insertPosition = this.getInsertPosition(el, opts.insertAt);
 
     const value = el.value ?? "";
     el.value = value.slice(0, insertPosition.start) + text + value.slice(insertPosition.end);
@@ -72,7 +72,7 @@ export class InputTextareaStrategy extends InsertionStrategy {
     return true;
   }
 
-  private _getInsertPosition(
+  private getInsertPosition(
     el: HTMLInputElement | HTMLTextAreaElement,
     insertAt: InsertPosition
   ): { start: number; end: number } {
@@ -115,7 +115,7 @@ export class ContentEditableStrategy extends InsertionStrategy {
     const text = buildInsertText(opts);
 
     try {
-      if (!this._positionForInsertion(el, opts.insertAt)) {
+      if (!this.positionForInsertion(el, opts.insertAt)) {
         logger.error("Failed to position cursor for insertion");
         return false;
       }
@@ -128,7 +128,7 @@ export class ContentEditableStrategy extends InsertionStrategy {
     const isPlainTextOnly = el.getAttribute?.("contenteditable") === "plaintext-only";
     if (isPlainTextOnly) {
       logger.log('Target is contenteditable="plaintext-only"; inserting as plain text');
-      return this._insertPlainText(el, text);
+      return this.insertPlainText(el, text);
     }
 
     const html = toParagraphHtml(text);
@@ -137,7 +137,7 @@ export class ContentEditableStrategy extends InsertionStrategy {
       logger.log("Using execCommand('insertHTML') for insertion");
       try {
         document.execCommand("insertHTML", false, html);
-        this._dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
+        this.dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
         return true;
       } catch (_) {
         /* continue */
@@ -146,10 +146,10 @@ export class ContentEditableStrategy extends InsertionStrategy {
 
     // Last resort: plain text
     logger.warn("Falling back to range-based plain text insertion");
-    return this._insertPlainText(el, text);
+    return this.insertPlainText(el, text);
   }
 
-  private _positionForInsertion(el: HTMLElement, insertAt: InsertPosition): boolean {
+  private positionForInsertion(el: HTMLElement, insertAt: InsertPosition): boolean {
     if (insertAt === "cursor") return true;
 
     const selection = window.getSelection();
@@ -185,11 +185,11 @@ export class ContentEditableStrategy extends InsertionStrategy {
     return true;
   }
 
-  private _insertPlainText(el: HTMLElement, text: string): boolean {
+  private insertPlainText(el: HTMLElement, text: string): boolean {
     if (document.queryCommandSupported?.("insertText")) {
       try {
         document.execCommand("insertText", false, text);
-        this._dispatchInput(el, "insertText");
+        this.dispatchInput(el, "insertText");
         return true;
       } catch (_) {
         /* fall through */
@@ -217,14 +217,14 @@ export class ContentEditableStrategy extends InsertionStrategy {
       sel!.removeAllRanges();
       sel!.addRange(range);
 
-      this._dispatchInput(el, "insertText");
+      this.dispatchInput(el, "insertText");
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  private _dispatchInput(el: HTMLElement, inputType: string = "insertText"): void {
+  private dispatchInput(el: HTMLElement, inputType: string = "insertText"): void {
     // Generic change/input for frameworks
     el.dispatchEvent(new Event("input", { bubbles: true }));
     el.dispatchEvent(new Event("change", { bubbles: true }));

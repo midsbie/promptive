@@ -3,7 +3,7 @@ import { PromptRepository } from "../lib/storage";
 import { ToastOptions } from "../lib/typedefs";
 
 export class ToastService {
-  private _timer?: number;
+  private timer?: number;
 
   show(message: string, options: ToastOptions | null = null): void {
     const toast = document.getElementById("toast")!;
@@ -19,8 +19,8 @@ export class ToastService {
       toast.appendChild(btn);
     }
 
-    clearTimeout(this._timer);
-    this._timer = setTimeout(() => toast.classList.remove("show"), 3500);
+    clearTimeout(this.timer);
+    this.timer = setTimeout(() => toast.classList.remove("show"), 3500);
   }
 }
 

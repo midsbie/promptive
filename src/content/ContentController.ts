@@ -101,7 +101,7 @@ export class ContentController {
     this.clipboardWriter = new ClipboardWriter();
     this.readinessTracker = new PageReadinessTracker();
     this.inputFocusManager = new InputFocusManager();
-    browser.runtime.onMessage.addListener(this._onRuntimeMessage);
+    browser.runtime.onMessage.addListener(this.onRuntimeMessage);
 
     this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, () => {
       this.handlePageReady();
@@ -126,7 +126,7 @@ export class ContentController {
       onSelect: async (prompt: Prompt) => {
         await this.api.recordUsage(prompt.id);
         this.target.restore();
-        await this._insertPrompt(prompt);
+        await this.insertPrompt(prompt);
         this.popover?.close(); // will trigger onClose
       },
       onClose: () => {
@@ -143,76 +143,7 @@ export class ContentController {
     // nop
   }
 
-  private _onRuntimeMessage = async (message: Message): Promise<MessageResponse | void> => {
-    if (!isMessage(message)) {
-      logger.warn("Ignoring non-message:", message);
-      return;
-    }
-
-    switch (message.action) {
-      case MSG.QUERY_STATUS:
-        return Promise.resolve({ active: true, ready: this.readinessTracker.getReadiness() });
-
-      case MSG.OPEN_POPOVER:
-        await this.openPopover();
-        return;
-
-      case MSG.INSERT_PROMPT:
-        await this.target.withRemembered(document.activeElement, () =>
-          this._insertPrompt(message.prompt)
-        );
-        return;
-
-      case MSG.INSERT_TEXT: {
-        this.popover?.close();
-        this.inputFocusManager.focusProviderInput();
-        return await this.target.withRemembered(document.activeElement, () =>
-          this._handleInsertText(message.text, message.insertAt)
-        );
-      }
-
-      case MSG.FOCUS_PROVIDER_INPUT: {
-        return this._handleFocusProviderInput(message.provider);
-      }
-
-      default:
-        logger.warn("Unknown message:", message);
-        return;
-    }
-  };
-
-  private async _insertPrompt(prompt: Prompt): Promise<void> {
-    const opts: InsertTextOptions = {
-      target: this.target.element,
-      content: prompt.content,
-      insertAt: prompt.insert_at || "cursor",
-      separator: prompt.separator || null,
-    };
-    await this._insert(opts);
-  }
-
-  private async _insert(opts: InsertTextOptions) {
-    if (this.textInserter.insert(opts)) {
-      ToastService.show("Prompt inserted");
-      return;
-    }
-
-    logger.warn(`Failed to insert prompt: copying to clipboard instead`);
-    await this._copyToClipboard(opts.content);
-  }
-
-  private async _copyToClipboard(text: string) {
-    await this.clipboardWriter.write(text);
-
-    try {
-      ToastService.show("Copied to clipboard");
-    } catch (e) {
-      logger.error("Error during copy to clipboard:", e);
-      ToastService.show("Failed to copy to clipboard");
-    }
-  }
-
-  private async _handleInsertText(
+  private async handleInsertText(
     text: string,
     insertAt?: InsertPosition
   ): Promise<{ error: string | null }> {
@@ -236,12 +167,12 @@ export class ContentController {
       return { error: null };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error("Error in _handleInsertText:", error);
+      logger.error("Error in handleInsertText:", error);
       return { error: errorMessage };
     }
   }
 
-  private async _handleFocusProviderInput(provider: Provider): Promise<{ error: string | null }> {
+  private async handleFocusProviderInput(provider: Provider): Promise<{ error: string | null }> {
     try {
       const success = this.inputFocusManager.focusProviderInput(provider);
       if (!success) {
@@ -254,6 +185,71 @@ export class ContentController {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error("Error focusing provider input:", { provider, error });
       return { error: errorMessage };
+    }
+  }
+
+  private onRuntimeMessage = async (message: Message): Promise<MessageResponse | void> => {
+    if (!isMessage(message)) {
+      logger.warn("Ignoring non-message:", message);
+      return;
+    }
+
+    switch (message.action) {
+      case MSG.QUERY_STATUS:
+        return Promise.resolve({ active: true, ready: this.readinessTracker.getReadiness() });
+
+      case MSG.OPEN_POPOVER:
+        await this.openPopover();
+        return;
+
+      case MSG.INSERT_PROMPT:
+        await this.target.withRemembered(document.activeElement, () =>
+          this.insertPrompt(message.prompt)
+        );
+        return;
+
+      case MSG.INSERT_TEXT: {
+        this.popover?.close();
+        this.inputFocusManager.focusProviderInput();
+        return await this.target.withRemembered(document.activeElement, () =>
+          this.handleInsertText(message.text, message.insertAt)
+        );
+      }
+
+      case MSG.FOCUS_PROVIDER_INPUT: {
+        return this.handleFocusProviderInput(message.provider);
+      }
+
+      default:
+        logger.warn("Unknown message:", message);
+        return;
+    }
+  };
+
+  private async insertPrompt(prompt: Prompt): Promise<void> {
+    const opts: InsertTextOptions = {
+      target: this.target.element,
+      content: prompt.content,
+      insertAt: prompt.insert_at || "cursor",
+      separator: prompt.separator || null,
+    };
+    if (this.textInserter.insert(opts)) {
+      ToastService.show("Prompt inserted");
+      return;
+    }
+
+    logger.warn(`Failed to insert prompt: copying to clipboard instead`);
+    await this.copyToClipboard(opts.content);
+  }
+
+  private async copyToClipboard(text: string) {
+    await this.clipboardWriter.write(text);
+
+    try {
+      ToastService.show("Copied to clipboard");
+    } catch (e) {
+      logger.error("Error during copy to clipboard:", e);
+      ToastService.show("Failed to copy to clipboard");
     }
   }
 }
