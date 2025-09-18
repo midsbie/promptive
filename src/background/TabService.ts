@@ -6,8 +6,8 @@ import { Provider, getProviderConfig, isTabFromProvider } from "../lib/providers
 
 import { logger } from "./logger";
 
-export class TabManager {
-  static async getActiveTab(): Promise<browser.Tabs.Tab | undefined> {
+export class TabService {
+  static async getActiveTab(): Promise<browser.Tabs.Tab | null | undefined> {
     try {
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       return tabs[0];
@@ -17,7 +17,7 @@ export class TabManager {
     }
   }
 
-  async findOrCreateProviderTab(
+  static async findOrCreateProviderTab(
     provider: Provider,
     sessionPolicy: SessionPolicy
   ): Promise<{ tabId: number; isNewTab: boolean }> {
@@ -43,7 +43,9 @@ export class TabManager {
     }
   }
 
-  private async getActiveTabForProvider(provider: Provider): Promise<browser.Tabs.Tab | null> {
+  private static async getActiveTabForProvider(
+    provider: Provider
+  ): Promise<browser.Tabs.Tab | null> {
     const activeTab = await browser.tabs.query({ active: true, currentWindow: true });
     const tab = activeTab[0];
     if (!tab || !tab.id) throw new Error("No active tab found");
@@ -52,7 +54,7 @@ export class TabManager {
     return tab.url && isTabFromProvider(tab.url, provider) ? tab : null;
   }
 
-  private async findProviderTab(provider: Provider): Promise<browser.Tabs.Tab | null> {
+  private static async findProviderTab(provider: Provider): Promise<browser.Tabs.Tab | null> {
     const tabs = await browser.tabs.query({});
 
     for (const tab of tabs) {
@@ -64,7 +66,7 @@ export class TabManager {
     return null;
   }
 
-  private async createNewProviderTab(provider: Provider): Promise<browser.Tabs.Tab> {
+  private static async createNewProviderTab(provider: Provider): Promise<browser.Tabs.Tab> {
     const config = getProviderConfig(provider);
     const url = new URL(config.newChatPath, config.baseUrl).toString();
     const tab = await browser.tabs.create({ url, active: true });
@@ -74,7 +76,7 @@ export class TabManager {
     return tab;
   }
 
-  async waitForContentScript(
+  static async waitForContentScript(
     tabId: number,
     opts?: Partial<{ timeoutMs: number; waitForReady: boolean }> | null
   ): Promise<void> {
@@ -98,7 +100,7 @@ export class TabManager {
     throw new Error(`Content script not available within ${timeoutMs}ms`);
   }
 
-  async focusProviderInput(tabId: number, provider: Provider): Promise<void> {
+  static async focusProviderInput(tabId: number, provider: Provider): Promise<void> {
     try {
       const response = await sendToTab(
         tabId,

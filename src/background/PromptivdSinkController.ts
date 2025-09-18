@@ -13,7 +13,7 @@ import {
   PromptivdSinkClient,
 } from "./promptivd-sink/PromptivdSinkClient";
 
-import { TabManager } from "./TabManager";
+import { TabService } from "./TabService";
 import { logger } from "./logger";
 
 export class PromptivdSinkController {
@@ -21,11 +21,6 @@ export class PromptivdSinkController {
   private static readonly DEFAULT_SESSION_POLICY: SessionPolicy = "reuse_or_create";
 
   private client: PromptivdSinkClient | null = null;
-  private tabManager: TabManager;
-
-  constructor() {
-    this.tabManager = new TabManager();
-  }
 
   initialize(settings: AppSettings): void {
     if (this.client) throw new Error("Client already initialized");
@@ -134,13 +129,13 @@ export class PromptivdSinkController {
     else sessionPolicy = sp;
 
     try {
-      const { tabId /*, isNewTab */ } = await this.tabManager.findOrCreateProviderTab(
+      const { tabId /*, isNewTab */ } = await TabService.findOrCreateProviderTab(
         provider,
         sessionPolicy
       );
 
-      await this.tabManager.waitForContentScript(tabId, { waitForReady: true });
-      await this.tabManager.focusProviderInput(tabId, provider);
+      await TabService.waitForContentScript(tabId, { waitForReady: true });
+      await TabService.focusProviderInput(tabId, provider);
 
       const message = createMessage(MSG.INSERT_TEXT, { text, insertAt });
       const response = await sendToTab(tabId, message);

@@ -1,11 +1,11 @@
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
 
-import { TabManager } from "./TabManager";
+import { TabService } from "./TabService";
 
 export class Commands {
   static async openPromptSelector(tabId?: number): Promise<void> {
     if (!tabId) {
-      const tab = await TabManager.getActiveTab();
+      const tab = await TabService.getActiveTab();
       if (!tab?.id) return;
       tabId = tab.id;
     }
