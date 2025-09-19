@@ -68,7 +68,9 @@ export class BackgroundApp {
     this.tabObserver = new TabObserver(this.handlers.onTabUpdated);
 
     try {
+      let shouldRestart: boolean = !this.isInitialized;
       if (this.promptivdSinkCtl?.shouldReinitialize(settings)) {
+        shouldRestart = this.promptivdSinkCtl.shouldRestart();
         this.promptivdSinkCtl.destroy();
         this.promptivdSinkCtl = null;
       }
@@ -76,6 +78,13 @@ export class BackgroundApp {
       if (this.promptivdSinkCtl == null) {
         this.promptivdSinkCtl = new PromptivdSinkController();
         this.promptivdSinkCtl.initialize(settings);
+
+        try {
+          if (shouldRestart) this.promptivdSinkCtl.start();
+        } catch (e) {
+          logger.error("PromptivdSinkClient start failed", e);
+          this.promptivdSinkCtl.destroy();
+        }
       }
     } catch (e) {
       logger.error("Failed to initialize PromptivdSinkController:", e);

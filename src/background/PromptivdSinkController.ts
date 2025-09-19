@@ -54,14 +54,6 @@ export class PromptivdSinkController {
       this.onConnectionError
     );
     this.client.addEventListener(PromptivdSinkClient.EVENT_REGISTERED, this.onRegistered);
-
-    try {
-      this.client.start();
-    } catch (e) {
-      logger.error("PromptivdSinkClient start failed", e);
-      this.destroy();
-      throw e;
-    }
   }
 
   destroy(): void {
@@ -84,6 +76,10 @@ export class PromptivdSinkController {
     this.client = null;
   }
 
+  shouldRestart(): boolean {
+    return (this.client != null && this.client.isConnected()) || this.client.isRegistered();
+  }
+
   shouldReinitialize(newSettings: AppSettings): boolean {
     if (this.client == null) return true;
 
@@ -104,6 +100,7 @@ export class PromptivdSinkController {
       logger.warn("Cannot start: client not initialized");
       return;
     }
+
     this.client.start();
   }
 
