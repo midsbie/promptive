@@ -1,3 +1,5 @@
+import { resolveErrorMessage } from "../../lib/error";
+
 import { logger } from "./logger";
 
 export interface ConnectionEventHandlers {
@@ -34,9 +36,9 @@ export class ConnectionManager {
       this.socket.addEventListener("error", this.onError);
       this.socket.addEventListener("close", this.onClose);
       logger.info("Connecting to endpoint", this.endpoint);
-    } catch (error) {
-      logger.error("Failed to create WebSocket", error);
-      this.scheduleReconnect();
+    } catch (e) {
+      logger.error("Failed to create WebSocket", e);
+      this.handlers?.onError(new Event(`Websocket error: ${resolveErrorMessage(e)}`));
     }
   }
 
