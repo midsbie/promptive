@@ -168,7 +168,7 @@ class OptionsPage {
     this.shortcutInput.addEventListener("blur", () => this.setShortcutState(null, ""));
     this.contextMenuLimitInput.addEventListener("input", () => this.saveSettings());
     this.contextMenuSortSelect.addEventListener("change", () => this.saveSettings());
-    this.promptivdDaemonAddressInput.addEventListener("input", () => this.saveSettings());
+    this.promptivdDaemonAddressInput.addEventListener("blur", () => this.saveSettings());
   }
 
   private setShortcutState(state: "valid" | "invalid" | "pending" | null, message: string): void {
