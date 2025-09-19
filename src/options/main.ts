@@ -1,17 +1,19 @@
 import browser, { Commands } from "webextension-polyfill";
 
 import { commands } from "../lib/commands";
+import { MSG, Message } from "../lib/messaging";
 import { AppSettings, DEFAULT_DAEMON_ADDRESS, SettingsRepository } from "../lib/settings";
 
+import { PromptivdStatusController } from "./PromptivdStatusController";
 import { logger } from "./logger";
 
-class StatusController {
+class NotificationController {
   private statusEl: HTMLElement;
   private timeoutId: number | null = null;
 
   constructor(element: HTMLElement) {
     if (!element) {
-      throw new Error("Status element not found for StatusController");
+      throw new Error("Status element not found for NotificationController");
     }
     this.statusEl = element;
   }
@@ -36,8 +38,9 @@ class StatusController {
 class OptionsPage {
   private repo = new SettingsRepository();
   private settings: AppSettings;
-  private statusController: StatusController;
+  private notificationCtl: NotificationController;
   private lastCommittedShortcut: string | null = null;
+  private promptivdStatusCtl: PromptivdStatusController;
 
   // Elements
   private shortcutInput = document.getElementById("shortcut") as HTMLInputElement;
@@ -49,7 +52,16 @@ class OptionsPage {
   ) as HTMLInputElement;
 
   async initialize(): Promise<void> {
-    this.statusController = new StatusController(document.getElementById("status") as HTMLElement);
+    this.notificationCtl = new NotificationController(
+      document.getElementById("status") as HTMLElement
+    );
+
+    this.promptivdStatusCtl = new PromptivdStatusController(
+      document.getElementById("promptivd-status-indicator") as HTMLDivElement,
+      document.getElementById("promptivd-status-text") as HTMLSpanElement,
+      document.getElementById("promptivd-connect-btn") as HTMLButtonElement
+    );
+    this.promptivdStatusCtl.initialize();
 
     await this.repo.initialize();
     this.settings = this.repo.get();
@@ -57,6 +69,8 @@ class OptionsPage {
     this.loadShortcut();
     this.renderSettings();
     this.bindEvents();
+
+    browser.runtime.onMessage.addListener(this.onMessage);
   }
 
   private onShortcutKeydown = async (e: KeyboardEvent): Promise<void> => {
@@ -109,6 +123,14 @@ class OptionsPage {
     }
   };
 
+  private onMessage = (msg: Message): void => {
+    switch (msg.action) {
+      case MSG.PROMPTIVD_STATUS_CHANGED:
+        this.promptivdStatusCtl.updateStatus(msg.state);
+        return;
+    }
+  };
+
   private renderSettings(): void {
     this.contextMenuLimitInput.value = String(this.settings.contextMenu.limit);
     this.contextMenuSortSelect.value = this.settings.contextMenu.sort;
@@ -125,7 +147,7 @@ class OptionsPage {
     this.settings.promptivd.daemonAddress = newDaemonAddress || DEFAULT_DAEMON_ADDRESS;
 
     await this.repo.save(this.settings);
-    this.statusController.show("Settings saved!");
+    this.notificationCtl.show("Settings saved!");
   }
 
   private loadShortcut(): void {

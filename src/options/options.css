@@ -121,3 +121,40 @@ select.form-control {
 .status.error {
   background: var(--color-danger);
 }
+
+/* Promptivd Status */
+.promptivd-status-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+#promptivd-status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--slate-400); /* Default: checking */
+}
+
+#promptivd-status-indicator.disconnected,
+#promptivd-status-indicator.stopped {
+  background: var(--color-danger);
+}
+
+#promptivd-status-indicator.connecting,
+#promptivd-status-indicator.reconnecting {
+  background: var(--color-warning);
+}
+
+#promptivd-status-indicator.connected,
+#promptivd-status-indicator.registered {
+  background: var(--color-success);
+}
+
+#promptivd-status-text {
+  font-size: var(--fs-body);
+  color: var(--color-text);
+  flex-grow: 1;
+}

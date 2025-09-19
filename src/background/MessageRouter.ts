@@ -1,6 +1,7 @@
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
 import { PromptRepository } from "../lib/storage";
 
+import { PromptivdSinkController } from "./PromptivdSinkController";
 import { logger } from "./logger";
 
 /**
@@ -8,9 +9,11 @@ import { logger } from "./logger";
  */
 export class MessageRouter {
   private repo: PromptRepository;
+  private promptivdSinkCtl: PromptivdSinkController;
 
-  constructor(repo: PromptRepository) {
+  constructor(repo: PromptRepository, promptivdSinkCtl: PromptivdSinkController) {
     this.repo = repo;
+    this.promptivdSinkCtl = promptivdSinkCtl;
   }
 
   onMessage = async (request: Message): Promise<MessageResponse | void> => {
@@ -25,6 +28,17 @@ export class MessageRouter {
 
       case MSG.RECORD_PROMPT_USAGE:
         this.repo.recordUsage((request as Message & { promptId: string }).promptId);
+        return;
+
+      case MSG.PROMPTIVD_GET_STATUS:
+        return { state: this.promptivdSinkCtl.getStatus() };
+
+      case MSG.PROMPTIVD_START:
+        this.promptivdSinkCtl.start();
+        return;
+
+      case MSG.PROMPTIVD_STOP:
+        this.promptivdSinkCtl.stop();
         return;
 
       default:

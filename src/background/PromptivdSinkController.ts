@@ -2,7 +2,12 @@ import browser from "webextension-polyfill";
 
 import { resolveErrorMessage } from "../lib/error";
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
-import { SessionPolicy, isSessionPolicy, mapPlacementToInsertPosition } from "../lib/promptivd";
+import {
+  ClientState,
+  SessionPolicy,
+  isSessionPolicy,
+  mapPlacementToInsertPosition,
+} from "../lib/promptivd";
 import { Provider, isProvider, providers } from "../lib/providers";
 import { AppSettings } from "../lib/settings";
 
@@ -90,6 +95,26 @@ export class PromptivdSinkController {
     }
   }
 
+  getStatus(): ClientState {
+    return this.client?.getCurrentState() ?? ClientState.Disconnected;
+  }
+
+  start(): void {
+    if (!this.client) {
+      logger.warn("Cannot start: client not initialized");
+      return;
+    }
+    this.client.start();
+  }
+
+  stop(): void {
+    if (!this.client) {
+      logger.warn("Cannot stop: client not initialized");
+      return;
+    }
+    this.client.stop();
+  }
+
   private onInsertText = async (event: CustomEvent<InsertTextDetail>): Promise<void> => {
     if (!this.client) return;
 
@@ -153,6 +178,12 @@ export class PromptivdSinkController {
   private onStateChange = (event: CustomEvent<StateChangeDetail>): void => {
     const { oldState, newState } = event.detail;
     logger.debug("Client state changed", { oldState, newState });
+
+    browser.runtime
+      .sendMessage(createMessage(MSG.PROMPTIVD_STATUS_CHANGED, { state: newState }))
+      .catch((error) => {
+        logger.warn("Failed to broadcast status change:", error);
+      });
   };
 
   private onConnectionError = (event: CustomEvent<ConnectionErrorDetail>): void => {

@@ -21,7 +21,7 @@ export class BackgroundApp {
   private promptsRepo: PromptRepository;
   private settingsRepo: SettingsRepository;
   private menus: ContextMenuService;
-  private router: MessageRouter;
+  private router: MessageRouter | null = null;
   private handlers: BackgroundEventHandlers | null = null;
   private tabObserver: TabObserver;
   private promptivdSinkCtl: PromptivdSinkController;
@@ -35,8 +35,6 @@ export class BackgroundApp {
   }: BackgroundAppOptions = {}) {
     this.promptsRepo = promptsRepo;
     this.settingsRepo = settingsRepo;
-
-    this.router = new MessageRouter(this.promptsRepo);
   }
 
   async initialize(): Promise<void> {
@@ -84,6 +82,7 @@ export class BackgroundApp {
     }
 
     await this.menus.rebuild();
+    this.router = new MessageRouter(this.promptsRepo, this.promptivdSinkCtl);
 
     logger.info("Settings applied");
     return settings;
@@ -105,7 +104,7 @@ export class BackgroundApp {
     reply: (response: unknown) => void
   ): true {
     this.router
-      .onMessage(request)
+      ?.onMessage(request)
       .then(reply)
       .catch((e) => {
         logger.error("Error in onMessage handler:", e);
@@ -162,7 +161,7 @@ export class BackgroundApp {
 }
 
 const app = new BackgroundApp();
-app.initialize().catch((e) => logger.error("Fatal init error:", e));
+app.initialize().catch((e) => logger.error("Fatal initialization error:", e));
 
 // This pattern should make it easy to migrate to a service worker in the future if needed.
 browser.action.onClicked.addListener((tab) => app.onActionClicked(tab));

@@ -1,9 +1,6 @@
-import {
-  ClientEvent,
-  ClientState,
-  ClientStateMachine,
-  StateChangeDetail,
-} from "./ClientStateMachine";
+import { ClientState } from "../../lib/promptivd";
+
+import { ClientEvent, ClientStateMachine, StateChangeDetail } from "./ClientStateMachine";
 import { ConnectionEventHandlers, ConnectionManager } from "./ConnectionManager";
 import { AckStatus, JobManager, JobTimeoutEvent } from "./JobManager";
 import { PolicyFrame, PolicyManager } from "./PolicyManager";
@@ -88,6 +85,7 @@ export class PromptivdSinkClient extends EventTarget {
   static readonly EVENT_STATE_CHANGE = "statechange" as const;
   static readonly EVENT_CONNECTION_ERROR = "connectionerror" as const;
   static readonly EVENT_REGISTERED = "registered" as const;
+
   readonly endpoint: string;
   private readonly extensionVersion: string;
   private readonly providers: string[];

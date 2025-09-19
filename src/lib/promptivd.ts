@@ -1,5 +1,14 @@
 import type { InsertPosition } from "../lib/storage";
 
+export enum ClientState {
+  Disconnected = "DISCONNECTED",
+  Connecting = "CONNECTING",
+  Connected = "CONNECTED",
+  Registered = "REGISTERED",
+  Reconnecting = "RECONNECTING",
+  Stopped = "STOPPED",
+}
+
 export const sessionPolicies = ["reuse_or_create", "reuse_only", "start_fresh"] as const;
 export type SessionPolicy = (typeof sessionPolicies)[number];
 

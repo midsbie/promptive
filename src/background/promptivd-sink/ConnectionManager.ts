@@ -89,9 +89,7 @@ export class ConnectionManager {
     logger.info("Scheduling reconnect in", this.reconnectDelayMs, "ms");
     this.reconnectTimer = setTimeout(() => {
       this.clearReconnectTimer();
-      if (this.handlers) {
-        this.connect(this.handlers);
-      }
+      if (this.handlers) this.connect(this.handlers);
     }, this.reconnectDelayMs);
   }
 

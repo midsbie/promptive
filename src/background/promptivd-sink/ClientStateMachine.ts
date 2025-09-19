@@ -1,13 +1,6 @@
-import { logger } from "./logger";
+import { ClientState } from "../../lib/promptivd";
 
-export enum ClientState {
-  Disconnected = "DISCONNECTED",
-  Connecting = "CONNECTING",
-  Connected = "CONNECTED",
-  Registered = "REGISTERED",
-  Reconnecting = "RECONNECTING",
-  Stopped = "STOPPED",
-}
+import { logger } from "./logger";
 
 export enum ClientEvent {
   Start = "START",
@@ -47,9 +40,9 @@ export class ClientStateMachine extends EventTarget {
     },
     [ClientState.Connecting]: {
       [ClientEvent.ConnectionOpened]: ClientState.Connected,
-      [ClientEvent.ConnectionError]: ClientState.Reconnecting,
       [ClientEvent.ConnectionClosed]: ClientState.Reconnecting,
       [ClientEvent.Stop]: ClientState.Stopped,
+      [ClientEvent.ConnectionError]: ClientState.Reconnecting,
     },
     [ClientState.Connected]: {
       [ClientEvent.Registered]: ClientState.Registered,
@@ -66,8 +59,11 @@ export class ClientStateMachine extends EventTarget {
       [ClientEvent.Start]: ClientState.Connecting,
       [ClientEvent.ReconnectRequested]: ClientState.Connecting,
       [ClientEvent.Stop]: ClientState.Stopped,
+      [ClientEvent.ConnectionError]: ClientState.Stopped,
     },
-    [ClientState.Stopped]: {},
+    [ClientState.Stopped]: {
+      [ClientEvent.Start]: ClientState.Connecting,
+    },
   };
 
   getCurrentState(): ClientState {

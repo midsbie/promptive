@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 
+import { ClientState } from "./promptivd";
 import { Provider } from "./providers";
 import { InsertPosition, Prompt } from "./storage";
 
@@ -11,6 +12,10 @@ export const MSG = {
   INSERT_PROMPT: "PROMPTIVE/INSERT_PROMPT",
   INSERT_TEXT: "PROMPTIVE/INSERT_TEXT",
   FOCUS_PROVIDER_INPUT: "PROMPTIVE/FOCUS_PROVIDER_INPUT",
+  PROMPTIVD_GET_STATUS: "PROMPTIVE/PROMPTIVD/GET_STATUS",
+  PROMPTIVD_START: "PROMPTIVE/PROMPTIVD/START",
+  PROMPTIVD_STOP: "PROMPTIVE/PROMPTIVD/STOP",
+  PROMPTIVD_STATUS_CHANGED: "PROMPTIVE/PROMPTIVD/STATUS_CHANGED",
 } as const;
 
 export type Action = (typeof MSG)[keyof typeof MSG];
@@ -23,6 +28,10 @@ type MessageMap = {
   [MSG.INSERT_PROMPT]: { prompt: Prompt };
   [MSG.INSERT_TEXT]: { text: string; insertAt?: InsertPosition };
   [MSG.FOCUS_PROVIDER_INPUT]: { provider: Provider };
+  [MSG.PROMPTIVD_GET_STATUS]: {};
+  [MSG.PROMPTIVD_START]: {};
+  [MSG.PROMPTIVD_STOP]: {};
+  [MSG.PROMPTIVD_STATUS_CHANGED]: { state: ClientState };
 };
 
 type ResponseMap = {
@@ -33,6 +42,10 @@ type ResponseMap = {
   [MSG.INSERT_PROMPT]: void;
   [MSG.INSERT_TEXT]: { error: string | null };
   [MSG.FOCUS_PROVIDER_INPUT]: { error: string | null };
+  [MSG.PROMPTIVD_GET_STATUS]: { state: ClientState };
+  [MSG.PROMPTIVD_START]: void;
+  [MSG.PROMPTIVD_STOP]: void;
+  [MSG.PROMPTIVD_STATUS_CHANGED]: void;
 };
 
 export type Message = {

@@ -1,4 +1,7 @@
-/* Base design tokens shared across extension UIs */
+/*
+ * Base design tokens shared across extension UIs
+ * Styling inspired by Tailwind and follows similar conventions.
+ */
 :root {
   /* ==========================================================================
      Color Scales
@@ -42,6 +45,18 @@
   --red-700: #b91c1c;
   --red-800: #991b1b;
 
+  /* Amber (warning) */
+  --amber-50: #fffbeb;
+  --amber-100: #fef3c7;
+  --amber-200: #fde68a;
+  --amber-300: #fcd34d;
+  --amber-400: #fbbf24;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --amber-700: #b45309;
+  --amber-800: #92400e;
+  --amber-900: #78350f;
+
   /* ==========================================================================
      Semantic Colors
      ========================================================================== */
@@ -58,6 +73,7 @@
 
   /* Status & feedback */
   --color-success: #22c55e;
+  --color-warning: var(--amber-400);
   --color-danger: var(--red-500);
   --color-danger-strong: var(--red-600);
   --color-danger-soft: var(--red-100);
@@ -172,6 +188,39 @@ body {
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.btn {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.btn:hover {
+  background: var(--color-bg-soft);
+}
+
+.btn:focus-visible {
+  outline: none;
+  border-color: var(--blue-200);
+  box-shadow: var(--ring), var(--shadow-sm);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg-soft);
+  color: var(--color-text-muted);
+}
+
+.btn:disabled:hover {
+  background: var(--color-bg-soft);
 }
 
 /* Dark mode: remap semantic tokens to dark palette */
