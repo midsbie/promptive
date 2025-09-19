@@ -50,63 +50,6 @@
 }
 
 /* ==========================================================================
-   Buttons
-   TODO: reconcile with styling in base.css
-   ========================================================================== */
-
-.btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  font-size: var(--fs-button);
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    transform 0.08s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease,
-    border-color 0.2s ease,
-    filter 0.2s ease,
-    color 0.2s ease;
-  box-shadow: var(--shadow-sm);
-  user-select: none;
-}
-
-.btn:active {
-  transform: translateY(1px);
-}
-.btn:focus-visible {
-  outline: none;
-  box-shadow: var(--ring), var(--shadow-md);
-}
-
-.btn-primary {
-  background: linear-gradient(180deg, var(--color-primary), var(--color-primary-strong));
-  color: #fff;
-}
-.btn-primary:hover {
-  filter: brightness(1.03);
-}
-
-.btn-secondary {
-  background: var(--color-surface);
-  color: var(--color-text);
-  border-color: var(--color-border);
-}
-.btn-secondary:hover {
-  background: var(--slate-50);
-  border-color: var(--slate-300);
-}
-
-.btn-danger {
-  background: linear-gradient(180deg, var(--color-danger), var(--color-danger-strong));
-  color: #fff;
-}
-
-/* ==========================================================================
    Search
    ========================================================================== */
 
