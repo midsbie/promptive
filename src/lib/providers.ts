@@ -27,9 +27,8 @@ export const providerConfigs = {
 
 export type Provider = keyof typeof providerConfigs;
 export type ProviderOrAuto = typeof AUTO_PROVIDER | Provider;
-export const providers = [AUTO_PROVIDER].concat(
-  Object.keys(providerConfigs) as Provider[]
-) as ProviderOrAuto[];
+export const canonicalProviders: Provider[] = Object.keys(providerConfigs) as Provider[];
+export const providers = [AUTO_PROVIDER].concat(canonicalProviders) as ProviderOrAuto[];
 
 export function isProvider(p: unknown): p is Provider {
   return providers.includes(p as Provider);
@@ -61,7 +60,7 @@ export function isTabFromProvider(tabUrl: string, provider: Provider): boolean {
 }
 
 export function detectProvider(url: string): Provider | null {
-  for (const provider of providers) {
+  for (const provider of canonicalProviders) {
     const config = getProviderConfig(provider);
     try {
       const purl = new URL(config.baseUrl);
