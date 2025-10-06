@@ -1,6 +1,6 @@
 import browser from "webextension-polyfill";
 
-import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
+import { MSG, Message, MessageResponse, createMessage, isMessage } from "../lib/messaging";
 import { PORT } from "../lib/ports";
 import { Provider } from "../lib/providers";
 import { SearchService } from "../lib/services";
@@ -195,7 +195,7 @@ export class ContentController {
         // the extension from being unloaded in Firefox.  Fortunately, sending a message
         // periodically from the content script does seem to work.
         try {
-          browser.runtime.sendMessage(MSG.PING);
+          browser.runtime.sendMessage(createMessage(MSG.PING));
         } catch {
           // nop; nothing we can do
         }
