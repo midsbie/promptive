@@ -18,12 +18,7 @@ export class KeepAliveManager {
   private controller: PromptivdSinkController | null = null;
 
   async initialize(controller: PromptivdSinkController): Promise<void> {
-    if (this.controller) {
-      this.controller.removeEventListener(
-        PromptivdSinkController.EVENT_STATE_CHANGE as string,
-        this.onControllerStateChange as EventListener
-      );
-    }
+    this.removeEventListeners();
 
     this.controller = controller;
     this.controller.addEventListener(
@@ -36,12 +31,7 @@ export class KeepAliveManager {
   }
 
   destroy(): void {
-    if (this.controller) {
-      this.controller.removeEventListener(
-        PromptivdSinkController.EVENT_STATE_CHANGE as string,
-        this.onControllerStateChange as EventListener
-      );
-    }
+    this.removeEventListeners();
     this.stop();
   }
 
@@ -81,6 +71,16 @@ export class KeepAliveManager {
   private stop(): void {
     if (this.worker) this.worker.stop();
     this.worker = null;
+  }
+
+  private removeEventListeners(): void {
+    if (!this.controller) return;
+
+    this.controller.removeEventListener(
+      PromptivdSinkController.EVENT_STATE_CHANGE as string,
+      this.onControllerStateChange as EventListener
+    );
+    this.controller = null;
   }
 }
 
