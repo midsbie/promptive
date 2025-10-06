@@ -194,7 +194,11 @@ export class ContentController {
         // Background sends ping frames to keep the port busy, however this does not seem to prevent
         // the extension from being unloaded in Firefox.  Fortunately, sending a message
         // periodically from the content script does seem to work.
-        browser.runtime.sendMessage(MSG.PING);
+        try {
+          browser.runtime.sendMessage(MSG.PING);
+        } catch {
+          // nop; nothing we can do
+        }
       });
 
       logger.debug("KeepAlive port connected");
