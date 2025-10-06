@@ -1,6 +1,7 @@
 import browser from "webextension-polyfill";
 
 import { MSG, Message, MessageResponse, isMessage } from "../lib/messaging";
+import { PORT } from "../lib/ports";
 import { Provider } from "../lib/providers";
 import { SearchService } from "../lib/services";
 import { InsertPosition, Prompt } from "../lib/storage";
@@ -101,7 +102,9 @@ export class ContentController {
     this.clipboardWriter = new ClipboardWriter();
     this.readinessTracker = new PageReadinessTracker();
     this.inputFocusManager = new InputFocusManager();
+
     browser.runtime.onMessage.addListener(this.onRuntimeMessage);
+    browser.runtime.onConnect.addListener(this.onRuntimeConnect);
 
     this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, this.onPageReady);
     this.readinessTracker.initialize();
@@ -176,6 +179,27 @@ export class ContentController {
       default:
         logger.warn("Unknown message:", message);
         return;
+    }
+  };
+
+  private onRuntimeConnect = (port: browser.Runtime.Port): void => {
+    if (port.name !== PORT.KEEPALIVE) return;
+
+    try {
+      port.onDisconnect.addListener(() => {
+        logger.debug("KeepAlive port disconnected");
+      });
+
+      port.onMessage.addListener((_msg) => {
+        // Background sends ping frames to keep the port busy, however this does not seem to prevent
+        // the extension from being unloaded in Firefox.  Fortunately, sending a message
+        // periodically from the content script does seem to work.
+        browser.runtime.sendMessage(MSG.PING);
+      });
+
+      logger.debug("KeepAlive port connected");
+    } catch (e) {
+      logger.warn("Error handling keepalive port", e);
     }
   };
 

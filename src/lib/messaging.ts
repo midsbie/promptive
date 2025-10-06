@@ -5,6 +5,7 @@ import { Provider } from "./providers";
 import { InsertPosition, Prompt } from "./storage";
 
 export const MSG = {
+  PING: "PROMPTIVE/PING",
   GET_PROMPTS: "PROMPTIVE/GET_PROMPTS",
   RECORD_PROMPT_USAGE: "PROMPTIVE/RECORD_PROMPT_USAGE",
   QUERY_STATUS: "PROMPTIVE/QUERY_STATUS",
@@ -21,6 +22,7 @@ export const MSG = {
 export type Action = (typeof MSG)[keyof typeof MSG];
 
 type MessageMap = {
+  [MSG.PING]: {}; // no payload
   [MSG.GET_PROMPTS]: {}; // no payload
   [MSG.RECORD_PROMPT_USAGE]: { promptId: string };
   [MSG.QUERY_STATUS]: {}; // no payload
@@ -35,6 +37,7 @@ type MessageMap = {
 };
 
 type ResponseMap = {
+  [MSG.PING]: void;
   [MSG.GET_PROMPTS]: { prompts: Prompt[] };
   [MSG.RECORD_PROMPT_USAGE]: void;
   [MSG.QUERY_STATUS]: { active: boolean; ready: boolean };

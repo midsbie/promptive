@@ -21,11 +21,29 @@ import {
 import { TabService } from "./TabService";
 import { logger } from "./logger";
 
-export class PromptivdSinkController {
+// Unfortunately, in MV3 a service worker cannot receive messages sent from runtime.sendMessage in
+// its own runtime context, a limitation that also applies to Firefox' background scripts.
+//
+// The following example reproduces this limitation when run in a service worker or background
+// script:
+//
+//   browser.runtime.onMessage.addListener((m) => {
+//       console.log("Message received:", m);
+//   });
+//
+//   setTimeout(() => browser.runtime.sendMessage({ action: "TEST_PING" }), 100);
+//
+// As a workaround to this limitation, we extend from EventTarget and dispatch events using the
+// dispatchEvent interface, while retaining the prior behavior of emitting events via
+// runtime.sendMessage.  Messages dispatched by the EventTarget interface are meant for consumption
+// in the same runtime context.
+export class PromptivdSinkController extends EventTarget {
   private static readonly DEFAULT_PROVIDER: Provider = "chatgpt";
   private static readonly DEFAULT_SESSION_POLICY: SessionPolicy = "reuse_or_create";
 
   private client: PromptivdSinkClient | null = null;
+
+  static readonly EVENT_STATE_CHANGE = "statechange" as const;
 
   initialize(settings: AppSettings): void {
     if (this.client) throw new Error("Client already initialized");
@@ -176,11 +194,16 @@ export class PromptivdSinkController {
     const { oldState, newState } = event.detail;
     logger.debug("Client state changed", { oldState, newState });
 
+    // Re-emit as controller event for listeners in the same runtime context.
+    this.dispatchEvent(
+      new CustomEvent<StateChangeDetail>(PromptivdSinkController.EVENT_STATE_CHANGE, {
+        detail: event.detail,
+      })
+    );
+
     browser.runtime
       .sendMessage(createMessage(MSG.PROMPTIVD_STATUS_CHANGED, { state: newState }))
-      .catch((error) => {
-        logger.warn("Failed to broadcast status change:", error);
-      });
+      .catch(() => {});
   };
 
   private onConnectionError = (event: CustomEvent<ConnectionErrorDetail>): void => {

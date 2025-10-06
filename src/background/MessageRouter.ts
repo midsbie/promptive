@@ -23,6 +23,9 @@ export class MessageRouter {
     }
 
     switch (request?.action) {
+      case MSG.PING:
+        return;
+
       case MSG.GET_PROMPTS:
         return { prompts: await this.repo.getAllPrompts() };
 
@@ -42,7 +45,7 @@ export class MessageRouter {
         return;
 
       default:
-        logger.error("Ignoring unhandled message action:", request.action);
+        logger.warn("Ignoring unhandled message action:", request.action);
         return;
     }
   };

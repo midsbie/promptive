@@ -7,19 +7,18 @@ import { PromptRepository } from "../lib/storage";
 
 import { BackgroundEventHandlers } from "./BackgroundEventHandlers";
 import { ContextMenuService } from "./ContextMenuService";
+import { KeepAliveManager } from "./KeepAliveManager";
 import { MessageRouter } from "./MessageRouter";
 import { PromptivdSinkController } from "./PromptivdSinkController";
 import { TabObserver } from "./TabObserver";
 import { logger } from "./logger";
 
-interface BackgroundAppOptions {
-  promptsRepo?: PromptRepository;
-  settingsRepo?: SettingsRepository;
-}
-
 export class BackgroundApp {
   private promptsRepo: PromptRepository;
   private settingsRepo: SettingsRepository;
+  // Single keep-alive manager to prevent background termination while the websocket client is
+  // active.
+  private keepAliveManager: KeepAliveManager | null = null;
   private menus: ContextMenuService;
   private router: MessageRouter | null = null;
   private handlers: BackgroundEventHandlers | null = null;
@@ -27,14 +26,10 @@ export class BackgroundApp {
   private promptivdSinkCtl: PromptivdSinkController;
   private isInitialized: boolean = false;
 
-  // Services that depend on settings are initialized in `initialize()`. Calling handlers before
-  // `initialize` results in unspecified behavior.
-  constructor({
-    promptsRepo = new PromptRepository(),
-    settingsRepo = new SettingsRepository(),
-  }: BackgroundAppOptions = {}) {
-    this.promptsRepo = promptsRepo;
-    this.settingsRepo = settingsRepo;
+  constructor() {
+    this.promptsRepo = new PromptRepository();
+    this.settingsRepo = new SettingsRepository();
+    this.keepAliveManager = new KeepAliveManager();
   }
 
   async initialize(): Promise<void> {
@@ -86,6 +81,8 @@ export class BackgroundApp {
           this.promptivdSinkCtl.destroy();
         }
       }
+
+      await this.keepAliveManager.initialize(this.promptivdSinkCtl);
     } catch (e) {
       logger.error("Failed to initialize PromptivdSinkController:", e);
     }
