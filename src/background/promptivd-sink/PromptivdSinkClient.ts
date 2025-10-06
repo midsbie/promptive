@@ -81,6 +81,8 @@ export interface InsertTextHandler {
 }
 
 export class PromptivdSinkClient extends EventTarget {
+  static readonly DEFAULT_JOB_TIMEOUT_MS = 2500 as const;
+
   static readonly EVENT_INSERT_TEXT = "inserttext" as const;
   static readonly EVENT_STATE_CHANGE = "statechange" as const;
   static readonly EVENT_CONNECTION_ERROR = "connectionerror" as const;
@@ -108,7 +110,9 @@ export class PromptivdSinkClient extends EventTarget {
       reconnectDelayMs: options.reconnectDelayMs,
     });
 
-    this.jobManager = new JobManager({ jobTimeoutMs: options.jobTimeoutMs ?? 30000 });
+    this.jobManager = new JobManager({
+      jobTimeoutMs: options.jobTimeoutMs ?? PromptivdSinkClient.DEFAULT_JOB_TIMEOUT_MS,
+    });
     this.jobManager.addEventListener(JobManager.EVENT_JOB_TIMEOUT, this.onJobTimeout);
 
     this.stateMachine = new ClientStateMachine();
