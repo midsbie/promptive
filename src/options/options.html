@@ -84,17 +84,18 @@
         </div>
 
         <div class="setting-section">
-          <label class="setting-label">Promptivd Daemon Status</label>
+          <label class="setting-label">Promptivd Integration</label>
 
           <div class="input-group promptivd-status-group">
-            <button id="promptivd-connect-btn" class="btn"></button>
+            <button id="promptivd-toggle-btn" class="btn btn-secondary" title="Enable/Disable Promptivd"></button>
+            <button id="promptivd-connect-btn" class="btn btn-primary" title="Connect to promptivd" hidden>Connect</button>
             <div id="promptivd-status-indicator"></div>
             <span id="promptivd-status-text"></span>
           </div>
 
           <div class="setting-description">
-            Manually connect to or disconnect from the
-            <a href="https://github.com/midsbie/promptivd">promptivd</a> daemon.
+            Toggle integration with the <a href="https://github.com/midsbie/promptivd">promptivd</a>
+            daemon. When enabled, Promptive connects automatically if the daemon is available.
           </div>
         </div>
       </div>

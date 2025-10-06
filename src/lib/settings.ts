@@ -11,6 +11,7 @@ export interface AppSettings {
     sort: ContextMenuSortOrder;
   };
   promptivd: {
+    enabled: boolean;
     daemonAddress: string;
   };
 }
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     sort: "last-used",
   },
   promptivd: {
+    enabled: true,
     daemonAddress: DEFAULT_DAEMON_ADDRESS,
   },
 };

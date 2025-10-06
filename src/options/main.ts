@@ -56,15 +56,17 @@ class OptionsPage {
       document.getElementById("status") as HTMLElement
     );
 
+    await this.repo.initialize();
+    this.settings = this.repo.get();
+
     this.promptivdStatusCtl = new PromptivdStatusController(
       document.getElementById("promptivd-status-indicator") as HTMLDivElement,
       document.getElementById("promptivd-status-text") as HTMLSpanElement,
-      document.getElementById("promptivd-connect-btn") as HTMLButtonElement
+      document.getElementById("promptivd-toggle-btn") as HTMLButtonElement,
+      document.getElementById("promptivd-connect-btn") as HTMLButtonElement,
+      this.repo
     );
     this.promptivdStatusCtl.initialize();
-
-    await this.repo.initialize();
-    this.settings = this.repo.get();
 
     this.loadShortcut();
     this.renderSettings();

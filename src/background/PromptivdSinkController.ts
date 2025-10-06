@@ -9,7 +9,7 @@ import {
   mapPlacementToInsertPosition,
 } from "../lib/promptivd";
 import { DEFAULT_PROVIDER, ProviderOrAuto, isProviderOrAuto, providers } from "../lib/providers";
-import { AppSettings } from "../lib/settings";
+import { AppSettings, SettingsChangeDetail, SettingsRepository } from "../lib/settings";
 
 import { StateChangeDetail } from "./promptivd-sink/ClientStateMachine";
 import {
@@ -41,11 +41,16 @@ export class PromptivdSinkController extends EventTarget {
   private static readonly DEFAULT_SESSION_POLICY: SessionPolicy = "reuse_or_create";
 
   private client: PromptivdSinkClient | null = null;
+  private settingsRepo: SettingsRepository;
+  private enabled: boolean = true;
 
   static readonly EVENT_STATE_CHANGE = "statechange" as const;
 
-  initialize(settings: AppSettings): void {
+  initialize(settingsRepo: SettingsRepository): void {
     if (this.client) throw new Error("Client already initialized");
+
+    const settings = settingsRepo.get();
+    this.enabled = Boolean(settings.promptivd.enabled);
 
     let endpoint: string;
     try {
@@ -57,6 +62,12 @@ export class PromptivdSinkController extends EventTarget {
       });
       throw e;
     }
+
+    this.settingsRepo = settingsRepo;
+    this.settingsRepo.addEventListener(
+      SettingsRepository.EVENT_SETTINGS_CHANGED,
+      this.onSettingsChanged
+    );
 
     this.client = new PromptivdSinkClient({
       endpoint,
@@ -81,6 +92,11 @@ export class PromptivdSinkController extends EventTarget {
     } catch (e) {
       logger.warn("Client stop failed", e);
     }
+
+    this.settingsRepo.removeEventListener(
+      SettingsRepository.EVENT_SETTINGS_CHANGED,
+      this.onSettingsChanged
+    );
 
     this.client.removeEventListener(PromptivdSinkClient.EVENT_INSERT_TEXT, this.onInsertText);
     this.client.removeEventListener(PromptivdSinkClient.EVENT_STATE_CHANGE, this.onStateChange);
@@ -116,6 +132,9 @@ export class PromptivdSinkController extends EventTarget {
     if (!this.client) {
       logger.warn("Cannot start: client not initialized");
       return;
+    } else if (!this.enabled) {
+      logger.info("Promptivd disabled; not starting client");
+      return;
     }
 
     this.client.start();
@@ -126,8 +145,35 @@ export class PromptivdSinkController extends EventTarget {
       logger.warn("Cannot stop: client not initialized");
       return;
     }
+
     this.client.stop();
   }
+
+  private onSettingsChanged = (evt: CustomEvent<SettingsChangeDetail>): void => {
+    const nextEnabled = Boolean(evt.detail.settings.promptivd.enabled);
+    if (nextEnabled === this.enabled) return;
+
+    this.enabled = nextEnabled;
+    if (!this.client) return;
+
+    if (!this.enabled) {
+      logger.info("Promptivd disabled; stopping client");
+      try {
+        this.client.stop();
+      } catch (e) {
+        logger.warn("Error stopping client after disable", e);
+      }
+
+      return;
+    }
+
+    logger.info("Promptivd enabled; starting client if needed");
+    try {
+      this.client.start();
+    } catch (e) {
+      logger.warn("Error starting client after enable", e);
+    }
+  };
 
   private onInsertText = async (event: CustomEvent<InsertTextDetail>): Promise<void> => {
     if (!this.client) return;

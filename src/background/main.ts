@@ -72,7 +72,7 @@ export class BackgroundApp {
 
       if (this.promptivdSinkCtl == null) {
         this.promptivdSinkCtl = new PromptivdSinkController();
-        this.promptivdSinkCtl.initialize(settings);
+        this.promptivdSinkCtl.initialize(this.settingsRepo);
 
         try {
           if (shouldRestart) this.promptivdSinkCtl.start();
