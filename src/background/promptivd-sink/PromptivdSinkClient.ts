@@ -239,8 +239,6 @@ export class PromptivdSinkClient extends EventTarget {
         detail: { frame },
       })
     );
-
-    this.resolveJob(frame.id, "ok", null);
   }
 
   completeJob(jobId: string): void {
