@@ -5,6 +5,8 @@ import { Logger } from "../lib/logging";
 import { PORT } from "../lib/ports";
 import { ClientState } from "../lib/promptivd";
 
+import { StateChangeDetail } from "./promptivd-sink/ClientStateMachine";
+
 import { PromptivdSinkController } from "./PromptivdSinkController";
 
 const logger = new Logger("keep-alive");
@@ -35,10 +37,9 @@ export class KeepAliveManager {
     this.stop();
   }
 
-  private onControllerStateChange = (evt: Event): void => {
-    const detail = (evt as CustomEvent<{ oldState: ClientState; newState: ClientState }>).detail;
-    const nextActive = this.shouldKeepAlive(detail.newState);
-    logger.debug("status update", detail);
+  private onControllerStateChange = (evt: CustomEvent<StateChangeDetail>): void => {
+    const nextActive = this.shouldKeepAlive(evt.detail.newState);
+    logger.debug("status update", evt.detail);
     this.setActive(nextActive);
   };
 
