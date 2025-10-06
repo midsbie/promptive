@@ -192,21 +192,15 @@ class PortConnection {
   }
 
   connect(tabId: number): browser.Runtime.Port {
-    if (this.port) this.disconnect();
+    this.disconnect();
 
-    const port = browser.tabs.connect(tabId, { name: PORT.KEEPALIVE });
-
-    port.onDisconnect.addListener(() => {
-      this.port = null;
-      this.onDisconnected();
-    });
-
-    port.onMessage.addListener((_msg) => {
-      // no-op
-    });
-
-    this.port = port;
-    return port;
+    try {
+      this.unsafeConnect(tabId);
+      return this.port;
+    } catch (e) {
+      this.disconnect();
+      throw e;
+    }
   }
 
   isConnected(): boolean {
@@ -225,6 +219,19 @@ class PortConnection {
     } finally {
       this.port = null;
     }
+  }
+
+  private unsafeConnect(tabId: number): void {
+    this.port = browser.tabs.connect(tabId, { name: PORT.KEEPALIVE });
+
+    this.port.onDisconnect.addListener(() => {
+      this.port = null;
+      this.onDisconnected();
+    });
+
+    this.port.onMessage.addListener((_msg) => {
+      // no-op
+    });
   }
 }
 
