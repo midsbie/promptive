@@ -148,19 +148,19 @@ export class BackgroundApp {
   }
 
   onTabUpdated(tabId: number, info: Tabs.OnUpdatedChangeInfoType, tab: Tabs.Tab): void {
-    this.tabObserver.onTabUpdated(tabId, info, tab).catch((e) => {
+    this.tabObserver?.onTabUpdated(tabId, info, tab).catch((e) => {
       logger.error("Error in onTabUpdated handler:", e);
     });
   }
 
   onTabActivated(info: Tabs.OnActivatedActiveInfoType): void {
-    this.tabObserver.onTabActivated(info).catch((e) => {
+    this.tabObserver?.onTabActivated(info).catch((e) => {
       logger.error("Error in onTabActivated handler:", e);
     });
   }
 
   onWindowFocusChanged(winId: number): void {
-    this.tabObserver.onWindowFocusChanged(winId).catch((e) => {
+    this.tabObserver?.onWindowFocusChanged(winId).catch((e) => {
       logger.error("Error in onWindowFocusChanged handler:", e);
     });
   }
