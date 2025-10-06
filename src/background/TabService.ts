@@ -31,24 +31,20 @@ export class TabService {
   ): Promise<{ tabId: number; isNewTab: boolean; provider: Provider }> {
     switch (sessionPolicy) {
       case "reuse_only": {
-        try {
-          const { tab, provider } = await this.getActiveTabForProvider(providerOrAuto);
-          return { tabId: tab.id, isNewTab: false, provider };
-        } catch {}
+        const r = await this.getActiveTabForProvider(providerOrAuto);
+        if (r) return { tabId: r.tab.id, isNewTab: false, provider: r.provider };
         throw new Error(`Active tab cannot be reused for ${providerOrAuto})`);
       }
 
       case "reuse_or_create":
       default: {
-        try {
-          const r = await this.getActiveTabForProvider(providerOrAuto);
-          if (r) return { tabId: r.tab.id!, isNewTab: false, provider: r.provider };
-        } catch {}
-        break;
+        const r = await this.getActiveTabForProvider(providerOrAuto);
+        if (r) return { tabId: r.tab.id!, isNewTab: false, provider: r.provider };
+        break; // create new tab
       }
 
       case "start_fresh":
-        break;
+        break; // create new tab
     }
 
     const provider = resolveProvider(providerOrAuto);
