@@ -97,29 +97,28 @@ class KeepAliveWorker {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connection: PortConnection | null = null;
   private heartbeat: PortHeartbeat | null = null;
-  private running = false;
+  private abortCtl: AbortController | null = null;
 
   async start(): Promise<void> {
-    if (this.running) return;
+    if (this.abortCtl != null) return;
 
-    this.running = true;
-    await this.ensureConnected();
+    this.abortCtl = new AbortController();
+    await this.ensureConnected(this.abortCtl.signal);
   }
 
   stop(): void {
-    this.running = false;
+    this.abortCtl?.abort();
+
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
+
     this.stopHeartbeat();
     this.disconnect();
+    this.abortCtl = null;
   }
 
-  private canConnect(): boolean {
-    return this.running && this.connection?.isConnected() !== true;
-  }
-
-  private async ensureConnected(): Promise<void> {
-    if (!this.canConnect()) return;
+  private async ensureConnected(signal: AbortSignal): Promise<void> {
+    if (signal.aborted) return;
 
     const tabId = await this.probe.findFirstActive();
     if (!tabId) {
@@ -129,28 +128,33 @@ class KeepAliveWorker {
     }
 
     // Preventing potential race condition when stop() is called while we're connecting.
-    if (!this.canConnect()) return;
+    if (signal.aborted) return;
 
     this.disconnect();
     this.connection = new PortConnection(() => this.onPortDisconnected());
 
     try {
       const port = this.connection.connect(tabId);
-      this.startHeartbeat(port);
+      this.stopHeartbeat();
+      this.heartbeat = new PortHeartbeat(port, KeepAliveWorker.PING_INTERVAL_MS);
+      this.heartbeat.start();
       logger.info("port established", { tabId });
     } catch (e) {
       logger.warn("failed to open port", e);
-      this.connection = null;
+      this.disconnect();
       this.scheduleReconnect();
     }
   }
 
   private scheduleReconnect(): void {
-    if (this.reconnectTimer || !this.running) return;
+    if (this.reconnectTimer || !this.abortCtl) return;
+
+    const signal = this.abortCtl.signal;
+    if (signal.aborted) return;
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.ensureConnected().catch((e) => logger.error("KeepAlive reconnect failed", e));
+      this.ensureConnected(signal).catch((e) => logger.error("KeepAlive reconnect failed", e));
     }, KeepAliveWorker.RECONNECT_DELAY_MS);
   }
 
@@ -161,12 +165,6 @@ class KeepAliveWorker {
     this.scheduleReconnect();
   }
 
-  private startHeartbeat(port: browser.Runtime.Port): void {
-    this.stopHeartbeat();
-    this.heartbeat = new PortHeartbeat(port, KeepAliveWorker.PING_INTERVAL_MS);
-    this.heartbeat.start();
-  }
-
   private stopHeartbeat(): void {
     this.heartbeat?.stop();
     this.heartbeat = null;
@@ -175,8 +173,8 @@ class KeepAliveWorker {
   private disconnect(): void {
     try {
       this.connection?.disconnect();
-    } catch {
-      // ignore
+    } catch (e) {
+      logger.debug("Error during disconnect:", e);
     } finally {
       this.connection = null;
     }
