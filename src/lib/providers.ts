@@ -1,3 +1,6 @@
+export const AUTO_PROVIDER = "auto";
+export const DEFAULT_PROVIDER: Provider = "chatgpt";
+
 // Ensure baseUrls do not have trailing slashes and newChatPaths start with a slash (if not empty)
 export const providerConfigs = {
   chatgpt: {
@@ -23,10 +26,21 @@ export const providerConfigs = {
 } as const;
 
 export type Provider = keyof typeof providerConfigs;
-export const providers = Object.keys(providerConfigs) as Provider[];
+export type ProviderOrAuto = typeof AUTO_PROVIDER | Provider;
+export const providers = [AUTO_PROVIDER].concat(
+  Object.keys(providerConfigs) as Provider[]
+) as ProviderOrAuto[];
 
 export function isProvider(p: unknown): p is Provider {
   return providers.includes(p as Provider);
+}
+
+export function isAutoProvider(p: unknown): p is typeof AUTO_PROVIDER {
+  return p === AUTO_PROVIDER;
+}
+
+export function isProviderOrAuto(p: unknown): p is ProviderOrAuto {
+  return p === AUTO_PROVIDER || isProvider(p);
 }
 
 export function getProviderConfig(provider: Provider) {
@@ -59,4 +73,8 @@ export function detectProvider(url: string): Provider | null {
   }
 
   return null;
+}
+
+export function resolveProvider(providerOrAuto: ProviderOrAuto): Provider {
+  return providerOrAuto === AUTO_PROVIDER ? DEFAULT_PROVIDER : providerOrAuto;
 }

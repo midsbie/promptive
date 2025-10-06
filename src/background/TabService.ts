@@ -2,7 +2,15 @@ import browser from "webextension-polyfill";
 
 import { MSG, createMessage, sendToTab } from "../lib/messaging";
 import { SessionPolicy } from "../lib/promptivd";
-import { Provider, getProviderConfig, isTabFromProvider } from "../lib/providers";
+import {
+  Provider,
+  ProviderOrAuto,
+  detectProvider,
+  getProviderConfig,
+  isAutoProvider,
+  isTabFromProvider,
+  resolveProvider,
+} from "../lib/providers";
 
 import { logger } from "./logger";
 
@@ -18,40 +26,53 @@ export class TabService {
   }
 
   static async findOrCreateProviderTab(
-    provider: Provider,
+    providerOrAuto: ProviderOrAuto,
     sessionPolicy: SessionPolicy
-  ): Promise<{ tabId: number; isNewTab: boolean }> {
+  ): Promise<{ tabId: number; isNewTab: boolean; provider: Provider }> {
     switch (sessionPolicy) {
       case "reuse_only": {
-        const activeTab = await this.getActiveTabForProvider(provider);
-        if (activeTab) return { tabId: activeTab.id!, isNewTab: false };
-        throw new Error(`Active tab cannot be reused (not ${provider})`);
+        try {
+          const { tab, provider } = await this.getActiveTabForProvider(providerOrAuto);
+          return { tabId: tab.id, isNewTab: false, provider };
+        } catch {}
+        throw new Error(`Active tab cannot be reused for ${providerOrAuto})`);
       }
 
       case "reuse_or_create":
       default: {
-        const activeTab = await this.getActiveTabForProvider(provider);
-        if (activeTab) return { tabId: activeTab.id!, isNewTab: false };
-
-        // Purposely letting execution fall through to create a new tab
+        try {
+          const r = await this.getActiveTabForProvider(providerOrAuto);
+          if (r) return { tabId: r.tab.id!, isNewTab: false, provider: r.provider };
+        } catch {}
+        break;
       }
 
-      case "start_fresh": {
-        const newTab = await this.createNewProviderTab(provider);
-        return { tabId: newTab.id!, isNewTab: true };
-      }
+      case "start_fresh":
+        break;
     }
+
+    const provider = resolveProvider(providerOrAuto);
+    const newTab = await this.createNewProviderTab(provider);
+    return { tabId: newTab.id, isNewTab: true, provider };
   }
 
   private static async getActiveTabForProvider(
-    provider: Provider
-  ): Promise<browser.Tabs.Tab | null> {
+    providerOrAuto: ProviderOrAuto
+  ): Promise<{ tab: browser.Tabs.Tab; provider: Provider } | null> {
     const activeTab = await browser.tabs.query({ active: true, currentWindow: true });
     const tab = activeTab[0];
     if (!tab || !tab.id) throw new Error("No active tab found");
 
-    logger.error("Active tab", tab.id, tab.url, provider);
-    return tab.url && isTabFromProvider(tab.url, provider) ? tab : null;
+    logger.error("Active tab", tab.id, tab.url, providerOrAuto);
+    if (isAutoProvider(providerOrAuto)) {
+      const provider = detectProvider(tab.url);
+      if (provider == null) return null;
+      return { tab, provider };
+    } else if (!isTabFromProvider(tab.url, providerOrAuto)) {
+      return null;
+    }
+
+    return { tab, provider: providerOrAuto };
   }
 
   private static async findProviderTab(provider: Provider): Promise<browser.Tabs.Tab | null> {

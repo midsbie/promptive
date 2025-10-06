@@ -8,7 +8,7 @@ import {
   isSessionPolicy,
   mapPlacementToInsertPosition,
 } from "../lib/promptivd";
-import { Provider, isProvider, providers } from "../lib/providers";
+import { DEFAULT_PROVIDER, ProviderOrAuto, isProviderOrAuto, providers } from "../lib/providers";
 import { AppSettings } from "../lib/settings";
 
 import { StateChangeDetail } from "./promptivd-sink/ClientStateMachine";
@@ -38,7 +38,6 @@ import { logger } from "./logger";
 // runtime.sendMessage.  Messages dispatched by the EventTarget interface are meant for consumption
 // in the same runtime context.
 export class PromptivdSinkController extends EventTarget {
-  private static readonly DEFAULT_PROVIDER: Provider = "chatgpt";
   private static readonly DEFAULT_SESSION_POLICY: SessionPolicy = "reuse_or_create";
 
   private client: PromptivdSinkClient | null = null;
@@ -157,10 +156,10 @@ export class PromptivdSinkController extends EventTarget {
     }
 
     const p = payload.target?.provider;
-    let provider: Provider;
-    if (!p) provider = PromptivdSinkController.DEFAULT_PROVIDER;
-    else if (!isProvider(p)) return this.client?.failJob(id, "Invalid provider");
-    else provider = p;
+    let providerOrAuto: ProviderOrAuto;
+    if (!p) providerOrAuto = DEFAULT_PROVIDER;
+    else if (!isProviderOrAuto(p)) return this.client?.failJob(id, "Invalid provider");
+    else providerOrAuto = p;
 
     const sp = payload.target?.session_policy;
     let sessionPolicy: SessionPolicy;
@@ -169,8 +168,8 @@ export class PromptivdSinkController extends EventTarget {
     else sessionPolicy = sp;
 
     try {
-      const { tabId /*, isNewTab */ } = await TabService.findOrCreateProviderTab(
-        provider,
+      const { tabId /*, isNewTab */, provider } = await TabService.findOrCreateProviderTab(
+        providerOrAuto,
         sessionPolicy
       );
 
@@ -185,7 +184,7 @@ export class PromptivdSinkController extends EventTarget {
       return this.client?.completeJob(id);
     } catch (e) {
       const error = resolveErrorMessage(e);
-      logger.error("Failed to insert text", { id, error, provider, sessionPolicy });
+      logger.error("Failed to insert text", { id, error, provider: providerOrAuto, sessionPolicy });
       return this.client?.failJob(id, error);
     }
   };

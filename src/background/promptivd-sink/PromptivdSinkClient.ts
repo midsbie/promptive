@@ -251,7 +251,7 @@ export class PromptivdSinkClient extends EventTarget {
 
   private resolveJob(jobId: string, status: AckStatus, error: string | null): void {
     if (!this.stateMachine.isRegistered()) {
-      logger.warn("Cannot complete job - client not registered", jobId);
+      logger.warn("Cannot complete job: client not registered", jobId);
       return;
     }
 
