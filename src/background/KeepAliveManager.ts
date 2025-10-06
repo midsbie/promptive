@@ -114,9 +114,12 @@ class KeepAliveWorker {
     this.disconnect();
   }
 
+  private canConnect(): boolean {
+    return this.running && this.connection?.isConnected() !== true;
+  }
+
   private async ensureConnected(): Promise<void> {
-    if (!this.running) return;
-    if (this.connection?.isConnected()) return;
+    if (!this.canConnect()) return;
 
     const tabId = await this.probe.findFirstActive();
     if (!tabId) {
@@ -124,6 +127,9 @@ class KeepAliveWorker {
       this.scheduleReconnect();
       return;
     }
+
+    // Preventing potential race condition when stop() is called while we're connecting.
+    if (!this.canConnect()) return;
 
     this.disconnect();
     this.connection = new PortConnection(() => this.onPortDisconnected());
@@ -144,7 +150,7 @@ class KeepAliveWorker {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.ensureConnected().catch((e) => logger.debug("KeepAlive reconnect failed", e));
+      this.ensureConnected().catch((e) => logger.error("KeepAlive reconnect failed", e));
     }, KeepAliveWorker.RECONNECT_DELAY_MS);
   }
 
