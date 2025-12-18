@@ -62,7 +62,7 @@ help:
 	@echo "  publish            Sign & upload to AMO via web-ext (uses WEB_EXT_* env vars)"
 	@echo "  clean              Remove build outputs (dist/ artifacts/)"
 	@echo "  clean-deps         Remove node_modules and dependency stamp"
-	@echo "  lint, format       Run repo quality checks via npm"
+	@echo "  lint, fmt       Run repo quality checks via npm"
 	@echo
 	@echo "Variables you may override: NPM, NPX, NODE, ZIP, RM, MKDIR, INSTALL"
 	@echo
@@ -75,11 +75,12 @@ help:
 # -----------------------------------------------------------------------------
 .PHONY: lint
 lint:
+	$(NPM) run fmt
 	$(NPM) run lint
 
-.PHONY: format
-format:
-	$(NPM) run format
+.PHONY: fmt
+fmt:
+	$(NPM) run fmt:fix
 
 # -----------------------------------------------------------------------------
 # BUILD

@@ -6,8 +6,8 @@
     "build": "node scripts/build.mjs",
     "lint": "eslint . && tsc --noEmit",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "fmt": "prettier --check .",
+    "fmt:fix": "prettier --write .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
