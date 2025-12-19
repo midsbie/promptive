@@ -51,6 +51,23 @@ class OptionsPage {
     "promptivdDaemonAddress"
   ) as HTMLInputElement;
 
+  // Batch Sending Elements
+  private promptivdMaxMessageCharsInput = document.getElementById(
+    "promptivdMaxMessageChars"
+  ) as HTMLInputElement;
+  private contentTypeRadios = document.querySelectorAll(
+    'input[name="contentType"]'
+  ) as NodeListOf<HTMLInputElement>;
+  private batchModeRadios = document.querySelectorAll(
+    'input[name="batchMode"]'
+  ) as NodeListOf<HTMLInputElement>;
+  private framingEnabledCheckbox = document.getElementById("framingEnabled") as HTMLInputElement;
+  private framingModeSelect = document.getElementById("framingMode") as HTMLSelectElement;
+  private framingTextInput = document.getElementById("framingText") as HTMLInputElement;
+  private showProgressWidgetCheckbox = document.getElementById(
+    "showProgressWidget"
+  ) as HTMLInputElement;
+
   async initialize(): Promise<void> {
     this.notificationCtl = new NotificationController(
       document.getElementById("status") as HTMLElement
@@ -137,17 +154,53 @@ class OptionsPage {
     this.contextMenuLimitInput.value = String(this.settings.contextMenu.limit);
     this.contextMenuSortSelect.value = this.settings.contextMenu.sort;
     this.promptivdDaemonAddressInput.value = this.settings.promptivd.daemonAddress;
+
+    // Batch settings
+    this.promptivdMaxMessageCharsInput.value = String(this.settings.promptivd.maxMessageChars);
+    this.setRadioValue(this.contentTypeRadios, this.settings.promptivd.contentType);
+    this.setRadioValue(this.batchModeRadios, this.settings.promptivd.batchMode);
+    this.framingEnabledCheckbox.checked = this.settings.promptivd.framing.enabled;
+    this.framingModeSelect.value = this.settings.promptivd.framing.mode;
+    this.framingTextInput.value = this.settings.promptivd.framing.text;
+    this.showProgressWidgetCheckbox.checked = this.settings.promptivd.showProgressWidget;
+  }
+
+  private getFormSettings(): AppSettings {
+    const limit = parseInt(this.contextMenuLimitInput.value, 10);
+    const maxChars = parseInt(this.promptivdMaxMessageCharsInput.value, 10);
+
+    // IMPORTANT: keep the structure in sync with AppSettings to prevent key order issues or the
+    //            first time saveSettings is called, it will always think settings have changed.
+    return {
+      contextMenu: {
+        limit: isNaN(limit) ? 10 : limit,
+        sort: this.contextMenuSortSelect.value as AppSettings["contextMenu"]["sort"],
+      },
+      promptivd: {
+        enabled: this.settings.promptivd.enabled,
+        daemonAddress: this.promptivdDaemonAddressInput.value.trim() || DEFAULT_DAEMON_ADDRESS,
+        maxMessageChars: isNaN(maxChars) ? 10000 : Math.max(500, Math.min(50000, maxChars)),
+        contentType: this.getRadioValue(
+          this.contentTypeRadios
+        ) as AppSettings["promptivd"]["contentType"],
+        framing: {
+          enabled: this.framingEnabledCheckbox.checked,
+          mode: this.framingModeSelect.value as AppSettings["promptivd"]["framing"]["mode"],
+          text: this.framingTextInput.value,
+        },
+        batchMode: this.getRadioValue(
+          this.batchModeRadios
+        ) as AppSettings["promptivd"]["batchMode"],
+        showProgressWidget: this.showProgressWidgetCheckbox.checked,
+      },
+    };
   }
 
   private async saveSettings(): Promise<void> {
-    const newLimit = parseInt(this.contextMenuLimitInput.value, 10);
-    const newSort = this.contextMenuSortSelect.value as AppSettings["contextMenu"]["sort"];
-    const newDaemonAddress = this.promptivdDaemonAddressInput.value.trim();
+    const newSettings = this.getFormSettings();
+    if (JSON.stringify(newSettings) === JSON.stringify(this.settings)) return;
 
-    this.settings.contextMenu.limit = isNaN(newLimit) ? 10 : newLimit;
-    this.settings.contextMenu.sort = newSort;
-    this.settings.promptivd.daemonAddress = newDaemonAddress || DEFAULT_DAEMON_ADDRESS;
-
+    this.settings = newSettings;
     await this.repo.save(this.settings);
     this.notificationCtl.show("Settings saved!");
   }
@@ -171,6 +224,29 @@ class OptionsPage {
     this.contextMenuLimitInput.addEventListener("input", () => this.saveSettings());
     this.contextMenuSortSelect.addEventListener("change", () => this.saveSettings());
     this.promptivdDaemonAddressInput.addEventListener("blur", () => this.saveSettings());
+
+    // Batch settings events
+    this.promptivdMaxMessageCharsInput.addEventListener("change", () => this.saveSettings());
+    this.contentTypeRadios.forEach((r) => r.addEventListener("change", () => this.saveSettings()));
+    this.batchModeRadios.forEach((r) => r.addEventListener("change", () => this.saveSettings()));
+    this.framingEnabledCheckbox.addEventListener("change", () => this.saveSettings());
+    this.framingModeSelect.addEventListener("change", () => this.saveSettings());
+    this.framingTextInput.addEventListener("blur", () => this.saveSettings());
+    this.showProgressWidgetCheckbox.addEventListener("change", () => this.saveSettings());
+  }
+
+  private setRadioValue(radios: NodeListOf<HTMLInputElement>, value: string): void {
+    radios.forEach((r) => {
+      if (r.value === value) r.checked = true;
+    });
+  }
+
+  private getRadioValue(radios: NodeListOf<HTMLInputElement>): string {
+    let value = "";
+    radios.forEach((r) => {
+      if (r.checked) value = r.value;
+    });
+    return value;
   }
 
   private setShortcutState(state: "valid" | "invalid" | "pending" | null, message: string): void {

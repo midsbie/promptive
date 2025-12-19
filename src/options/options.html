@@ -33,9 +33,10 @@
         </div>
 
         <div class="setting-section">
-          <label class="setting-label" for="contextMenuLimit">Context Menu Prompts</label>
+          <label class="setting-label">Context Menu</label>
 
           <div class="input-group">
+            <label class="subsection-label" for="contextMenuLimit">Prompts Limit</label>
             <input
               type="number"
               id="contextMenuLimit"
@@ -44,58 +45,157 @@
               max="20"
               value="10"
             />
+            <div class="setting-description">
+              Maximum number of prompts to show in the right-click context menu (1-20).
+            </div>
           </div>
-
-          <div class="setting-description">
-            Maximum number of prompts to show in the right-click context menu (1-20).
-          </div>
-        </div>
-
-        <div class="setting-section">
-          <label class="setting-label" for="contextMenuSort">Context Menu Sort Order</label>
 
           <div class="input-group">
+            <label class="subsection-label" for="contextMenuSort">Sort Order</label>
             <select id="contextMenuSort" class="form-control">
               <option value="last-used">Most Recently Used</option>
               <option value="alphabetical">Alphabetical</option>
             </select>
-          </div>
-
-          <div class="setting-description">
-            Choose how to sort the prompts displayed in the right-click context menu.
+            <div class="setting-description">
+              Choose how to sort the prompts displayed in the right-click context menu.
+            </div>
           </div>
         </div>
 
         <div class="setting-section">
-          <label class="setting-label" for="promptivdDaemonAddress">Promptivd Daemon Address</label>
+          <label class="setting-label">Promptivd Daemon</label>
 
           <div class="input-group">
+            <label class="subsection-label" for="promptivdDaemonAddress">Address</label>
             <input
               type="url"
               id="promptivdDaemonAddress"
               class="form-control"
               placeholder="ws://localhost:8787"
             />
+            <div class="setting-description">
+              Address of the promptivd daemon for text insertion integration.
+            </div>
           </div>
 
-          <div class="setting-description">
-            Address of the promptivd daemon for text insertion integration.
+          <div class="input-group">
+            <label class="subsection-label">Integration</label>
+            <div class="promptivd-status-group">
+              <button
+                id="promptivd-toggle-btn"
+                class="btn btn-secondary"
+                title="Enable/Disable Promptivd"
+              ></button>
+              <button
+                id="promptivd-connect-btn"
+                class="btn btn-primary"
+                title="Connect to promptivd"
+                hidden
+              >
+                Connect
+              </button>
+              <div id="promptivd-status-indicator"></div>
+              <span id="promptivd-status-text"></span>
+            </div>
+            <div class="setting-description">
+              Toggle integration with the
+              <a href="https://github.com/midsbie/promptivd">promptivd</a>
+              daemon. When enabled, Promptive connects automatically if the daemon is available.
+            </div>
           </div>
         </div>
 
         <div class="setting-section">
-          <label class="setting-label">Promptivd Integration</label>
+          <label class="setting-label">Promptivd Batch Sending</label>
 
-          <div class="input-group promptivd-status-group">
-            <button id="promptivd-toggle-btn" class="btn btn-secondary" title="Enable/Disable Promptivd"></button>
-            <button id="promptivd-connect-btn" class="btn btn-primary" title="Connect to promptivd" hidden>Connect</button>
-            <div id="promptivd-status-indicator"></div>
-            <span id="promptivd-status-text"></span>
+          <div class="input-group">
+            <label class="subsection-label" for="promptivdMaxMessageChars"
+              >Max Message Characters</label
+            >
+            <input
+              type="number"
+              id="promptivdMaxMessageChars"
+              class="form-control number-input"
+              min="500"
+              max="50000"
+              step="100"
+            />
+            <div class="setting-description">
+              Messages larger than this will be split into chunks.
+            </div>
           </div>
 
-          <div class="setting-description">
-            Toggle integration with the <a href="https://github.com/midsbie/promptivd">promptivd</a>
-            daemon. When enabled, Promptive connects automatically if the daemon is available.
+          <fieldset class="input-group">
+            <legend>Content Type</legend>
+            <div class="radio-group">
+              <label><input type="radio" name="contentType" value="auto" /> Auto</label>
+              <label><input type="radio" name="contentType" value="text" /> Text</label>
+              <label><input type="radio" name="contentType" value="markdown" /> Markdown</label>
+            </div>
+            <div class="setting-description">
+              How to interpret the content when sending to the LLM.
+            </div>
+          </fieldset>
+
+          <fieldset class="input-group">
+            <legend>Batch Mode</legend>
+            <div class="radio-group">
+              <label>
+                <input type="radio" name="batchMode" value="assisted" />
+                Assisted (Manual Send)
+              </label>
+              <!-- Disabled as it is potentially dangerous and not all providers supported -->
+              <label>
+                <input type="radio" name="batchMode" value="auto-send" disabled />
+                Auto-Send
+              </label>
+            </div>
+            <div class="setting-description">
+              Choose whether to send chunks manually or automatically.
+            </div>
+          </fieldset>
+
+          <fieldset class="input-group">
+            <legend>Framing</legend>
+            <div class="checkbox-group">
+              <label>
+                <input type="checkbox" id="framingEnabled" />
+                Enable framing instructions
+              </label>
+            </div>
+            <div class="sub-option">
+              <label class="subsection-label" for="framingMode">Mode</label>
+              <select id="framingMode" class="form-control inline-select">
+                <option value="ack">Require acknowledgement</option>
+                <option value="silent">Silent</option>
+              </select>
+            </div>
+            <div class="sub-option">
+              <div class="input-group">
+                <label class="subsection-label" for="framingText">Custom Framing Text</label>
+                <input
+                  type="text"
+                  id="framingText"
+                  class="form-control"
+                  placeholder="Optional custom framing text"
+                />
+              </div>
+              <div class="setting-description">
+                Add instructions around chunked messages to help the LLM understand the context.
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="input-group">
+            <div class="checkbox-group">
+              <label>
+                <input type="checkbox" id="showProgressWidget" />
+                Show Progress Widget
+              </label>
+            </div>
+            <div class="setting-description">
+              Display a progress indicator when sending large messages in chunks.
+            </div>
           </div>
         </div>
       </div>

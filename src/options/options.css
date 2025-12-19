@@ -31,7 +31,7 @@
   display: block;
   margin-bottom: var(--space-2);
   color: var(--color-text);
-  font-size: var(--fs-label);
+  font-size: var(--fs-subtitle);
   font-weight: 600;
 }
 
@@ -157,4 +157,68 @@ select.form-control {
   font-size: var(--fs-body);
   color: var(--color-text);
   flex-grow: 1;
+}
+
+/* Subsection labels for grouped settings */
+.subsection-label {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+/* Fieldset reset for radio/checkbox groups */
+fieldset.input-group {
+  border: none;
+  padding: 0;
+  margin: var(--space-3) 0 var(--space-2) 0;
+}
+
+fieldset.input-group legend {
+  padding: 0;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+/* Add spacing between logical setting groups */
+fieldset.input-group + .input-group {
+  margin-top: var(--space-3);
+}
+
+/* Radio and checkbox group layout */
+.radio-group,
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.radio-group label,
+.checkbox-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--fs-body);
+  color: var(--color-text);
+}
+
+.radio-group label:has(input:disabled),
+.checkbox-group label:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Sub-option indentation */
+.sub-option {
+  margin-left: var(--space-5);
+}
+
+/* Inline select for compact layouts */
+.inline-select {
+  width: auto;
+  display: inline-block;
 }
