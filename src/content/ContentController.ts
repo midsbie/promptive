@@ -4,8 +4,10 @@ import { MSG, Message, MessageResponse, createMessage, isMessage } from "../lib/
 import { PORT } from "../lib/ports";
 import { Provider } from "../lib/providers";
 import { SearchService } from "../lib/services";
+import { SettingsRepository } from "../lib/settings";
 import { InsertPosition, Prompt } from "../lib/storage";
 
+import { BatchSender } from "./BatchSender";
 import { CursorPositionManager } from "./CursorPositionManager";
 import { InputFocusManager } from "./InputFocusManager";
 import { PageReadinessTracker } from "./PageReadinessTracker";
@@ -89,6 +91,9 @@ export class ContentController {
   private popover: PopoverUI | null = null;
   private readinessTracker: PageReadinessTracker;
   private inputFocusManager: InputFocusManager;
+  private batchSender: BatchSender;
+  private settingsRepo: SettingsRepository;
+  private settingsReady: Promise<void>;
 
   constructor() {
     this.api = new BackgroundAPI();
@@ -102,12 +107,15 @@ export class ContentController {
     this.clipboardWriter = new ClipboardWriter();
     this.readinessTracker = new PageReadinessTracker();
     this.inputFocusManager = new InputFocusManager();
+    this.batchSender = new BatchSender();
+    this.settingsRepo = new SettingsRepository();
 
     browser.runtime.onMessage.addListener(this.onRuntimeMessage);
     browser.runtime.onConnect.addListener(this.onRuntimeConnect);
 
     this.readinessTracker.addEventListener(PageReadinessTracker.EVENT_READY, this.onPageReady);
     this.readinessTracker.initialize();
+    this.settingsReady = this.settingsRepo.initialize();
 
     logger.info("initialized");
   }
@@ -115,6 +123,12 @@ export class ContentController {
   async openPopover(): Promise<void> {
     if (this.popover) {
       logger.warn("Refusing to open popover: already open");
+      return;
+    }
+
+    // Prevent popover if batch sending active
+    if (this.batchSender.isSending()) {
+      ToastService.show("Cannot open popover while batch sending");
       return;
     }
 
@@ -166,6 +180,18 @@ export class ContentController {
 
       case MSG.INSERT_TEXT: {
         this.popover?.close();
+
+        // Ensure settings are loaded before using them
+        await this.settingsReady;
+        const settings = this.settingsRepo.get();
+        if (message.text.length > settings.promptivd.maxMessageChars) {
+          if (this.batchSender.isSending()) {
+            ToastService.show("Batch already in progress");
+            return { error: "Batch already in progress" };
+          }
+          return await this.batchSender.send(message.text, settings);
+        }
+
         this.inputFocusManager.focusProviderInput();
         return await this.target.withRemembered(document.activeElement, () =>
           this.insertText(message.text, message.insertAt)

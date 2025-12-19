@@ -142,6 +142,69 @@
   transform: translateY(0);
 }
 
+/* Batch Progress Widget */
+.promptive-batch-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  background-color: var(--bg-color, #ffffff);
+  color: var(--text-color, #333333);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 2147483647; /* High z-index */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  display: none;
+}
+
+.promptive-batch-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.promptive-batch-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batch-progress-text {
+  font-weight: 600;
+}
+
+.batch-status-text {
+  font-size: 12px;
+  color: var(--text-muted-color, #666);
+}
+
+.promptive-batch-controls {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.promptive-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.promptive-btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.promptive-btn-danger:hover {
+  background-color: #c82333;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .plp-container {
@@ -190,5 +253,15 @@
   .plp-tag {
     background: #404040;
     color: #bbb;
+  }
+
+  .promptive-batch-widget {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border-color: #333;
+  }
+
+  .batch-status-text {
+    color: #aaa;
   }
 }
