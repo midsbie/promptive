@@ -8,15 +8,18 @@ export const providerConfigs: Record<
     baseUrl: string;
     newChatPath: string;
     composerSelector: string;
-    sendButtonSelector?: string;
-    stopButtonSelector?: string;
+    sendButtonSelector?: string | string[];
+    stopButtonSelector?: string | string[];
   }
 > = {
   chatgpt: {
     baseUrl: "https://chatgpt.com",
     newChatPath: "",
     composerSelector: "#prompt-textarea",
-    sendButtonSelector: '[data-testid="send-button"]',
+    sendButtonSelector: [
+      '[data-testid="send-button"]',
+      '[data-type="unified-composer"] button.composer-submit-button-color',
+    ],
     stopButtonSelector: '[data-testid="stop-button"]',
   },
   claude: {

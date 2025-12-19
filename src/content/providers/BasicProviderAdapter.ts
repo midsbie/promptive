@@ -65,13 +65,22 @@ export abstract class BasicProviderAdapter implements ProviderAdapter {
   getSendButton(): HTMLButtonElement | null {
     const config = getProviderConfig(this.id);
     if (!config?.sendButtonSelector) return null;
-    return document.querySelector(config.sendButtonSelector);
+    return this.getFirstElementBySelector(config.sendButtonSelector) as HTMLButtonElement | null;
   }
 
   getStopButton(): HTMLButtonElement | null {
     const config = getProviderConfig(this.id);
     if (!config?.stopButtonSelector) return null;
-    return document.querySelector(config.stopButtonSelector);
+    return this.getFirstElementBySelector(config.stopButtonSelector) as HTMLButtonElement | null;
+  }
+
+  private getFirstElementBySelector(selector: string | string[]): Element | null {
+    const selectors = typeof selector === "string" ? [selector] : selector;
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) return el;
+    }
+    return null;
   }
 
   abstract observeAccepted(signal: AbortSignal): Promise<void>;
