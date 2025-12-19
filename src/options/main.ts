@@ -179,7 +179,7 @@ class OptionsPage {
       promptivd: {
         enabled: this.settings.promptivd.enabled,
         daemonAddress: this.promptivdDaemonAddressInput.value.trim() || DEFAULT_DAEMON_ADDRESS,
-        maxMessageChars: isNaN(maxChars) ? 10000 : Math.max(500, Math.min(50000, maxChars)),
+        maxMessageChars: isNaN(maxChars) ? 10000 : Math.max(1000, maxChars),
         contentType: this.getRadioValue(
           this.contentTypeRadios
         ) as AppSettings["promptivd"]["contentType"],
