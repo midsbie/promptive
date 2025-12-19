@@ -1,29 +1,39 @@
 import { Provider, detectProvider, getProviderConfig } from "../lib/providers";
 
+import { DefaultProviderAdapterFactory } from "./providers/ProviderAdapterFactory";
+
+import { CaretPositioner } from "./CaretPositioner";
+
 export class InputFocusManager {
+  private adapterFactory = new DefaultProviderAdapterFactory();
+  private caretPositioner = new CaretPositioner();
+
   focusProviderInput(provider?: Provider): boolean {
-    if (!provider) {
-      provider = detectProvider(window.location.href);
-      if (!provider) return false;
+    const adapter = this.adapterFactory.getForUrl(window.location.href);
+
+    if (adapter) {
+      if (!provider || adapter.id === provider) {
+        const success = adapter.focusComposer();
+        if (success) {
+          const el = adapter.getComposer();
+          if (el) this.caretPositioner.moveToEnd(el);
+        }
+        return success;
+      }
     }
 
-    const config = getProviderConfig(provider);
-    if (!config) return false; // not supposed to happen
+    // Fallback: use selector-based approach when no adapter matches
+    const detected = provider || detectProvider(window.location.href);
+    if (!detected) return false;
 
-    const inputElement = document.querySelector(config.inputSelector) as HTMLElement | null;
-    if (!inputElement) return false;
+    const config = getProviderConfig(detected);
+    if (!config) return false;
 
-    inputElement.focus();
-    if (!inputElement.isContentEditable) return true;
+    const el = document.querySelector(config.composerSelector) as HTMLElement;
+    if (!el) return false;
 
-    const selection = window.getSelection();
-    if (!selection) return true;
-
-    const range = document.createRange();
-    range.selectNodeContents(inputElement);
-    range.collapse(false);
-    selection.removeAllRanges();
-    selection.addRange(range);
+    el.focus();
+    this.caretPositioner.moveToEnd(el);
     return true;
   }
 }

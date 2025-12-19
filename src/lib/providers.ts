@@ -2,28 +2,42 @@ export const AUTO_PROVIDER = "auto";
 export const DEFAULT_PROVIDER: Provider = "chatgpt";
 
 // Ensure baseUrls do not have trailing slashes and newChatPaths start with a slash (if not empty)
-export const providerConfigs = {
+export const providerConfigs: Record<
+  string,
+  {
+    baseUrl: string;
+    newChatPath: string;
+    composerSelector: string;
+    sendButtonSelector?: string;
+    stopButtonSelector?: string;
+  }
+> = {
   chatgpt: {
     baseUrl: "https://chatgpt.com",
     newChatPath: "",
-    inputSelector: "#prompt-textarea",
+    composerSelector: "#prompt-textarea",
+    sendButtonSelector: '[data-testid="send-button"]',
+    stopButtonSelector: '[data-testid="stop-button"]',
   },
   claude: {
     baseUrl: "https://claude.ai",
     newChatPath: "/new",
-    inputSelector: 'div.ProseMirror[contenteditable="true"]',
+    composerSelector: 'div.ProseMirror[contenteditable="true"]',
+    sendButtonSelector: 'button[aria-label="Send Message"]',
   },
   gemini: {
     baseUrl: "https://gemini.google.com",
     newChatPath: "/app",
-    inputSelector: 'div.ql-editor[contenteditable="true"]',
+    composerSelector: 'div.ql-editor[contenteditable="true"]',
+    sendButtonSelector: 'button[aria-label*="Send"]',
   },
   aistudio: {
     baseUrl: "https://aistudio.google.com",
     newChatPath: "/prompts/new_chat",
-    inputSelector: "textarea.textarea",
+    composerSelector: "textarea.textarea",
+    sendButtonSelector: 'button[aria-label="Run"]',
   },
-} as const;
+};
 
 export type Provider = keyof typeof providerConfigs;
 export type ProviderOrAuto = typeof AUTO_PROVIDER | Provider;

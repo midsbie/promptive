@@ -1,5 +1,6 @@
 import { InsertPosition } from "../lib/storage";
 
+import { CaretPositioner } from "./CaretPositioner";
 import { logger } from "./logger";
 
 export type InsertTextOptions = {
@@ -49,6 +50,8 @@ export abstract class InsertionStrategy {
 }
 
 export class InputTextareaStrategy extends InsertionStrategy {
+  private caretPositioner = new CaretPositioner();
+
   canHandle(el: Element | null): el is HTMLInputElement | HTMLTextAreaElement {
     return el !== null && (el.tagName === "INPUT" || el.tagName === "TEXTAREA");
   }
@@ -58,7 +61,7 @@ export class InputTextareaStrategy extends InsertionStrategy {
     if (!this.canHandle(el)) return false;
 
     const text = buildInsertText(opts);
-    const insertPosition = this.getInsertPosition(el, opts.insertAt);
+    const insertPosition = this.caretPositioner.getInputIndices(el, opts.insertAt);
 
     const value = el.value ?? "";
     el.value = value.slice(0, insertPosition.start) + text + value.slice(insertPosition.end);
@@ -71,29 +74,11 @@ export class InputTextareaStrategy extends InsertionStrategy {
     el.dispatchEvent(new Event("change", { bubbles: true }));
     return true;
   }
-
-  private getInsertPosition(
-    el: HTMLInputElement | HTMLTextAreaElement,
-    insertAt: InsertPosition
-  ): { start: number; end: number } {
-    const value = el.value ?? "";
-
-    switch (insertAt) {
-      case "top":
-        return { start: 0, end: 0 };
-      case "bottom":
-        return { start: value.length, end: value.length };
-      case "cursor":
-      default: {
-        const start = el.selectionStart ?? 0;
-        const end = el.selectionEnd ?? 0;
-        return { start, end };
-      }
-    }
-  }
 }
 
 export class ContentEditableStrategy extends InsertionStrategy {
+  private caretPositioner = new CaretPositioner();
+
   canHandle(el: Element | null): el is HTMLElement {
     return (
       !!el &&
@@ -115,7 +100,7 @@ export class ContentEditableStrategy extends InsertionStrategy {
     const text = buildInsertText(opts);
 
     try {
-      if (!this.positionForInsertion(el, opts.insertAt)) {
+      if (!this.caretPositioner.positionContentEditable(el, opts.insertAt)) {
         logger.error("Failed to position cursor for insertion");
         return false;
       }
@@ -125,80 +110,61 @@ export class ContentEditableStrategy extends InsertionStrategy {
     }
 
     // plaintext-only hosts MUST ignore HTML
+    // These elements explicitly reject HTML formatting, so we must use plain text.
     const isPlainTextOnly = el.getAttribute?.("contenteditable") === "plaintext-only";
     if (isPlainTextOnly) {
       logger.log('Target is contenteditable="plaintext-only"; inserting as plain text');
       return this.insertPlainText(el, text);
     }
 
+    // First choice: execCommand('insertHTML')
+    // This is the most reliable method for rich text insertion as it integrates
+    // with the browser's undo stack and triggers proper editor events.
     const html = toParagraphHtml(text);
-    // First choice: insertHTML command
     if (document.queryCommandSupported?.("insertHTML")) {
       logger.log("Using execCommand('insertHTML') for insertion");
       try {
         document.execCommand("insertHTML", false, html);
-        this.dispatchInput(el, "insertFromPaste"); // notify reactive frameworks/editors
+        this.dispatchInput(el, "insertFromPaste");
         return true;
       } catch (_) {
-        /* continue */
+        /* continue to fallback */
       }
     }
 
-    // Last resort: plain text
+    // Fallback: plain text via execCommand or Range API
+    // Some browsers/editors don't support insertHTML, so we degrade gracefully.
     logger.warn("Falling back to range-based plain text insertion");
     return this.insertPlainText(el, text);
   }
 
-  private positionForInsertion(el: HTMLElement, insertAt: InsertPosition): boolean {
-    if (insertAt === "cursor") return true;
-
-    const selection = window.getSelection();
-    if (!selection) return false;
-
-    let range: Range;
-    if (insertAt === "top") {
-      range = document.createRange();
-      // Find the first child element or text node to position inside it
-      const firstChild = el.firstElementChild || el.firstChild;
-      if (firstChild) {
-        range.setStart(firstChild, 0);
-        range.setEnd(firstChild, 0);
-      } else {
-        range.setStart(el, 0);
-        range.setEnd(el, 0);
-      }
-    } else {
-      // end - position inside the last child element
-      range = document.createRange();
-      const lastChild = el.lastElementChild || el.lastChild;
-      if (lastChild) {
-        range.selectNodeContents(lastChild);
-        range.collapse(false);
-      } else {
-        range.selectNodeContents(el);
-        range.collapse(false);
-      }
-    }
-
-    selection.removeAllRanges();
-    selection.addRange(range);
-    return true;
-  }
-
+  /**
+   * Inserts plain text into a contenteditable element.
+   *
+   * We attempt multiple strategies in order of preference:
+   * 1. execCommand('insertText') - integrates with undo stack
+   * 2. Range API manipulation - direct DOM insertion as last resort
+   */
   private insertPlainText(el: HTMLElement, text: string): boolean {
+    // First choice: execCommand('insertText')
+    // Like insertHTML, this integrates with the browser's editing machinery,
+    // preserving undo/redo functionality and triggering proper events.
     if (document.queryCommandSupported?.("insertText")) {
       try {
         document.execCommand("insertText", false, text);
         this.dispatchInput(el, "insertText");
         return true;
       } catch (_) {
-        /* fall through */
+        /* fall through to Range-based approach */
       }
     }
 
-    // Range-based plain text
+    // Last resort: direct Range API manipulation
+    // This bypasses the browser's editing commands entirely. We lose undo stack
+    // integration, but it works when execCommand is unavailable or fails.
     try {
       const sel = window.getSelection?.();
+      // Ensure we have a valid selection; if not, create one at end of element
       if (!sel || sel.rangeCount === 0) {
         const r = document.createRange();
         r.selectNodeContents(el);
@@ -208,8 +174,9 @@ export class ContentEditableStrategy extends InsertionStrategy {
       }
 
       const range = window.getSelection()!.getRangeAt(0);
-      range.deleteContents();
+      range.deleteContents(); // Remove any selected content
 
+      // Insert text node and position cursor after it
       const tn = document.createTextNode(text);
       range.insertNode(tn);
       range.setStartAfter(tn);
