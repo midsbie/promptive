@@ -110,7 +110,7 @@ export class PromptivdSinkController extends EventTarget {
   }
 
   shouldRestart(): boolean {
-    return (this.client != null && this.client.isConnected()) || this.client.isRegistered();
+    return this.client != null && (this.client.isConnected() || this.client.isRegistered());
   }
 
   shouldReinitialize(newSettings: AppSettings): boolean {
