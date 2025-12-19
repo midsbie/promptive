@@ -1,7 +1,7 @@
 import { Prompt, PromptRepository } from "../lib/storage";
 
-import { logger } from "./logger";
 import { Router } from "./Router";
+import { logger } from "./logger";
 import { ToastService } from "./services";
 
 export class PromptEditor {
