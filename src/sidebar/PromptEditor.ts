@@ -1,4 +1,4 @@
-import { Prompt, PromptRepository } from "../lib/storage";
+import { InsertPosition, PartialPrompt, Prompt, PromptRepository } from "../lib/storage";
 
 import { Router } from "./Router";
 import { logger } from "./logger";
@@ -191,17 +191,14 @@ export class PromptEditor {
     }
 
     try {
-      const payload: any = {
+      const payload: PartialPrompt = {
+        id: this.promptId ?? undefined,
         title,
         content,
         tags,
         insert_at: insertAt,
         separator,
       };
-
-      if (this.promptId) {
-        payload.id = this.promptId;
-      }
 
       await this.repo.savePrompt(payload);
       this.isDirty = false;

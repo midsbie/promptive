@@ -1,4 +1,4 @@
-import { Provider, getProviderConfig } from "../../lib/providers";
+import { Provider, getProviderConfig, isTabFromProvider } from "../../lib/providers";
 import { ContentEditableStrategy, InputTextareaStrategy, TextInserter } from "../TextInserter";
 
 import { ProviderAdapter } from "./ProviderAdapter";
@@ -17,15 +17,7 @@ export abstract class BasicProviderAdapter implements ProviderAdapter {
   ]);
 
   detect(url: string): boolean {
-    const config = getProviderConfig(this.id);
-    if (!config) return false;
-    try {
-      const purl = new URL(config.baseUrl);
-      const curl = new URL(url);
-      return purl.host === curl.host;
-    } catch {
-      return false;
-    }
+    return isTabFromProvider(url, this.id);
   }
 
   focusComposer(): boolean {

@@ -59,7 +59,6 @@ export class TabService {
     const tab = activeTab[0];
     if (!tab || !tab.id) throw new Error("No active tab found");
 
-    logger.error("Active tab", tab.id, tab.url, providerOrAuto);
     if (isAutoProvider(providerOrAuto)) {
       const provider = detectProvider(tab.url);
       if (provider == null) return null;
@@ -69,18 +68,6 @@ export class TabService {
     }
 
     return { tab, provider: providerOrAuto };
-  }
-
-  private static async findProviderTab(provider: Provider): Promise<browser.Tabs.Tab | null> {
-    const tabs = await browser.tabs.query({});
-
-    for (const tab of tabs) {
-      if (tab.url && isTabFromProvider(tab.url, provider)) {
-        return tab;
-      }
-    }
-
-    return null;
   }
 
   private static async createNewProviderTab(provider: Provider): Promise<browser.Tabs.Tab> {

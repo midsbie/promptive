@@ -1,7 +1,7 @@
 import browser from "webextension-polyfill";
 
 import { SearchService } from "../lib/services";
-import { Prompt, PromptRepository } from "../lib/storage";
+import { PartialPrompt, Prompt, PromptRepository } from "../lib/storage";
 
 import { MenuController } from "./MenuController";
 import { ModalController } from "./ModalController";
@@ -251,8 +251,12 @@ export class PromptiveSidebar {
 
     if (!title || !content) return;
 
-    const payload: any = { title, content, tags };
-    if (this.editingPrompt) payload.id = this.editingPrompt.id;
+    const payload: PartialPrompt = {
+      id: this.editingPrompt?.id,
+      title,
+      content,
+      tags,
+    };
 
     try {
       await this.repo.savePrompt(payload);

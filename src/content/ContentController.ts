@@ -295,9 +295,8 @@ export class ContentController {
   }
 
   private async copyToClipboard(text: string) {
-    await this.clipboardWriter.write(text);
-
     try {
+      await this.clipboardWriter.write(text);
       ToastService.show("Copied to clipboard");
     } catch (e) {
       logger.error("Error during copy to clipboard:", e);

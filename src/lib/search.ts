@@ -219,7 +219,7 @@ export class AdvancedSearch implements ISearchStrategy {
 
     // Extract exact phrases (in quotes)
     const phraseRegex = /"([^"]+)"/g;
-    let phraseMatch: RegExpExecArray;
+    let phraseMatch: RegExpExecArray | null;
     const phrasesFound: string[] = [];
     while ((phraseMatch = phraseRegex.exec(query)) !== null) {
       result.phrases.push(phraseMatch[1]);
