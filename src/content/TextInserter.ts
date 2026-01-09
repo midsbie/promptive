@@ -205,13 +205,6 @@ export class ContentEditableStrategy extends InsertionStrategy {
   }
 }
 
-export class ClipboardWriter {
-  async write(text: string): Promise<boolean> {
-    await navigator.clipboard.writeText(text);
-    return true;
-  }
-}
-
 export class TextInserter {
   private strategies: InsertionStrategy[];
 

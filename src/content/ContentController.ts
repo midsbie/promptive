@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 
+import { ClipboardService } from "../lib/clipboard";
 import { MSG, Message, MessageResponse, createMessage, isMessage } from "../lib/messaging";
 import { PORT } from "../lib/ports";
 import { Provider } from "../lib/providers";
@@ -13,7 +14,6 @@ import { InputFocusManager } from "./InputFocusManager";
 import { PageReadinessTracker } from "./PageReadinessTracker";
 import { PopoverUI } from "./PopoverUI";
 import {
-  ClipboardWriter,
   ContentEditableStrategy,
   InputTextareaStrategy,
   InsertTextOptions,
@@ -87,7 +87,7 @@ export class ContentController {
   private api: BackgroundAPI;
   private target: Target;
   private textInserter: TextInserter;
-  private clipboardWriter: ClipboardWriter;
+  private clipboard: ClipboardService;
   private popover: PopoverUI | null = null;
   private readinessTracker: PageReadinessTracker;
   private inputFocusManager: InputFocusManager;
@@ -104,7 +104,7 @@ export class ContentController {
       new ContentEditableStrategy(),
     ]);
 
-    this.clipboardWriter = new ClipboardWriter();
+    this.clipboard = new ClipboardService();
     this.readinessTracker = new PageReadinessTracker();
     this.inputFocusManager = new InputFocusManager();
     this.batchSender = new BatchSender();
@@ -296,7 +296,7 @@ export class ContentController {
 
   private async copyToClipboard(text: string) {
     try {
-      await this.clipboardWriter.write(text);
+      await this.clipboard.write(text);
       ToastService.show("Copied to clipboard");
     } catch (e) {
       logger.error("Error during copy to clipboard:", e);

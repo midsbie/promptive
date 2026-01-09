@@ -1,4 +1,5 @@
 import { ChunkingOptions, chunkText } from "../lib/chunking";
+import { ClipboardService } from "../lib/clipboard";
 import { AppSettings } from "../lib/settings";
 
 import { BasicProviderAdapter } from "./providers/BasicProviderAdapter";
@@ -6,7 +7,6 @@ import { ProviderAdapter } from "./providers/ProviderAdapter";
 import { DefaultProviderAdapterFactory } from "./providers/ProviderAdapterFactory";
 
 import { BatchProgressUI } from "./BatchProgressUI";
-import { ClipboardWriter } from "./TextInserter";
 import { logger } from "./logger";
 import { ToastService } from "./services";
 
@@ -14,11 +14,11 @@ export class BatchSender {
   private adapterFactory = new DefaultProviderAdapterFactory();
   private currentSession: { abort: AbortController; promise: Promise<void> } | null = null;
   private ui: BatchProgressUI;
-  private clipboardWriter: ClipboardWriter;
+  private clipboard: ClipboardService;
 
   constructor() {
     this.ui = new BatchProgressUI(this.cancel.bind(this));
-    this.clipboardWriter = new ClipboardWriter();
+    this.clipboard = new ClipboardService();
 
     document.addEventListener("keydown", this.onKeydown);
   }
@@ -53,7 +53,7 @@ export class BatchSender {
     const adapter = this.adapterFactory.getForUrl(window.location.href);
     if (!adapter) {
       // Fallback to clipboard if no adapter
-      await this.clipboardWriter.write(text);
+      await this.clipboard.write(text);
       ToastService.show("Provider not supported for batching. Copied to clipboard.");
       return { error: null };
     }
@@ -165,7 +165,7 @@ export class BatchSender {
   private async recover(chunks: string[], startIndex: number) {
     const remaining = chunks.slice(startIndex).join("\n");
     if (remaining) {
-      await this.clipboardWriter.write(remaining);
+      await this.clipboard.write(remaining);
       ToastService.show("Remaining text copied to clipboard");
     }
   }

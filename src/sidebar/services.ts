@@ -2,6 +2,8 @@ import type { Logger } from "../lib/logging";
 import { PromptRepository } from "../lib/storage";
 import { ToastOptions } from "../lib/typedefs";
 
+export { ClipboardService } from "../lib/clipboard";
+
 export class ToastService {
   private timer?: number;
 
@@ -21,12 +23,6 @@ export class ToastService {
 
     clearTimeout(this.timer);
     this.timer = setTimeout(() => toast.classList.remove("show"), 3500);
-  }
-}
-
-export class ClipboardService {
-  async copy(text: string): Promise<void> {
-    await navigator.clipboard.writeText(text);
   }
 }
 
