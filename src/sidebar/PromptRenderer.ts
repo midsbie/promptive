@@ -1,21 +1,9 @@
 import { Prompt } from "../lib/storage";
-import { HtmlEscaper } from "../lib/string";
+import { HTMLEscaper } from "../lib/string";
 import * as icons from "../lib/ui/icons";
 
-interface EscapeFunction {
-  (text: string | null | undefined): string;
-}
-
-interface HtmlEscaperInterface {
-  escape: EscapeFunction;
-}
-
 export class PromptRenderer {
-  private escaper: HtmlEscaperInterface;
-
-  constructor(escaper: HtmlEscaperInterface = HtmlEscaper) {
-    this.escaper = escaper;
-  }
+  private escape = HTMLEscaper.escape;
 
   formatLastUsed(lastUsedAt?: string | null): string {
     if (!lastUsedAt) return "";
@@ -28,12 +16,11 @@ export class PromptRenderer {
   }
 
   item(prompt: Prompt): string {
-    const e = this.escaper.escape;
     const lastUsed = this.formatLastUsed(prompt.last_used_at);
     return `
       <div class="prompt-item" role="listitem">
         <div class="prompt-header">
-          <div class="prompt-title">${e(prompt.title)}</div>
+          <div class="prompt-title">${this.escape(prompt.title)}</div>
           <div class="prompt-actions">
             <button class="icon-btn use-btn ghost" data-id="${prompt.id}" aria-label="Use prompt" data-tooltip="Use">
               ${icons.insert}
@@ -54,12 +41,12 @@ export class PromptRenderer {
             </div>
           </div>
         </div>
-        <div class="prompt-content">${e(prompt.content)}</div>
+        <div class="prompt-content">${this.escape(prompt.content)}</div>
         ${
           prompt.tags && prompt.tags.length
             ? `<div class="prompt-tags-row">
                  <div class="prompt-tags">
-                   ${prompt.tags.map((t) => `<span class="tag">${e(t)}</span>`).join("")}
+                   ${prompt.tags.map((t) => `<span class="tag">${this.escape(t)}</span>`).join("")}
                  </div>
                </div>`
             : ""

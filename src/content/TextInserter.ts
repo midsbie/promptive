@@ -1,5 +1,5 @@
 import { InsertPosition } from "../lib/storage";
-import { HtmlEscaper } from "../lib/string";
+import { HTMLEscaper } from "../lib/string";
 
 import { CaretPositioner } from "./CaretPositioner";
 import { logger } from "./logger";
@@ -15,7 +15,7 @@ const toParagraphHtml = (text: string): string => {
   // Convert plaintext with newlines into <p> blocks, preserving empty lines
   return text
     .split("\n")
-    .map((line) => (line.trim() === "" ? "<p><br></p>" : `<p>${HtmlEscaper.escape(line)}</p>`))
+    .map((line) => (line.trim() === "" ? "<p><br></p>" : `<p>${HTMLEscaper.escape(line)}</p>`))
     .join("");
 };
 

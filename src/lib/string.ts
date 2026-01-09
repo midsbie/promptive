@@ -1,4 +1,4 @@
-export class HtmlEscaper {
+export class HTMLEscaper {
   static escape(text: string | null | undefined): string {
     const div = document.createElement("div");
     div.textContent = text ?? "";

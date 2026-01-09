@@ -1,5 +1,5 @@
 import { Prompt } from "../lib/storage";
-import { HtmlEscaper } from "../lib/string";
+import { HTMLEscaper } from "../lib/string";
 
 interface PromptListItem extends Prompt {
   escapedTitle: string;
@@ -39,11 +39,12 @@ export class PopoverUI {
   open(prompts: Prompt[]): void {
     this.close(); // ensure only one
 
+    const escape = HTMLEscaper.escape;
     this.allPrompts = (prompts ?? []).map((p) => ({
       ...p,
-      escapedTitle: HtmlEscaper.escape(p.title || ""),
-      escapedContent: HtmlEscaper.escape(p.content || ""),
-      escapedTags: (p.tags || []).map((t) => HtmlEscaper.escape(t)),
+      escapedTitle: escape(p.title || ""),
+      escapedContent: escape(p.content || ""),
+      escapedTags: (p.tags || []).map(escape),
     }));
 
     this.filtered = [...this.allPrompts];
