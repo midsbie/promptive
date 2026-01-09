@@ -1,3 +1,5 @@
+import { getRequiredElement } from "../lib/dom";
+
 import { PromptEditor } from "./PromptEditor";
 import { PromptiveSidebar } from "./PromptiveSidebar";
 import { Router } from "./Router";
@@ -13,8 +15,8 @@ let editorInstance: PromptEditor | null = null;
 function showEditor(id?: string | null) {
   editorInstance?.destroy();
 
-  document.getElementById("listView")!.style.display = "none";
-  document.getElementById("editorView")!.style.display = "block";
+  getRequiredElement("listView").style.display = "none";
+  getRequiredElement("editorView").style.display = "block";
 
   editorInstance = new PromptEditor(id);
   editorInstance.initialize().catch((e) => {
@@ -33,8 +35,8 @@ router.addRoute("/", () => {
     editorInstance = null;
   }
 
-  document.getElementById("listView")!.style.display = "block";
-  document.getElementById("editorView")!.style.display = "none";
+  getRequiredElement("listView").style.display = "block";
+  getRequiredElement("editorView").style.display = "none";
 
   if (!sidebarInstance) sidebarInstance = new PromptiveSidebar();
   router.setCurrentView(sidebarInstance);

@@ -1,3 +1,4 @@
+import { getRequiredElement } from "../lib/dom";
 import type { Logger } from "../lib/logging";
 import { PromptRepository } from "../lib/storage";
 import { ToastOptions } from "../lib/typedefs";
@@ -8,7 +9,7 @@ export class ToastService {
   private timer?: number;
 
   show(message: string, options: ToastOptions | null = null): void {
-    const toast = document.getElementById("toast")!;
+    const toast = getRequiredElement("toast");
     toast.innerHTML = "";
     toast.textContent = message;
     toast.classList.add("show");

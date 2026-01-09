@@ -1,3 +1,4 @@
+import { getRequiredElement } from "../lib/dom";
 import { InsertPosition, PartialPrompt, Prompt, PromptRepository } from "../lib/storage";
 
 import { Router } from "./Router";
@@ -34,9 +35,9 @@ export class PromptEditor {
 
     this.render();
 
-    document.getElementById("backBtn")!.addEventListener("click", this.onBackClick);
-    document.getElementById("saveBtn")!.addEventListener("click", this.onSaveClick);
-    document.getElementById("editorForm")!.addEventListener("submit", this.onFormSubmit);
+    getRequiredElement("backBtn").addEventListener("click", this.onBackClick);
+    getRequiredElement("saveBtn").addEventListener("click", this.onSaveClick);
+    getRequiredElement("editorForm").addEventListener("submit", this.onFormSubmit);
 
     const inputs = document.querySelectorAll("#editorForm input, #editorForm textarea");
     inputs.forEach((input) => {
@@ -62,7 +63,7 @@ export class PromptEditor {
   }
 
   private render(): void {
-    const container = document.getElementById("editorView")!;
+    const container = getRequiredElement("editorView");
     const isEdit = !!this.prompt;
 
     container.innerHTML = `

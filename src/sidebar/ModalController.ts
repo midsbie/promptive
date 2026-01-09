@@ -1,3 +1,4 @@
+import { getRequiredElement } from "../lib/dom";
 import { FocusTrap } from "../lib/ui/FocusTrap";
 
 export interface ModalFields {
@@ -19,21 +20,20 @@ export class ModalController {
   }
 
   open({ title, fields }: ModalOptions): void {
-    const modal = document.getElementById("promptModal")!;
-    const h = document.getElementById("modalTitle")!;
+    const modal = getRequiredElement("promptModal");
+    const h = getRequiredElement("modalTitle");
     h.textContent = title;
-    (document.getElementById("promptForm") as HTMLFormElement).reset();
-    (document.getElementById("promptTitle") as HTMLInputElement).value = fields?.title ?? "";
-    (document.getElementById("promptContent") as HTMLTextAreaElement).value = fields?.content ?? "";
-    (document.getElementById("promptTags") as HTMLInputElement).value =
-      fields?.tags?.join(", ") ?? "";
+    getRequiredElement<HTMLFormElement>("promptForm").reset();
+    getRequiredElement<HTMLInputElement>("promptTitle").value = fields?.title ?? "";
+    getRequiredElement<HTMLTextAreaElement>("promptContent").value = fields?.content ?? "";
+    getRequiredElement<HTMLInputElement>("promptTags").value = fields?.tags?.join(", ") ?? "";
     modal.classList.add("active");
-    (document.getElementById("promptTitle") as HTMLInputElement).focus();
+    getRequiredElement<HTMLInputElement>("promptTitle").focus();
     this.release = FocusTrap.trap(modal);
   }
 
   close(): void {
-    document.getElementById("promptModal")!.classList.remove("active");
+    getRequiredElement("promptModal").classList.remove("active");
     if (!this.release) return;
 
     this.release();
@@ -41,12 +41,12 @@ export class ModalController {
   }
 
   isOpen(): boolean {
-    return document.getElementById("promptModal")!.classList.contains("active");
+    return getRequiredElement("promptModal").classList.contains("active");
   }
 
   bind(): void {
-    document.getElementById("cancelBtn")!.addEventListener("click", () => this.close());
-    document.getElementById("promptModal")!.addEventListener("click", (e) => {
+    getRequiredElement("cancelBtn").addEventListener("click", () => this.close());
+    getRequiredElement("promptModal").addEventListener("click", (e) => {
       if ((e.target as HTMLElement).id === "promptModal") this.close();
     });
     document.addEventListener("keydown", (e) => {

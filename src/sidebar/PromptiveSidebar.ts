@@ -1,5 +1,6 @@
 import browser from "webextension-polyfill";
 
+import { getRequiredElement } from "../lib/dom";
 import { SearchService } from "../lib/services";
 import { PartialPrompt, Prompt, PromptRepository } from "../lib/storage";
 
@@ -131,7 +132,7 @@ export class PromptiveSidebar {
   }
 
   render(prompts: Prompt[]): void {
-    const container = document.getElementById("promptList")!;
+    const container = getRequiredElement("promptList");
     container.innerHTML = this.renderer.list(prompts);
     // per-card: use
     container.querySelectorAll(".use-btn").forEach((btn) => {
@@ -149,41 +150,33 @@ export class PromptiveSidebar {
 
   // --- event binding ---
   bindDom(): void {
-    document
-      .getElementById("addPromptBtn")!
-      .addEventListener("click", () => this.navigateToEditor());
+    getRequiredElement("addPromptBtn").addEventListener("click", () => this.navigateToEditor());
 
-    (document.getElementById("searchInput") as HTMLInputElement).addEventListener("input", (e) => {
+    getRequiredElement<HTMLInputElement>("searchInput").addEventListener("input", (e) => {
       const q = (e.target as HTMLInputElement).value;
       const results = this.search.search(q, this.prompts);
       this.render(results);
     });
 
-    document.getElementById("importBtn")!.addEventListener("click", () => {
-      (document.getElementById("importFile") as HTMLInputElement).click();
+    getRequiredElement("importBtn").addEventListener("click", () => {
+      getRequiredElement<HTMLInputElement>("importFile").click();
     });
-    (document.getElementById("importFile") as HTMLInputElement).addEventListener(
-      "change",
-      async (e) => {
-        const files = (e.target as HTMLInputElement).files;
-        if (files && files[0]) {
-          await this.importExport.importFromFile(files[0]);
-          await this.loadAndRender();
-        }
+    getRequiredElement<HTMLInputElement>("importFile").addEventListener("change", async (e) => {
+      const files = (e.target as HTMLInputElement).files;
+      if (files && files[0]) {
+        await this.importExport.importFromFile(files[0]);
+        await this.loadAndRender();
       }
-    );
+    });
 
-    document.getElementById("exportBtn")!.addEventListener("click", async () => {
+    getRequiredElement("exportBtn").addEventListener("click", async () => {
       await this.importExport.exportToDownload();
     });
 
-    (document.getElementById("promptForm") as HTMLFormElement).addEventListener(
-      "submit",
-      async (e) => {
-        e.preventDefault();
-        await this.savePrompt();
-      }
-    );
+    getRequiredElement<HTMLFormElement>("promptForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await this.savePrompt();
+    });
 
     this.modal.bind();
   }
